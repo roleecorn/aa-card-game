@@ -15,7 +15,7 @@ export class EffectRegistry {
   private readonly handlers = new Map<EffectKind, EffectHandler>();
 
   register<K extends EffectKind>(kind: K, handler: EffectHandler<K>): this {
-    this.handlers.set(kind, handler as EffectHandler);
+    this.handlers.set(kind, handler as unknown as EffectHandler);
     return this;
   }
 
@@ -98,7 +98,7 @@ export const builtInEffects = new EffectRegistry()
           dieId: die.id, skill: die.skill, amount: effect.add ?? 0, metadata: { reason: context.definition.id },
         });
         if (event.cancelled) continue;
-        if (effect.set !== undefined) die.value = effect.set;
+        if (effect.set !== undefined) die.value = engine.asDieValue(effect.set);
         if (effect.add !== undefined) die.value = engine.asDieValue(die.value + effect.add);
         changed += 1;
         engine.skills.emit({ ...event, type: 'afterDieModified' });
@@ -219,7 +219,7 @@ export const builtInEffects = new EffectRegistry()
         : work.slots.findIndex((slot) => slot[effect.skill] === undefined);
       const slot = work.slots[index];
       if (!slot) continue;
-      slot[effect.skill] = effect.value;
+      slot[effect.skill] = engine.asDieValue(effect.value);
       changed += 1;
     }
     return changed > 0;
@@ -228,9 +228,9 @@ export const builtInEffects = new EffectRegistry()
     const works = engine.resolveWorks(effect.target, context);
     for (const work of works) {
       for (const slot of work.slots) {
-        if (slot.design === undefined) slot.design = effect.value;
-        if (slot.text === undefined) slot.text = effect.value;
-        if (slot.aa === undefined) slot.aa = effect.value;
+        if (slot.design === undefined) slot.design = engine.asDieValue(effect.value);
+        if (slot.text === undefined) slot.text = engine.asDieValue(effect.value);
+        if (slot.aa === undefined) slot.aa = engine.asDieValue(effect.value);
       }
     }
     return works.length > 0;
