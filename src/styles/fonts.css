@@ -1,0 +1,13 @@
+@font-face {
+  font-family: 'AA Noto Sans TC';
+  src: url('/fonts/noto-sans-tc-ui.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+html,
+body,
+#root {
+  font-family: 'AA Noto Sans TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+}
