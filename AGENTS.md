@@ -40,10 +40,11 @@
 ## 角色美術
 
 - runtime 角色立繪使用 `public/assets/characters/*.webp`。
-- 立繪固定 **3:4**，目前標準輸出為 **768 x 1024**。
+- 立繪固定 **3:4**，標準輸出為 **768 x 1024**，同一批角色必須統一 pixel dimensions。
+- Runtime 角色圖必須直接生成為**獨立角色物件**；不得從 concept board、card mockup、拼圖或多人概念圖裁切。
+- 不得用 blurred padding、letterbox、延伸背景等方式把錯誤比例偽裝成 3:4。
 - 圖片本身不要包含角色名稱、能力值、技能文字、卡框、badge 或其他 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area，避免 responsive UI 再次裁掉頭部。
-- 不從完整 concept board 直接截整張卡片作 runtime asset。
 - 詳細規格見 `CHARACTER_CARD_ART.md`。
 
 ## 編碼與 shell
@@ -65,8 +66,11 @@ npm run build
 
 若環境無法下載 dependency，必須明確記錄限制，不得把未執行的驗證寫成已通過。可使用 repo 內既有的 source-level / runtime smoke 方法補充驗證，但不能冒充正式 build。
 
-## Git
+## Git / GitHub
 
+- GitHub repository `roleecorn/aa-card-game` 是此專案的 authoritative source。
+- **只要對專案內容做了實際修改，就必須把對應修改提交到 GitHub；不可只修改暫存工作目錄或只提供 ZIP。**
+- 若產生候選素材但尚未決定採用，可留在暫存區；一旦宣稱已替換 runtime asset，就必須同步提交該 asset。
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
