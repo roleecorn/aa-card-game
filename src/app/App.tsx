@@ -27,6 +27,7 @@ import { CardHand } from '../components/CardHand';
 import { CardPlayDialog } from '../components/CardPlayDialog';
 import { SkillActivationDialog } from '../components/SkillActivationDialog';
 import { LogPanel } from '../components/LogPanel';
+import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 
 const panelSx = {
   p: 1.15,
@@ -51,6 +52,7 @@ export default function App() {
   const [cardInstance, setCardInstance] = useState<CardInstance>();
   const [skillDialog, setSkillDialog] = useState<{ memberId: string; skillId: string }>();
   const [message, setMessage] = useState<string>();
+  const [rosterOpen, setRosterOpen] = useState(false);
 
   const selectedDie = game.player.pendingDice.find((die) => die.id === selectedDieId);
   const playerScore = engine.scoreTeam('player');
@@ -99,7 +101,13 @@ export default function App() {
         backgroundSize: '86px 86px, 110px 110px',
       }}
     >
-      <GameHeader game={game} playerScore={playerScore} enemyScore={enemyScore} onReset={() => { reset(); setSelectedDieId(undefined); }} />
+      <GameHeader
+        game={game}
+        playerScore={playerScore}
+        enemyScore={enemyScore}
+        onOpenRoster={() => setRosterOpen(true)}
+        onReset={() => { reset(); setSelectedDieId(undefined); }}
+      />
       <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
         {game.phase === 'finished' && (
           <Alert severity={game.winner === 'player' ? 'success' : game.winner === 'draw' ? 'info' : 'warning'} sx={{ mb: 1.2 }}>
@@ -184,6 +192,7 @@ export default function App() {
 
       <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={() => setCardInstance(undefined)} onConfirm={handleCardConfirm} />
       <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={() => setSkillDialog(undefined)} onConfirm={handleSkillConfirm} />
+      <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
       <Snackbar open={!!message} autoHideDuration={3500} onClose={() => setMessage(undefined)}>
         <Alert severity="info" onClose={() => setMessage(undefined)}>{message}</Alert>
       </Snackbar>
