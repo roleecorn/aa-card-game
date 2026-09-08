@@ -26,6 +26,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Test
+        run: npm run test
+
       - name: Start Vite
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
