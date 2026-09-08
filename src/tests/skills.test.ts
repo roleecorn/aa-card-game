@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialGame, EngineSession } from '../game/engine';
-import { DEFAULT_CONTENT } from '../content/catalog';
+import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
 import type { GameContent } from '../game/contentRegistry';
 import { matchesCondition } from '../game/skillRuntime';
 import type { EffectContext } from '../game/types';
@@ -180,5 +180,41 @@ describe('generic conditions', () => {
     expect(matchesCondition({ kind: 'workType', target: 'ownerWork', types: ['謀'] }, ctx, engine)).toBe(true);
     expect(matchesCondition({ kind: 'workScore', target: 'ownerWork', op: 'gte', value: -4 }, ctx, engine)).toBe(true);
     expect(matchesCondition({ kind: 'chance', probability: 0.25 }, ctx, engine)).toBe(true);
+  });
+});
+
+
+describe('discussion-backed character catalog', () => {
+  it('includes every character card with explicit values in the discussion notes', () => {
+    expect(Object.keys(CHARACTERS)).toEqual(expect.arrayContaining([
+      'pintbox',
+      'user79',
+      'mashiro',
+      'ginsakura',
+      'narrator',
+      'bluewind',
+      'triangle',
+      'fengyang',
+      'chaos',
+    ]));
+
+    expect(CHARACTERS.chaos?.stats).toEqual({ design: 3, text: 3, aa: 3 });
+    expect(CHARACTERS.chaos?.maxStress).toBeNull();
+    expect(CHARACTERS.chaos?.resource).toEqual({ name: '體力', max: 5, initial: 5 });
+  });
+
+  it('interprets "不會擲出 3 以下" as a roll floor of 3', () => {
+    const game = createInitialGame(fixedRng(0));
+    const engine = new EngineSession(game, fixedRng(0));
+
+    expect(engine.skills.getRollFloor('fengyang')).toBe(3);
+    expect(engine.skills.getRollFloor('chaos')).toBe(3);
+    expect(SKILLS.commercialAuthor?.description).toContain('3 以下');
+  });
+
+  it('keeps discussion-defined but unsupported mechanics explicit instead of inventing behavior', () => {
+    expect(SKILLS.triangleCoordination?.status).toBe('planned');
+    expect(SKILLS.chaosVitality?.status).toBe('planned');
+    expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
   });
 });
