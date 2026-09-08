@@ -74,3 +74,12 @@ npm run build
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
+
+
+## Figma
+
+- 視覺排版與 component design 的 Figma file：`https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH`。
+- GitHub/TypeScript 仍是 runtime logic 的 source of truth；Figma 是 visual/layout source。
+- 若修改 layout、spacing、typography 或 component composition，應同步 Figma；若從 Figma 修改，必須經 design-to-code review 後再修改 TypeScript，不直接把 arbitrary Figma output 視為 production code。
+- 圖片與文字/UI layer 必須分離。
+- 工作流細節見 `FIGMA.md`。
