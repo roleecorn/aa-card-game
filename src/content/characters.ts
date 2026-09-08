@@ -10,6 +10,11 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['pintboxReview', 'pintboxAI'],
     tags: ['leader', 'review'],
     portrait: '/assets/characters/pintbox.webp',
+    sourceNotes: [
+      '2026-09-03 07:24:17：Design 2、AA 2、壓力上限 5。',
+      'Text 未在目前整理紀錄中明確列出；prototype 暫用 0。',
+      '作品適性未在該角色卡紀錄中定案；目前 affinities 為 prototype 暫定。',
+    ],
   },
   {
     id: 'mashiro',
@@ -19,6 +24,10 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['mashiroAffinity', 'mashiroSynthesis'],
     portrait: '/assets/characters/mashiro.webp',
+    sourceNotes: [
+      '2026-09-03 07:56:48：Text 1、Design 2、AA 2、壓力上限 5。',
+      '討論明確指定全作品適性。',
+    ],
   },
   {
     id: 'user79',
@@ -28,6 +37,10 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['燃', '謀'],
     skillIds: ['resonance79', 'virtualCircle79'],
     portrait: '/assets/characters/user79.webp',
+    sourceNotes: [
+      '2026-09-03 23:06:59：Text 3、Design 2、AA 2、壓力上限 4。',
+      '作品適性目前沿用 prototype 暫定值。',
+    ],
   },
   {
     id: 'narrator',
@@ -37,6 +50,11 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['笑'],
     skillIds: ['narratorOsaka', 'narratorLongForm'],
     portrait: '/assets/characters/narrator.webp',
+    sourceNotes: [
+      '2026-09-03 08:00:45：Text 3、Design 1、AA 1。',
+      '壓力上限未在目前整理紀錄中明確列出；prototype 暫用 5。',
+      '作品適性目前為 prototype 暫定。',
+    ],
   },
   {
     id: 'ginsakura',
@@ -46,6 +64,10 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['情', '燃'],
     skillIds: ['ginsakuraRise', 'ginsakuraSupport'],
     portrait: '/assets/characters/ginsakura.webp',
+    sourceNotes: [
+      '2026-09-03 07:49:52：Text 2、Design 1、AA 3、壓力上限 3。',
+      '作品適性目前為 prototype 暫定。',
+    ],
   },
   {
     id: 'bluewind',
@@ -55,6 +77,11 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['情', '謀'],
     skillIds: ['bluewindDelusion'],
     portrait: '/assets/characters/bluewind.webp',
+    sourceNotes: [
+      '2026-09-03 19:21:48：Text 1、Design 1、壓力上限 3。',
+      'AA 未在目前整理紀錄中明確列出；prototype 暫用 0。',
+      '作品適性目前為 prototype 暫定。',
+    ],
   },
   {
     id: 'triangle',
@@ -62,7 +89,11 @@ export const characterList = characterDefinitionSchema.array().parse([
     stats: { design: 1, text: 2, aa: 2 },
     maxStress: 4,
     affinities: [],
-    skillIds: ['triangleRecovery', 'triangleAffinity'],
+    skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
+    sourceNotes: [
+      '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
+      '討論明確指定每回合自身壓力 -1、全作品適性、可以使用統籌卡。',
+    ],
   },
   {
     id: 'fengyang',
@@ -71,5 +102,26 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 2,
     affinities: ['謀', '情'],
     skillIds: ['commercialAuthor'],
+    sourceNotes: [
+      '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
+      'AA 未在目前整理紀錄中明確列出；prototype 暫用 0。',
+      '作品適性目前為 prototype 暫定。',
+    ],
+  },
+  {
+    id: 'chaos',
+    name: '卡奧斯',
+    stats: { design: 3, text: 3, aa: 3 },
+    maxStress: null,
+    affinities: [],
+    skillIds: ['chaosSteadyRoll', 'chaosVitality'],
+    tags: ['boss', 'not-standard-playable'],
+    resource: { name: '體力', max: 5, initial: 5 },
+    sourceNotes: [
+      '2026-09-05 11:30:40：Text / Design / AA 全 3。',
+      '體力 5，沒有壓力條；每回合體力 -1。',
+      '不會擲出 3 以下；Pintbox 表示可按 Boss 設計。',
+      'Boss resource runtime 尚未接入標準 3v3 match，因此目前只進 catalog，不加入 DEFAULT_MATCH。',
+    ],
   },
 ]);
