@@ -136,7 +136,7 @@ export const builtInEffects = new EffectRegistry()
         dieId: die.id, skill: die.skill, amount: effect.add ?? 0, metadata: { reason: context.definition.id },
       });
       if (event.cancelled) return false;
-      if (effect.set !== undefined) die.value = effect.set;
+      if (effect.set !== undefined) die.value = engine.asDieValue(effect.set);
       if (effect.add !== undefined) die.value = engine.asDieValue(die.value + effect.add);
       engine.skills.emit({ ...event, type: 'afterDieModified' });
       return true;
