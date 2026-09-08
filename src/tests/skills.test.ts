@@ -14,6 +14,11 @@ const FIXED_ROSTER = {
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
+const HAPPY_ROSTER = {
+  playerMemberIds: ['happy', 'pintbox', 'mashiro'],
+  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+};
+
 function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
   return createInitialGame(rng, content, FIXED_ROSTER);
 }
@@ -204,6 +209,7 @@ describe('discussion-backed character catalog', () => {
       'bluewind',
       'triangle',
       'fengyang',
+      'happy',
       'chaos',
     ]));
 
@@ -277,5 +283,51 @@ describe('random standard roster selection', () => {
         if (character.affinities.length) expect(character.affinities).toContain(work.type);
       }
     }
+  });
+});
+
+
+describe('高興 complete character package', () => {
+  it('uses the discussion-backed stats and unlimited stress', () => {
+    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 0 });
+    expect(CHARACTERS.happy?.maxStress).toBeNull();
+    expect(CHARACTERS.happy?.portrait).toBe('/assets/characters/happy.webp');
+
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    engine.adjustStress('player', 'happy', 20, 'test');
+    expect(engine.getCharacter('player', 'happy')?.stress).toBe(20);
+  });
+
+  it('gets three extra coordination cards at game start', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    expect(game.player.hand).toHaveLength(7);
+    expect(game.logs.some((entry) => entry.text.includes('編輯長：額外取得 3 張統籌卡'))).toBe(true);
+  });
+
+  it('the generic random-card effect only adds cards of the requested kind', () => {
+    const game = createFixedGame(fixedRng(0.5));
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const before = game.player.hand.length;
+
+    expect(engine.applyEffects([
+      { kind: 'custom', handler: 'addRandomCardsByKind', args: { cardKind: 'coordination', count: 3 } },
+    ], context())).toBe(true);
+
+    const added = game.player.hand.slice(before);
+    expect(added).toHaveLength(3);
+    expect(added.every((instance) => DEFAULT_CONTENT.cards[instance.cardId]?.kind === 'coordination')).toBe(true);
+  });
+
+  it('turns a work into 怪 when 高興 places a die into it', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const work = game.player.works.find((item) => item.ownerId === 'happy')!;
+    work.type = '謀';
+
+    const die = engine.grantDice('player', 'happy', 'design', 1, 'test', false, 4)[0]!;
+    die.value = 4;
+    expect(engine.placeDie('player', die.id, work.id, 0)).toBe(true);
+    expect(work.type).toBe('怪');
   });
 });

@@ -73,6 +73,7 @@ npm run build
 - 若產生候選素材但尚未決定採用，可留在暫存區；一旦宣稱已替換 runtime asset，就必須同步提交該 asset。
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。
+- **角色內容採 atomic commit**：新增或完成一名角色時，其數值、角色/技能文本、實際 runtime 效果、測試與正式 portrait asset 必須在同一個 commit 內完成；不得先提交其中一部分再於後續 commit 補齊。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
 
 

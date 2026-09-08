@@ -174,6 +174,39 @@ export const skillList = skillDefinitionSchema.array().parse([
     status: 'planned',
   },
   {
+    id: 'happyContagion',
+    name: '高興',
+    description: '高興將自己的骰放入作品後，該作品類型變為「怪」。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'afterDiePlaced',
+        condition: { kind: 'relation', field: 'actorId', relation: 'self' },
+        effects: [{ kind: 'work.type', target: 'eventWork', workType: '怪' }],
+      },
+    ],
+  },
+  {
+    id: 'happyEditor',
+    name: '編輯長',
+    description: '遊戲開始時額外取得三張統籌卡。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'gameStart',
+        effects: [
+          {
+            kind: 'custom',
+            handler: 'addRandomCardsByKind',
+            args: { cardKind: 'coordination', count: 3 },
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'chaosSteadyRoll',
     name: 'Boss 級穩定輸出',
     description: '不會擲出 3 以下。',

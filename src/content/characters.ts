@@ -112,6 +112,21 @@ export const characterList = characterDefinitionSchema.array().parse([
     ],
   },
   {
+    id: 'happy',
+    name: '高興',
+    stats: { design: 3, text: 0, aa: 0 },
+    maxStress: null,
+    affinities: [],
+    skillIds: ['happyContagion', 'happyEditor'],
+    portrait: '/assets/characters/happy.webp',
+    sourceNotes: [
+      '原始角色卡明確列出 Design 3、壓力上限 ∞。',
+      'Text / AA 未在角色卡中列出；依目前 prototype 對未列能力的資料慣例採 0。',
+      '技能「高興」：參與的作品類型變為（怪）。',
+      '第二技能採後期修正版：遊戲開始時額外取得三張統籌卡。',
+    ],
+  },
+  {
     id: 'chaos',
     name: '卡奧斯',
     stats: { design: 3, text: 3, aa: 3 },

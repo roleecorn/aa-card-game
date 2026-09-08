@@ -75,7 +75,7 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
                           <Chip size="small" label="無壓力條" variant="outlined" />
                         </>
                       ) : (
-                        <Chip size="small" label={`Stress ${character.maxStress ?? '—'}`} />
+                        <Chip size="small" label={`Stress ${character.maxStress === null ? '∞' : character.maxStress}`} />
                       )}
                     </Stack>
 

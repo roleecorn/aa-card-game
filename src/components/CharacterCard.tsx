@@ -73,7 +73,7 @@ export function CharacterCard({
           <Box sx={{ pt: .2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>壓力 Stress</Typography>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress}{definition.maxStress === null ? '' : ` / ${definition.maxStress}`}</Typography>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress} / {definition.maxStress === null ? '∞' : definition.maxStress}</Typography>
             </Stack>
             <LinearProgress
               variant="determinate"
