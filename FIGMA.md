@@ -17,7 +17,7 @@ Figma 不是自動覆寫 production code 的唯一來源。排版在 Figma 修�
 目前包含：
 
 - `01 Game Board`：Desktop game board 的 editable screen。
-- `02 Components`：CharacterCard、WorkCard、HandCard、DiceToken、ScoreBox、ActionButton 等 reusable component。
+- `02 Components`：CharacterCard、WorkCard、HandCard、DieToken、ScoreBox、ActionButton 等 reusable component。
 - `03 Foundations`：palette 與 typography direction。
 
 ## 推薦工作流
@@ -37,7 +37,7 @@ Figma 不是自動覆寫 production code 的唯一來源。排版在 Figma 修�
 當 Figma component 與 React component 的邊界穩定後，應逐步加入 Figma Code Connect。目標 mapping：
 
 - `CharacterCard` ↔ `src/components/CharacterCard.tsx`
-- `DiceToken` ↔ `src/components/DieToken.tsx`
+- `DieToken` ↔ `src/components/DieToken.tsx`
 - `HandCard` ↔ `src/components/HandCard.tsx`
 - `WorkCard` ↔ `src/components/WorkCard.tsx`
 
