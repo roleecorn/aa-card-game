@@ -1,3 +1,4 @@
+import '../styles/fonts.css';
 import { createTheme } from '@mui/material/styles';
 
 export const theme = createTheme({
@@ -12,7 +13,7 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 14 },
   typography: {
-    fontFamily: 'Inter, "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif',
+    fontFamily: '"AA Noto Sans TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif',
     button: { textTransform: 'none', fontWeight: 700 },
     h5: { fontWeight: 900 },
     h6: { fontWeight: 800 },
