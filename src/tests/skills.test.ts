@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInitialGame, EngineSession } from '../game/engine';
+import { createInitialGame, EngineSession, selectStandardRosters } from '../game/engine';
 import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
 import type { GameContent } from '../game/contentRegistry';
 import { matchesCondition } from '../game/skillRuntime';
@@ -7,6 +7,15 @@ import type { EffectContext } from '../game/types';
 
 function fixedRng(value: number) {
   return () => value;
+}
+
+const FIXED_ROSTER = {
+  playerMemberIds: ['pintbox', 'mashiro', 'user79'],
+  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+};
+
+function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
+  return createInitialGame(rng, content, FIXED_ROSTER);
 }
 
 function context(ownerId = 'pintbox'): EffectContext {
@@ -20,13 +29,13 @@ function context(ownerId = 'pintbox'): EffectContext {
 
 describe('data-driven skill runtime', () => {
   it('79 gets two Voice Meeting cards at game start', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const voiceCount = game.player.hand.filter((card) => card.cardId === 'voice').length;
     expect(voiceCount).toBeGreaterThanOrEqual(2);
   });
 
   it('Pintbox AI reduces the first external stress gain each round', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     engine.adjustStress('player', 'pintbox', 3, 'test-event', true, 'narrator');
     expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(2);
@@ -35,7 +44,7 @@ describe('data-driven skill runtime', () => {
   });
 
   it('79 resonance reacts to another ally receiving extra Design dice', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     const before = game.player.pendingDice.filter((die) => die.ownerId === 'user79').length;
     engine.grantDice('player', 'mashiro', 'design', 1, 'test-extra', true);
@@ -44,7 +53,7 @@ describe('data-driven skill runtime', () => {
   });
 
   it('Mashiro has all affinities and can copy another ally pending die value once per round', () => {
-    const game = createInitialGame(fixedRng(0.1));
+    const game = createFixedGame(fixedRng(0.1));
     const engine = new EngineSession(game, fixedRng(0.1));
     expect(engine.getEffectiveAffinity('mashiro')).toBe('all');
 
@@ -87,7 +96,7 @@ describe('data-driven skill runtime', () => {
         },
       },
     };
-    const game = createInitialGame(fixedRng(0.5), customContent);
+    const game = createFixedGame(fixedRng(0.5), customContent);
     const engine = new EngineSession(game, fixedRng(0.5), customContent);
     engine.getCharacter('player', 'pintbox')!.stress = 2;
 
@@ -96,7 +105,7 @@ describe('data-driven skill runtime', () => {
     expect(game.player.pendingDice.some((die) => die.ownerId === 'pintbox' && die.skill === 'text')).toBe(true);
   });
   it('Bluewind active skill is composed from generic dice/work/stress effects', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     const member = engine.getCharacter('enemy', 'bluewind')!;
     member.stress = 2;
@@ -111,7 +120,7 @@ describe('data-driven skill runtime', () => {
 
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     engine.getCharacter('enemy', 'narrator')!.stress = 1;
     engine.getCharacter('enemy', 'ginsakura')!.stress = 2;
@@ -124,7 +133,7 @@ describe('generic effect vocabulary', () => {
   });
 
   it('supports selected-die modification, conversion, and filtered removal', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     const dice = engine.grantDice('player', 'mashiro', 'design', 3, 'test', false);
     dice[0]!.value = 1;
@@ -149,7 +158,7 @@ describe('generic effect vocabulary', () => {
   });
 
   it('can clear existing progress generically', () => {
-    const game = createInitialGame(fixedRng(0.5));
+    const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
     const work = game.player.works[0]!;
     work.slots[0] = { design: 1, text: 4, aa: 5 };
@@ -166,7 +175,7 @@ describe('generic effect vocabulary', () => {
 
 describe('generic conditions', () => {
   it('supports round/stat/pending-dice/work/chance conditions', () => {
-    const game = createInitialGame(fixedRng(0.2));
+    const game = createFixedGame(fixedRng(0.2));
     const engine = new EngineSession(game, fixedRng(0.2));
     const ctx = context('pintbox');
     const die = engine.grantDice('player', 'pintbox', 'design', 1, 'condition-test', false)[0]!;
@@ -204,7 +213,7 @@ describe('discussion-backed character catalog', () => {
   });
 
   it('interprets "不會擲出 3 以下" as a roll floor of 3', () => {
-    const game = createInitialGame(fixedRng(0));
+    const game = createFixedGame(fixedRng(0));
     const engine = new EngineSession(game, fixedRng(0));
 
     expect(engine.skills.getRollFloor('fengyang')).toBe(3);
@@ -216,5 +225,57 @@ describe('discussion-backed character catalog', () => {
     expect(SKILLS.triangleCoordination?.status).toBe('planned');
     expect(SKILLS.chaosVitality?.status).toBe('planned');
     expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
+  });
+});
+
+
+describe('random standard roster selection', () => {
+  it('draws three player characters, then three opponents from the remaining pool', () => {
+    let seed = 123456789;
+    const rng = () => {
+      seed = (1664525 * seed + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+
+    const selected = selectStandardRosters(rng);
+    expect(selected.playerMemberIds).toHaveLength(3);
+    expect(selected.enemyMemberIds).toHaveLength(3);
+
+    const fielded = [...selected.playerMemberIds, ...selected.enemyMemberIds];
+    expect(new Set(fielded).size).toBe(6);
+    expect(selected.enemyMemberIds.every((id) => !selected.playerMemberIds.includes(id))).toBe(true);
+    expect(fielded).not.toContain('chaos');
+    expect(selected.unusedMemberIds).toHaveLength(
+      Object.values(CHARACTERS).filter((character) => !character.tags?.includes('not-standard-playable')).length - 6,
+    );
+  });
+
+  it('creates a standard game with disjoint random rosters', () => {
+    let seed = 987654321;
+    const rng = () => {
+      seed = (1664525 * seed + 1013904223) >>> 0;
+      return seed / 0x100000000;
+    };
+
+    const game = createInitialGame(rng);
+    const playerIds = game.player.members.map((member) => member.defId);
+    const enemyIds = game.enemy.members.map((member) => member.defId);
+
+    expect(playerIds).toHaveLength(3);
+    expect(enemyIds).toHaveLength(3);
+    expect(new Set([...playerIds, ...enemyIds]).size).toBe(6);
+    expect(enemyIds.every((id) => !playerIds.includes(id))).toBe(true);
+    expect([...playerIds, ...enemyIds]).not.toContain('chaos');
+  });
+
+  it('rerolls each owned work type from that character affinity when available', () => {
+    const game = createFixedGame(fixedRng(0.25));
+    for (const team of [game.player, game.enemy]) {
+      for (const work of team.works) {
+        const character = CHARACTERS[work.ownerId]!;
+        if (character.id === 'mashiro') continue;
+        if (character.affinities.length) expect(character.affinities).toContain(work.type);
+      }
+    }
   });
 });
