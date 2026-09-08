@@ -1,8 +1,6 @@
 import {
   Box,
   Card,
-  CardContent,
-  CardMedia,
   LinearProgress,
   Stack,
   ToggleButton,
@@ -23,6 +21,7 @@ interface Props {
   stats: CharacterDefinition['stats'];
   action?: ActionChoice;
   showActions?: boolean;
+  compact?: boolean;
   onActionChange?: (action: ActionChoice) => void;
   onActivateSkill?: (skillId: string) => void;
   canActivateSkill?: (skillId: string) => boolean;
@@ -34,47 +33,56 @@ export function CharacterCard({
   stats,
   action,
   showActions,
+  compact,
   onActionChange,
   onActivateSkill,
   canActivateSkill,
 }: Props) {
   const maxStress = definition.maxStress ?? 1;
   const stressPercent = definition.maxStress === null ? 0 : Math.min(100, (state.stress / maxStress) * 100);
+
   return (
-    <Card sx={{ overflow: 'hidden', background: '#fff' }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: definition.portrait ? { xs: '104px minmax(0, 1fr)', sm: '128px minmax(0, 1fr)' } : '1fr', alignItems: 'start' }}>
+    <Card sx={{ overflow: 'hidden', bgcolor: '#fff', borderWidth: 1.5 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: definition.portrait ? (compact ? '56% 44%' : { xs: '118px minmax(0,1fr)', sm: '148px minmax(0,1fr)' }) : '1fr', minHeight: compact ? 138 : 188 }}>
         {definition.portrait && (
-          <Box sx={{ p: 1, pr: 0 }}>
-            <CardMedia
+          <Box sx={{ position: 'relative', overflow: 'hidden', minHeight: compact ? 138 : 188, bgcolor: '#f1f5fa' }}>
+            <Box
               component="img"
-              image={definition.portrait}
+              src={definition.portrait}
               alt={definition.name}
-              sx={{
-                width: '100%',
-                aspectRatio: '3 / 4',
-                objectFit: 'cover',
-                objectPosition: 'center',
-                borderRadius: 2,
-                display: 'block',
-              }}
+              sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, objectFit: 'cover', objectPosition: 'center 22%', display: 'block' }}
             />
+            <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 54%, rgba(26,38,62,.58) 100%)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', left: 7, top: 7, px: .8, py: .2, bgcolor: 'rgba(255,255,255,.94)', border: '1.5px solid #d7e2ef', borderRadius: 1, transform: 'rotate(-3deg)', boxShadow: '0 1px 3px rgba(31,48,78,.1)' }}>
+              <Typography sx={{ fontSize: compact ? 15 : 18, lineHeight: 1, fontWeight: 950, color: '#1e2b45' }}>{definition.name}</Typography>
+            </Box>
+            {!compact && (
+              <Typography sx={{ position: 'absolute', left: 10, bottom: 8, color: '#fff', fontSize: 11, fontWeight: 800, textShadow: '0 1px 4px rgba(0,0,0,.4)' }}>
+                創作夥伴
+              </Typography>
+            )}
           </Box>
         )}
-        <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, minWidth: 0 }}>
-          <Typography variant="h6" sx={{ lineHeight: 1.1, mb: 1 }}>{definition.name}</Typography>
-          <Stack direction="row" spacing={1.2} sx={{ mb: 1 }}>
-            <Stat icon={<EditNoteIcon fontSize="small" />} label="Design" value={stats.design} />
-            <Stat icon={<SubjectIcon fontSize="small" />} label="Text" value={stats.text} />
-            <Stat icon={<LayersIcon fontSize="small" />} label="AA" value={stats.aa} />
-          </Stack>
-          <Typography variant="caption" color="text.secondary">壓力 {state.stress}{definition.maxStress === null ? '' : ` / ${definition.maxStress}`}</Typography>
-          <LinearProgress
-            variant="determinate"
-            value={stressPercent}
-            color={stressPercent >= 80 ? 'secondary' : 'primary'}
-            sx={{ height: 7, borderRadius: 8, mb: 1.2 }}
-          />
-          <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} />
+
+        <Stack sx={{ p: compact ? 1 : 1.35, minWidth: 0 }} spacing={compact ? .45 : .75}>
+          {!definition.portrait && <Typography variant="h6">{definition.name}</Typography>}
+          <Stat icon={<EditNoteIcon />} label="Design" value={stats.design} tone="#ff6f98" compact={compact} />
+          <Stat icon={<SubjectIcon />} label="Text" value={stats.text} tone="#4f8fe6" compact={compact} />
+          <Stat icon={<LayersIcon />} label="AA" value={stats.aa} tone="#3bb8a5" compact={compact} />
+
+          <Box sx={{ pt: .2 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>壓力 Stress</Typography>
+              <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress}{definition.maxStress === null ? '' : ` / ${definition.maxStress}`}</Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={stressPercent}
+              sx={{ mt: .25, height: 8, borderRadius: 8, bgcolor: '#e6edf6', border: '1px solid #aab9cd', '& .MuiLinearProgress-bar': { bgcolor: stressPercent >= 80 ? '#ef6e78' : '#ff86aa', borderRadius: 8 } }}
+            />
+          </Box>
+
+          {!compact && <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} />}
           {showActions && (
             <ToggleButtonGroup
               exclusive
@@ -82,23 +90,31 @@ export function CharacterCard({
               fullWidth
               value={action ?? 'work'}
               onChange={(_, next: ActionChoice | null) => next && onActionChange?.(next)}
-              sx={{ mt: 1.2 }}
+              sx={{ mt: .4, '& .MuiToggleButton-root': { py: .35, fontSize: 11, fontWeight: 850 } }}
             >
               <ToggleButton value="work">創作</ToggleButton>
-              <ToggleButton value="slack"><CoffeeIcon fontSize="small" sx={{ mr: 0.5 }} />摸魚</ToggleButton>
+              <ToggleButton value="slack"><CoffeeIcon sx={{ mr: .35, fontSize: 15 }} />摸魚</ToggleButton>
             </ToggleButtonGroup>
           )}
-        </CardContent>
+        </Stack>
       </Box>
+      {compact && definition.skillIds.length > 0 && (
+        <Box sx={{ borderTop: '1px dashed #d9e3ef', px: .8, py: .55, bgcolor: '#fffefb' }}>
+          <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} compact />
+        </Box>
+      )}
     </Card>
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function Stat({ icon, label, value, tone, compact }: { icon: React.ReactNode; label: string; value: number; tone: string; compact?: boolean }) {
   return (
-    <Box sx={{ minWidth: 0 }}>
-      <Stack direction="row" spacing={0.35} alignItems="center">{icon}<Typography variant="caption" fontWeight={800}>{label}</Typography></Stack>
-      <Typography fontWeight={900}>{value}</Typography>
-    </Box>
+    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={.6}>
+      <Stack direction="row" spacing={.4} alignItems="center" sx={{ minWidth: 0 }}>
+        <Box sx={{ color: tone, display: 'flex', '& svg': { fontSize: compact ? 17 : 19 } }}>{icon}</Box>
+        <Typography sx={{ fontSize: compact ? 11.5 : 12.5, fontWeight: 850 }}>{label}</Typography>
+      </Stack>
+      <Typography sx={{ fontSize: compact ? 16 : 18, lineHeight: 1, fontWeight: 950 }}>{value}</Typography>
+    </Stack>
   );
 }
