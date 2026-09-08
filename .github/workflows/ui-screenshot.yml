@@ -2,6 +2,7 @@ name: UI Screenshot
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     paths:
       - '.github/workflows/ui-screenshot.yml'
