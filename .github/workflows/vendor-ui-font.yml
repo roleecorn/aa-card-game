@@ -1,0 +1,95 @@
+name: Vendor UI Font
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/vendor-ui-font.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install font tooling
+        run: python -m pip install --disable-pip-version-check fonttools brotli
+
+      - name: Download upstream Noto Sans TC
+        run: |
+          mkdir -p .font-cache public/fonts
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf" -o .font-cache/NotoSansTC.ttf
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/OFL.txt" -o public/fonts/OFL.txt
+
+      - name: Collect current UI glyphs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          roots = [Path("src"), Path("index.html")]
+          chars = set(chr(code) for code in range(0x20, 0x7f))
+          suffixes = {".ts", ".tsx", ".css", ".html"}
+
+          for root in roots:
+              paths = [root] if root.is_file() else root.rglob("*")
+              for path in paths:
+                  if not path.is_file() or path.suffix not in suffixes:
+                      continue
+                  text = path.read_text(encoding="utf-8")
+                  chars.update(ch for ch in text if ord(ch) >= 0x20 and ch not in "\r\n\t")
+
+          Path(".font-cache/ui-glyphs.txt").write_text("".join(sorted(chars)), encoding="utf-8")
+          print(f"Collected {len(chars)} unique UI characters")
+          PY
+
+      - name: Build WOFF2 subset
+        run: |
+          pyftsubset .font-cache/NotoSansTC.ttf \
+            --text-file=.font-cache/ui-glyphs.txt \
+            --output-file=public/fonts/noto-sans-tc-ui.woff2 \
+            --flavor=woff2 \
+            --layout-features='*' \
+            --name-IDs='*' \
+            --name-legacy \
+            --name-languages='*' \
+            --notdef-glyph \
+            --recommended-glyphs
+          ls -lh public/fonts/noto-sans-tc-ui.woff2
+
+      - name: Write font provenance
+        run: |
+          cat > public/fonts/README.md <<'EOF'
+          # Bundled UI font
+
+          `noto-sans-tc-ui.woff2` is a project-specific subset of **Noto Sans TC Variable**.
+
+          - Upstream: Google Fonts / Noto Sans TC
+          - License: SIL Open Font License 1.1; see `OFL.txt`
+          - Weights: 100–900
+          - Glyph set: ASCII plus all characters currently referenced by `src/**/*.{ts,tsx,css}` and `index.html`
+          - Purpose: deterministic Traditional Chinese rendering in local development, CI screenshots, and production
+
+          Regenerate by running the `Vendor UI Font` GitHub Actions workflow after introducing new UI characters.
+          EOF
+
+      - name: Commit vendored font
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/fonts/
+          if git diff --cached --quiet; then
+            echo "Font subset is already current."
+            exit 0
+          fi
+          git commit -m "assets: vendor Noto Sans TC UI subset"
+          git push origin HEAD:main
