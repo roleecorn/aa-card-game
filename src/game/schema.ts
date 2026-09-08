@@ -332,6 +332,12 @@ export const characterDefinitionSchema = z.object({
   skillIds: z.array(z.string()),
   tags: z.array(z.string()).optional(),
   portrait: z.string().optional(),
+  resource: z.object({
+    name: z.string().min(1),
+    max: z.number().int().positive(),
+    initial: z.number().int().nonnegative(),
+  }).optional(),
+  sourceNotes: z.array(z.string()).optional(),
 });
 
 export const cardDefinitionSchema = z.object({
