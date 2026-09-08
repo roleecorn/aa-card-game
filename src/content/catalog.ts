@@ -1,0 +1,36 @@
+import type { GameContent } from '../game/contentRegistry';
+import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } from '../game/schema';
+import { cardList } from './cards';
+import { characterList } from './characters';
+import { skillList } from './skills';
+export { BASE_DECK, DEFAULT_MATCH } from './match';
+import { BASE_DECK } from './match';
+
+function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
+  return Object.fromEntries(items.map((item) => [item.id, item]));
+}
+
+export const SKILLS: Record<string, SkillDefinition> = toRecord(skillList);
+export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(characterList);
+export const CARDS: Record<string, CardDefinition> = toRecord(cardList);
+
+export const WORK_TYPES: WorkType[] = ['燃', '謀', '笑', '情', '色', '怪'];
+
+export const DEFAULT_CONTENT: GameContent = {
+  skills: SKILLS,
+  characters: CHARACTERS,
+  cards: CARDS,
+};
+
+export function validateCatalog(): void {
+  for (const character of characterList) {
+    for (const skillId of character.skillIds) {
+      if (!SKILLS[skillId]) throw new Error(`Character ${character.id} references missing skill ${skillId}`);
+    }
+  }
+  for (const cardId of BASE_DECK) {
+    if (!CARDS[cardId]) throw new Error(`BASE_DECK references missing card ${cardId}`);
+  }
+}
+
+validateCatalog();
