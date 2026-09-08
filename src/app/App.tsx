@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Container,
-  Divider,
   Paper,
   Snackbar,
   Stack,
@@ -13,6 +12,9 @@ import {
 import CasinoIcon from '@mui/icons-material/Casino';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import HandshakeIcon from '@mui/icons-material/Handshake';
+import CoffeeIcon from '@mui/icons-material/Coffee';
 import { CARDS, SKILLS } from '../content/catalog';
 import { EngineSession } from '../game/engine';
 import type { CardInstance, SkillActivationTarget } from '../game/types';
@@ -25,6 +27,13 @@ import { CardHand } from '../components/CardHand';
 import { CardPlayDialog } from '../components/CardPlayDialog';
 import { SkillActivationDialog } from '../components/SkillActivationDialog';
 import { LogPanel } from '../components/LogPanel';
+
+const panelSx = {
+  p: 1.15,
+  border: '1.5px solid #dfe8f4',
+  boxShadow: '0 3px 12px rgba(49,74,112,.05)',
+  bgcolor: 'rgba(255,255,255,.94)',
+};
 
 export default function App() {
   const game = useGameStore((state) => state.game);
@@ -82,18 +91,26 @@ export default function App() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        backgroundImage: 'radial-gradient(circle at 10% 12%, rgba(255,190,73,.08) 0 3px, transparent 4px), radial-gradient(circle at 91% 18%, rgba(88,164,235,.08) 0 3px, transparent 4px)',
+        backgroundSize: '86px 86px, 110px 110px',
+      }}
+    >
       <GameHeader game={game} playerScore={playerScore} enemyScore={enemyScore} onReset={() => { reset(); setSelectedDieId(undefined); }} />
-      <Container maxWidth={false} sx={{ py: 2, px: { xs: 1, md: 2 } }}>
+      <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
         {game.phase === 'finished' && (
-          <Alert severity={game.winner === 'player' ? 'success' : game.winner === 'draw' ? 'info' : 'warning'} sx={{ mb: 2 }}>
+          <Alert severity={game.winner === 'player' ? 'success' : game.winner === 'draw' ? 'info' : 'warning'} sx={{ mb: 1.2 }}>
             遊戲結束：{game.winner === 'player' ? '我方勝利' : game.winner === 'enemy' ? '對手勝利' : '平手'}。比分 {playerScore} : {enemyScore}
           </Alert>
         )}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '340px minmax(0, 1fr) 340px' }, gap: 2, alignItems: 'start' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '300px minmax(0,1fr) 300px' }, gap: 1.25, alignItems: 'start' }}>
           <TeamColumn
             title="我方創作小隊"
+            side="player"
             team={game.player}
             engine={engine}
             showActions={game.phase === 'player-plan'}
@@ -102,20 +119,25 @@ export default function App() {
             onActivateSkill={handleActivate}
           />
 
-          <Stack spacing={2} sx={{ minWidth: 0 }}>
-            <Paper sx={{ p: 1.5 }}>
-              <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={1}>
-                <Box>
-                  <Typography variant="h6">進行中的作品</Typography>
-                  <Typography variant="body2" color="text.secondary">Design → Text → AA。高骰可以覆蓋同類型的低骰。</Typography>
-                </Box>
+          <Stack spacing={1.05} sx={{ minWidth: 0 }}>
+            <Paper sx={{ ...panelSx, py: .75, borderColor: '#ff9ab5', bgcolor: '#fff8fa' }}>
+              <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={.8}>
+                <Stack direction="row" spacing={.75} alignItems="center">
+                  <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: '#fff', border: '1.5px solid #ffc0d0', display: 'grid', placeItems: 'center', transform: 'rotate(-5deg)' }}>
+                    <FavoriteBorderIcon sx={{ color: '#ff7098', fontSize: 18 }} />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: 16.5, fontWeight: 950, lineHeight: 1 }}>進行中的作品</Typography>
+                    <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Works in Progress · Design → Text → AA</Typography>
+                  </Box>
+                </Stack>
                 {game.phase === 'player-plan' && (
-                  <Button variant="contained" startIcon={<CasinoIcon />} onClick={() => { performPlayerActions(); setSelectedDieId(undefined); }}>
+                  <Button color="secondary" variant="contained" startIcon={<CasinoIcon />} onClick={() => { performPlayerActions(); setSelectedDieId(undefined); }}>
                     進行創作
                   </Button>
                 )}
                 {game.phase === 'player-assign' && (
-                  <Button variant="contained" color="warning" startIcon={<SkipNextIcon />} onClick={() => { finishPlayerAssignment(); setSelectedDieId(undefined); }}>
+                  <Button color="warning" variant="contained" startIcon={<SkipNextIcon />} onClick={() => { finishPlayerAssignment(); setSelectedDieId(undefined); }}>
                     結束回合
                   </Button>
                 )}
@@ -124,57 +146,61 @@ export default function App() {
 
             <WorkBoard works={game.player.works} selectedDie={selectedDie} onSlotClick={game.phase === 'player-assign' ? handleSlotClick : undefined} />
 
-            <Paper sx={{ p: 1.5 }}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                <AutoAwesomeIcon color="primary" />
-                <Typography variant="h6">本回合骰子</Typography>
+            <Paper sx={panelSx}>
+              <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
+                <AutoAwesomeIcon sx={{ color: '#f4ba45', fontSize: 19 }} />
+                <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Dice</Typography>
               </Stack>
               <DiceTray dice={game.player.pendingDice} selectedDieId={selectedDieId} onSelect={(id) => setSelectedDieId((current) => current === id ? undefined : id)} />
             </Paper>
 
-            <Paper sx={{ p: 1.5 }}>
-              <Typography variant="h6">我的手牌 · {game.player.hand.length}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.2 }}>卡牌框與插圖已改用本次 Prototype 美術資源；卡牌效果走與角色技能共用的 effect pipeline。</Typography>
-              <CardHand hand={game.player.hand} onPlay={(instance) => game.phase !== 'finished' && setCardInstance(instance)} />
-            </Paper>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
+              <Paper sx={panelSx}>
+                <Stack direction="row" spacing={.7} alignItems="center" sx={{ mb: .7 }}>
+                  <HandshakeIcon sx={{ color: '#3bb8a5', fontSize: 19 }} />
+                  <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>我的手牌</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Hand Cards · {game.player.hand.length}</Typography>
+                </Stack>
+                <CardHand hand={game.player.hand} onPlay={(instance) => game.phase !== 'finished' && setCardInstance(instance)} />
+              </Paper>
+
+              <Paper sx={{ ...panelSx, bgcolor: '#fffef9' }}>
+                <Typography sx={{ fontSize: 15.5, fontWeight: 950, mb: .7 }}>行動選擇</Typography>
+                <Stack spacing={.7}>
+                  <ActionHint color="#ff7098" icon={<CasinoIcon />} title="進行創作" subtitle="Work" />
+                  <ActionHint color="#57a8eb" icon={<HandshakeIcon />} title="使用支援" subtitle="Support" />
+                  <ActionHint color="#9b80dc" icon={<CoffeeIcon />} title="偷偷懶" subtitle="Slack Off" />
+                </Stack>
+              </Paper>
+            </Box>
 
             <LogPanel logs={game.logs} />
           </Stack>
 
-          <Stack spacing={2}>
-            <TeamColumn title="對手創作小隊" team={game.enemy} engine={engine} />
-            <Paper sx={{ p: 1.5 }}>
-              <Typography variant="subtitle1">技能系統狀態</Typography>
-              <Typography variant="body2" color="text.secondary">
-                綠色「已實裝」會真正進入 GameEngine；灰色「規劃中」只保留規則草案，不會觸發。
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="caption" color="text.secondary">
-                新技能通常只需新增 declarative definition。只有全新 mechanic 才需在 EffectRegistry 註冊新的 handler。
-              </Typography>
-            </Paper>
-          </Stack>
+          <TeamColumn title="對手創作小隊" side="enemy" team={game.enemy} engine={engine} />
         </Box>
       </Container>
 
-      <CardPlayDialog
-        open={!!cardInstance}
-        cardInstance={cardInstance}
-        game={game}
-        onClose={() => setCardInstance(undefined)}
-        onConfirm={handleCardConfirm}
-      />
-      <SkillActivationDialog
-        open={!!skillDialog}
-        memberId={skillDialog?.memberId}
-        skillId={skillDialog?.skillId}
-        game={game}
-        onClose={() => setSkillDialog(undefined)}
-        onConfirm={handleSkillConfirm}
-      />
+      <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={() => setCardInstance(undefined)} onConfirm={handleCardConfirm} />
+      <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={() => setSkillDialog(undefined)} onConfirm={handleSkillConfirm} />
       <Snackbar open={!!message} autoHideDuration={3500} onClose={() => setMessage(undefined)}>
         <Alert severity="info" onClose={() => setMessage(undefined)}>{message}</Alert>
       </Snackbar>
     </Box>
+  );
+}
+
+function ActionHint({ color, icon, title, subtitle }: { color: string; icon: React.ReactNode; title: string; subtitle: string }) {
+  return (
+    <Paper variant="outlined" sx={{ p: .65, borderColor: color, bgcolor: `${color}0f`, boxShadow: 'none' }}>
+      <Stack direction="row" spacing={.75} alignItems="center">
+        <Box sx={{ color, display: 'flex' }}>{icon}</Box>
+        <Box>
+          <Typography sx={{ fontSize: 12, fontWeight: 900, lineHeight: 1 }}>{title}</Typography>
+          <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 700 }}>{subtitle}</Typography>
+        </Box>
+      </Stack>
+    </Paper>
   );
 }
