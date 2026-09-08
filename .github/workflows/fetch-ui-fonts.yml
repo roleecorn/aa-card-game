@@ -1,0 +1,23 @@
+name: Fetch UI Fonts
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download Noto Sans TC variable subsets
+        run: |
+          mkdir -p fonts
+          curl -fL "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-tc:vf@5.3.0/chinese-traditional-wght-normal.woff2" -o fonts/noto-sans-tc-chinese-traditional-wght-normal.woff2
+          curl -fL "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-tc:vf@5.3.0/latin-wght-normal.woff2" -o fonts/noto-sans-tc-latin-wght-normal.woff2
+          curl -fL "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/OFL.txt" -o fonts/OFL.txt
+          ls -lh fonts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noto-sans-tc-vendored
+          path: fonts/
+          if-no-files-found: error
