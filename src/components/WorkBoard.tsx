@@ -27,45 +27,55 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
   怪: <AutoAwesomeIcon fontSize="small" />,
 };
 
+const workTones = [
+  { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599' },
+  { border: '#75b8ee', bg: '#f7fbff', progress: '#55a7e7' },
+  { border: '#b7c2d6', bg: '#fbfcfe', progress: '#9daec6' },
+];
+
 export function WorkBoard({ works, selectedDie, onSlotClick }: Props) {
   return (
-    <Stack spacing={1.5}>
-      {works.map((work) => {
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: `repeat(${Math.min(3, Math.max(1, works.length))}, minmax(0,1fr))` }, gap: 1.15 }}>
+      {works.map((work, workIndex) => {
         const completed = work.slots.filter((slot) => slot.design !== undefined && slot.text !== undefined && slot.aa !== undefined).length;
+        const tone = workTones[workIndex % workTones.length];
         return (
-          <Card key={work.id} sx={{ overflow: 'visible' }}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 1 }}>
+          <Card key={work.id} sx={{ overflow: 'hidden', borderColor: tone.border, bgcolor: tone.bg, borderWidth: 1.5, transform: workIndex % 2 ? 'rotate(.15deg)' : 'rotate(-.12deg)' }}>
+            <CardContent sx={{ p: 1.15, '&:last-child': { pb: 1.15 } }}>
+              <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={.7} sx={{ mb: .8 }}>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="subtitle1" noWrap>{work.title}</Typography>
-                  <Typography variant="caption" color="text.secondary">負責人：{CHARACTERS[work.ownerId]?.name ?? work.ownerId}</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 950, lineHeight: 1.1 }} noWrap>#{String(workIndex + 1).padStart(2, '0')} {work.title}</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .2 }}>負責人：{CHARACTERS[work.ownerId]?.name ?? work.ownerId}</Typography>
                 </Box>
-                <Chip icon={genreIcons[work.type] as React.ReactElement} label={work.type} size="small" variant="outlined" />
+                <Chip icon={genreIcons[work.type] as React.ReactElement} label={work.type} size="small" sx={{ height: 23, bgcolor: '#fff', border: '1px solid #dce6f2' }} />
               </Stack>
-              <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${work.slots.length}, minmax(76px, 1fr))`, gap: 0.8, overflowX: 'auto', pb: 0.4 }}>
+
+              <Box sx={{ minHeight: 76, border: '1px dashed #dce4ef', borderRadius: 1.5, bgcolor: 'rgba(255,255,255,.72)', p: .8, mb: .9 }}>
+                <Typography sx={{ fontSize: 11, color: '#687895', lineHeight: 1.45 }}>
+                  這是一部正在製作中的作品。把 Design、Text、AA 逐步填滿，完成共同創作。
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${work.slots.length}, minmax(54px, 1fr))`, gap: .55, overflowX: 'auto', pb: .25 }}>
                 {work.slots.map((slot, index) => (
-                  <ProgressCell
-                    key={index}
-                    slot={slot}
-                    index={index}
-                    selectedDie={selectedDie}
-                    onClick={() => onSlotClick?.(work.id, index)}
-                  />
+                  <ProgressCell key={index} slot={slot} index={index} selectedDie={selectedDie} onClick={() => onSlotClick?.(work.id, index)} />
                 ))}
               </Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+
+              <Stack direction="row" alignItems="center" spacing={.8} sx={{ mt: .85 }}>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: 'text.secondary' }}>完成度</Typography>
                 <LinearProgress
                   variant="determinate"
                   value={(completed / Math.max(1, work.slots.length)) * 100}
-                  sx={{ flex: 1, height: 8, borderRadius: 10 }}
+                  sx={{ flex: 1, height: 9, borderRadius: 10, bgcolor: '#e8eef6', border: '1px solid #cbd7e6', '& .MuiLinearProgress-bar': { bgcolor: tone.progress, borderRadius: 10 } }}
                 />
-                <Typography variant="caption" fontWeight={800}>{completed}/{work.slots.length}</Typography>
+                <Typography sx={{ fontSize: 11, fontWeight: 950 }}>{completed}/{work.slots.length}</Typography>
               </Stack>
             </CardContent>
           </Card>
         );
       })}
-    </Stack>
+    </Box>
   );
 }
 
@@ -76,33 +86,23 @@ function ProgressCell({ slot, index, selectedDie, onClick }: { slot: ProgressSlo
       type="button"
       onClick={onClick}
       variant="outlined"
-      sx={{
-        p: 0.75,
-        minWidth: 76,
-        borderWidth: selectedDie ? 2 : 1,
-        borderStyle: selectedDie ? 'dashed' : 'solid',
-        borderColor: selectedDie ? 'primary.main' : 'divider',
-        cursor: selectedDie ? 'pointer' : 'default',
-        backgroundColor: selectedDie ? 'rgba(75,147,220,.035)' : 'background.paper',
-        textAlign: 'left',
-      }}
+      sx={{ p: .45, minWidth: 54, minHeight: 83, borderWidth: selectedDie ? 2 : 1, borderStyle: selectedDie ? 'dashed' : 'solid', borderColor: selectedDie ? 'primary.main' : '#d8e1ed', cursor: selectedDie ? 'pointer' : 'default', bgcolor: selectedDie ? '#f4faff' : '#fff', textAlign: 'left', boxShadow: 'none' }}
     >
-      <Typography variant="caption" color="text.secondary">#{index + 1}</Typography>
-      <Stack spacing={0.45} sx={{ mt: 0.5 }}>
-        <ProgressLine icon={<EditNoteIcon fontSize="inherit" />} label="D" value={slot.design} tone="#ff7587" />
-        <ProgressLine icon={<SubjectIcon fontSize="inherit" />} label="T" value={slot.text} tone="#4b93dc" />
-        <ProgressLine icon={<LayersIcon fontSize="inherit" />} label="AA" value={slot.aa} tone="#4db8a8" />
+      <Typography sx={{ fontSize: 9.5, textAlign: 'center', color: 'text.secondary' }}>{index + 1}</Typography>
+      <Stack spacing={.28} sx={{ mt: .25 }}>
+        <ProgressLine icon={<EditNoteIcon fontSize="inherit" />} value={slot.design} tone="#ff6f98" />
+        <ProgressLine icon={<SubjectIcon fontSize="inherit" />} value={slot.text} tone="#4f8fe6" />
+        <ProgressLine icon={<LayersIcon fontSize="inherit" />} value={slot.aa} tone="#3bb8a5" />
       </Stack>
     </Paper>
   );
 }
 
-function ProgressLine({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value?: number; tone: string }) {
+function ProgressLine({ icon, value, tone }: { icon: React.ReactNode; value?: number; tone: string }) {
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: '18px 1fr auto', alignItems: 'center', gap: 0.35, color: value ? 'text.primary' : 'text.disabled' }}>
-      <Box sx={{ color: value ? tone : 'text.disabled', display: 'flex' }}>{icon}</Box>
-      <Typography variant="caption" fontWeight={800}>{label}</Typography>
-      <Typography variant="caption" fontWeight={900}>{value ?? '—'}</Typography>
-    </Box>
+    <Stack direction="row" alignItems="center" justifyContent="center" spacing={.25} sx={{ color: value ? tone : '#c6d0de' }}>
+      <Box sx={{ display: 'flex', fontSize: 14 }}>{icon}</Box>
+      <Typography sx={{ fontSize: 11, fontWeight: 950, color: value ? 'text.primary' : '#b9c4d2' }}>{value ?? '?'}</Typography>
+    </Stack>
   );
 }
