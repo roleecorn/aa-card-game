@@ -37,9 +37,15 @@ Figma 不是自動覆寫 production code 的唯一來源。排版在 Figma 修�
 當 Figma component 與 React component 的邊界穩定後，應逐步加入 Figma Code Connect。目標 mapping：
 
 - `CharacterCard` ↔ `src/components/CharacterCard.tsx`
-- `DiceToken` ↔ `src/components/DiceTray.tsx`（若未來拆出 `DieToken` component，改映射到該 component）
-- `HandCard` ↔ `src/components/CardHand.tsx`（建議之後拆成單一卡片 component）
-- `WorkCard` ↔ `src/components/WorkBoard.tsx`（建議之後拆成單一 `WorkCard` component）
+- `DiceToken` ↔ `src/components/DieToken.tsx`
+- `HandCard` ↔ `src/components/HandCard.tsx`
+- `WorkCard` ↔ `src/components/WorkCard.tsx`
+
+Collection component 另外保留：
+
+- `DiceTray`：排列多個 `DieToken`
+- `CardHand`：排列多個 `HandCard`
+- `WorkBoard`：排列多個 `WorkCard`
 
 Code Connect 只負責 component 對應與 design-to-code context，不代表 Figma 修改會自動部署到程式碼。
 
@@ -48,3 +54,27 @@ Code Connect 只負責 component 對應與 design-to-code context，不代表 Fi
 目前 Figma layout 已建立為真正可編輯的 layers。角色 ART frame 與名稱/能力值/Stress/技能文字為分離 layer。
 
 由於目前執行環境無法解析 `mcp.figma.com` upload endpoint，這次沒有自動把 GitHub 的 WebP raster assets POST 到 Figma；Figma 內先保留命名清楚的 ART placeholder。這不影響 layout/component 編輯。
+
+
+## Storybook
+
+可獨立檢查 production React component 的 runtime state：
+
+```bash
+npm run storybook
+```
+
+目前 stories：
+
+- `CharacterCard`：Default / Compact / HighStress / WithActions
+- `HandCard`：Support / Event / Tilted
+- `DieToken`：Design / Text / AA / Selected
+- `WorkCard`：Default / BlueTone / AssigningDie
+
+Figma 處理 design intent；Storybook 顯示真正 React/MUI component 的執行結果。兩者應保持相同 component boundary。
+
+## Code Connect 狀態
+
+目前 authenticated Figma account 是 Starter plan 的 View seat。正式 Figma Code Connect 需要可發布 library component 且需要支援 Code Connect 的 Organization / Enterprise setup，因此目前不建立假的 Code Connect mapping。
+
+在 plan/seat 支援前，使用本文件的 1:1 component path 作為 mapping contract。升級後再加入正式 Code Connect。
