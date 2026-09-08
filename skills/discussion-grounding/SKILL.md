@@ -1,3 +1,8 @@
+---
+name: discussion-grounding
+description: "Ground card-game rules and character data in the Discord source, separating source-backed facts from Prototype assumptions, later user decisions, and inference."
+---
+
 # Discussion Grounding Skill
 
 ## Trigger

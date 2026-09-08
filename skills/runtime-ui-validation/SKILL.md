@@ -1,3 +1,8 @@
+---
+name: runtime-ui-validation
+description: "Validate the actual React/Vite runtime UI with typecheck, tests, browser rendering, and screenshots; never substitute Figma or mockups for the running app."
+---
+
 # Runtime UI Validation Skill
 
 ## Trigger

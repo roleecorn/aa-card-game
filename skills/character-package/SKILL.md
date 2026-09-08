@@ -1,3 +1,8 @@
+---
+name: character-package
+description: "Complete or modify a game character as one atomic package: source-grounded data, skill text, runtime effects, tests, and production portrait asset in the same commit."
+---
+
 # Character Package Skill
 
 ## Trigger
