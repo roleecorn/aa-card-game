@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { BASE_DECK, DEFAULT_CONTENT, DEFAULT_MATCH } from '../content/catalog';
+import { BASE_DECK, DEFAULT_CONTENT, DEFAULT_MATCH, WORK_TYPES } from '../content/catalog';
 import { builtInEffects } from './effectRegistry';
 import { executeCardHandler } from './cardHandlers';
 import { SkillRuntime } from './skillRuntime';
@@ -20,6 +20,79 @@ import type {
 
 function cloneStats(stats: CharacterDefinition['stats']): CharacterDefinition['stats'] {
   return { design: stats.design, text: stats.text, aa: stats.aa };
+}
+
+export interface InitialGameOptions {
+  playerMemberIds?: string[];
+  enemyMemberIds?: string[];
+}
+
+function isStandardPlayable(definition: CharacterDefinition): boolean {
+  return !definition.tags?.includes('not-standard-playable');
+}
+
+function characterWorkTypes(definition: CharacterDefinition, content: GameContent): WorkType[] {
+  const types = new Set<WorkType>(definition.affinities);
+  let all = false;
+
+  for (const skillId of definition.skillIds) {
+    const skill = content.skills[skillId];
+    for (const passive of skill?.passives ?? []) {
+      if (passive.kind !== 'affinity.grant') continue;
+      if (passive.types === 'all') all = true;
+      else passive.types.forEach((type) => types.add(type));
+    }
+  }
+
+  return all ? [...WORK_TYPES] : [...types];
+}
+
+function chooseWorkType(engine: EngineSession, memberId: string): WorkType {
+  const definition = engine.content.characters[memberId];
+  if (!definition) throw new Error(`Unknown character ${memberId}`);
+  const candidates = characterWorkTypes(definition, engine.content);
+  if (!candidates.length) return '謀';
+  return candidates[Math.floor(engine.random() * candidates.length)] ?? candidates[0] ?? '謀';
+}
+
+function validateRosterOverride(
+  content: GameContent,
+  playerMemberIds: string[],
+  enemyMemberIds: string[],
+  teamSize: number,
+): void {
+  if (playerMemberIds.length !== teamSize || enemyMemberIds.length !== teamSize) {
+    throw new Error(`Each standard team must contain exactly ${teamSize} characters.`);
+  }
+  const combined = [...playerMemberIds, ...enemyMemberIds];
+  if (new Set(combined).size !== combined.length) throw new Error('Player and enemy rosters must not contain duplicate characters.');
+  for (const id of combined) {
+    const definition = content.characters[id];
+    if (!definition) throw new Error(`Unknown character ${id}`);
+    if (!isStandardPlayable(definition)) throw new Error(`Character ${id} is not available in a standard match.`);
+  }
+}
+
+export function selectStandardRosters(
+  rng: () => number = Math.random,
+  content: GameContent = DEFAULT_CONTENT,
+): { playerMemberIds: string[]; enemyMemberIds: string[]; unusedMemberIds: string[] } {
+  const playable = Object.values(content.characters)
+    .filter(isStandardPlayable)
+    .map((character) => character.id);
+
+  const required = DEFAULT_MATCH.teamSize * 2;
+  if (playable.length < required) {
+    throw new Error(`Standard match requires at least ${required} playable characters; found ${playable.length}.`);
+  }
+
+  const bootstrap = new EngineSession({} as GameState, rng, content);
+  const shuffled = bootstrap.shuffle(playable);
+  return {
+    playerMemberIds: shuffled.slice(0, DEFAULT_MATCH.teamSize),
+    enemyMemberIds: shuffled.slice(DEFAULT_MATCH.teamSize, required),
+    unusedMemberIds: shuffled.slice(required),
+  };
 }
 
 export class EngineSession {
@@ -460,7 +533,7 @@ export class EngineSession {
   }
 }
 
-function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: string[], workTypes: WorkType[]): TeamState {
+function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: string[]): TeamState {
   const members: CharacterState[] = memberIds.map((defId) => {
     const definition = engine.content.characters[defId];
     if (!definition) throw new Error(`Unknown character ${defId}`);
@@ -473,11 +546,11 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
       statuses: {},
     };
   });
-  const works: WorkState[] = memberIds.map((ownerId, index) => ({
+  const works: WorkState[] = memberIds.map((ownerId) => ({
     id: engine.uid('work'),
     ownerId,
     title: `${engine.content.characters[ownerId]?.name ?? ownerId} 的作品`,
-    type: workTypes[index] ?? '謀',
+    type: chooseWorkType(engine, ownerId),
     length: 5,
     slots: Array.from({ length: 5 }, () => ({})),
   }));
@@ -494,15 +567,37 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
   };
 }
 
-export function createInitialGame(rng: () => number = Math.random, content: GameContent = DEFAULT_CONTENT): GameState {
+export function createInitialGame(
+  rng: () => number = Math.random,
+  content: GameContent = DEFAULT_CONTENT,
+  options: InitialGameOptions = {},
+): GameState {
   const placeholder = {} as GameState;
   const bootstrap = new EngineSession(placeholder, rng, content);
-  const player = createTeam(bootstrap, 'player', DEFAULT_MATCH.player.name, [...DEFAULT_MATCH.player.memberIds], [...DEFAULT_MATCH.player.workTypes]);
-  const enemy = createTeam(bootstrap, 'enemy', DEFAULT_MATCH.enemy.name, [...DEFAULT_MATCH.enemy.memberIds], [...DEFAULT_MATCH.enemy.workTypes]);
+
+  let playerMemberIds: string[];
+  let enemyMemberIds: string[];
+
+  if (options.playerMemberIds || options.enemyMemberIds) {
+    if (!options.playerMemberIds || !options.enemyMemberIds) {
+      throw new Error('Both playerMemberIds and enemyMemberIds must be provided together.');
+    }
+    validateRosterOverride(content, options.playerMemberIds, options.enemyMemberIds, DEFAULT_MATCH.teamSize);
+    playerMemberIds = [...options.playerMemberIds];
+    enemyMemberIds = [...options.enemyMemberIds];
+  } else {
+    const selected = selectStandardRosters(rng, content);
+    playerMemberIds = selected.playerMemberIds;
+    enemyMemberIds = selected.enemyMemberIds;
+  }
+
+  const player = createTeam(bootstrap, 'player', DEFAULT_MATCH.player.name, playerMemberIds);
+  const enemy = createTeam(bootstrap, 'enemy', DEFAULT_MATCH.enemy.name, enemyMemberIds);
   const state: GameState = { round: 1, maxRounds: DEFAULT_MATCH.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
   const engine = new EngineSession(state, rng, content);
   engine.drawCards('player', 4);
   engine.drawCards('enemy', 4);
+  engine.log(`本局隨機隊伍：我方 ${playerMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}；對手 ${enemyMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}。`);
   engine.log('遊戲開始：5 回合內完成作品；每個 slot 以 Design / Text / AA 的最低值計分，缺項視為 -2。');
   engine.start();
   return state;
