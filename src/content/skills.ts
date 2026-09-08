@@ -125,7 +125,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'commercialAuthor',
     name: '商業作者',
-    description: '不會擲出 3 以下。',
+    description: '不會擲出 3 以下；所有擲骰結果最低視為 3（不會出現 1 或 2）。',
     activation: 'passive',
     status: 'implemented',
     passives: [{ kind: 'roll.floor', value: 3 }],

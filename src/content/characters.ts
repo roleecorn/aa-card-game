@@ -106,10 +106,12 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 2,
     affinities: ['謀', '情'],
     skillIds: ['commercialAuthor'],
+    tags: ['commercial-author'],
     portrait: '/assets/characters/fengyang.webp',
     sourceNotes: [
       '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
-      'AA 未在目前整理紀錄中明確列出；prototype 暫用 0。',
+      'AA 未在目前整理紀錄中明確列出；依 prototype 未列能力的資料慣例採 0。',
+      '技能「商業作者」明確為不會擲出 3 以下，因此 runtime roll floor = 3。',
       '作品適性目前為 prototype 暫定。',
     ],
   },

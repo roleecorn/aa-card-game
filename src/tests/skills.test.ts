@@ -24,6 +24,11 @@ const TRIANGLE_ROSTER = {
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
+const FENGYANG_ROSTER = {
+  playerMemberIds: ['fengyang', 'pintbox', 'mashiro'],
+  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+};
+
 function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
   return createInitialGame(rng, content, FIXED_ROSTER);
 }
@@ -364,5 +369,26 @@ describe('三角希＆有希 complete character package', () => {
     expect(SKILLS.triangleCoordination?.passives).toEqual([
       { kind: 'card.permission', cardKind: 'coordination' },
     ]);
+  });
+});
+
+
+describe('風揚 complete character package', () => {
+  it('keeps the discussion-backed stats and portrait', () => {
+    expect(CHARACTERS.fengyang?.stats).toEqual({ design: 3, text: 3, aa: 0 });
+    expect(CHARACTERS.fengyang?.maxStress).toBe(2);
+    expect(CHARACTERS.fengyang?.tags).toContain('commercial-author');
+    expect(CHARACTERS.fengyang?.portrait).toBe('/assets/characters/fengyang.webp');
+  });
+
+  it('commercial author makes every roll at least 3', () => {
+    const game = createInitialGame(fixedRng(0), DEFAULT_CONTENT, FENGYANG_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0));
+
+    expect(engine.skills.getRollFloor('fengyang')).toBe(3);
+    expect(engine.rollDieFor('fengyang')).toBe(3);
+
+    const dice = engine.grantDice('player', 'fengyang', 'design', 5, 'test', false);
+    expect(dice.every((die) => die.value >= 3)).toBe(true);
   });
 });
