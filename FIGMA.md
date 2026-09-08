@@ -51,10 +51,13 @@ Code Connect 只負責 component 對應與 design-to-code context，不代表 Fi
 
 ## Asset 狀態
 
-目前 Figma layout 已建立為真正可編輯的 layers。角色 ART frame 與名稱/能力值/Stress/技能文字為分離 layer。
+Figma layout 使用可編輯 layers；角色 ART 與名稱 / stats / Stress / resource / 技能文字應保持分離。
 
-由於目前執行環境無法解析 `mcp.figma.com` upload endpoint，這次沒有自動把 GitHub 的 WebP raster assets POST 到 Figma；Figma 內先保留命名清楚的 ART placeholder。這不影響 layout/component 編輯。
+GitHub runtime assets 才是角色圖片 source of truth。Figma image fill 可能落後於 runtime，因此不要僅根據 Figma 判定某張角色圖已進遊戲。
 
+同步 asset 時先確認 `public/assets/characters/`，再更新 Figma ART fill；不要把整張 React card screenshot 當成角色圖片，也不要把 Figma placeholder 說成 runtime 已採用素材。
+
+目前實際 runtime art 完成狀態見 `PROJECT_STATUS.md`。
 
 ## Storybook
 
@@ -78,3 +81,10 @@ Figma 處理 design intent；Storybook 顯示真正 React/MUI component 的執�
 目前 authenticated Figma account 是 Starter plan 的 View seat。正式 Figma Code Connect 需要可發布 library component 且需要支援 Code Connect 的 Organization / Enterprise setup，因此目前不建立假的 Code Connect mapping。
 
 在 plan/seat 支援前，使用本文件的 1:1 component path 作為 mapping contract。升級後再加入正式 Code Connect。
+
+
+## Runtime UI validation
+
+若使用者問「目前程式實際跑起來長什麼樣」，必須先跑指定 Git SHA 的 Vite app 並用 browser/Chrome 擷取真正 runtime screenshot，再與 Figma 比較。Figma screenshot 不能代替 runtime screenshot。
+
+詳細流程：`skills/runtime-ui-validation/SKILL.md`。

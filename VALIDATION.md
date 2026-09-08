@@ -1,72 +1,37 @@
 # Validation
 
-最後更新：v0.4.0
+最後更新：2026-09-09
 
-## 本輪已執行
+## 最近完整 runtime 驗證
 
-### Source-level TypeScript parse
+最近驗證的角色內容 chain head：76c2e50a79b21d1349940dd034f3f3462843cab0
 
-使用本機 TypeScript 5.8.3 parser 掃描 `src/**/*.ts`, `src/**/*.tsx` 與 `vite.config.ts`：
+GitHub Actions：
+- UI Screenshot run 34256722438 — success
+- Vendor UI Font run 34256722608 — success
 
-- 掃描檔案：30
-- Syntax diagnostics：0
-- Missing relative imports：0
+UI Screenshot 實際執行：npm install、npm run typecheck、npm run test、Vite dev server、headless Chrome runtime render、screenshot artifact。
 
-這項檢查不等同完整 `tsc -b`，因為正式 dependency 尚未能從 npm registry 安裝。
+因此可以確認 TypeScript typecheck、Vitest、Vite startup 與 Chrome runtime render 已通過。
 
-### Character asset validation
+## Production build 界線
 
-六張 runtime portrait 均已驗證：
+UI Screenshot workflow 目前沒有執行 npm run build，因此不能把 screenshot workflow success 寫成 production build 已通過。
 
-- `pintbox.webp` — 768 x 1024
-- `user79.webp` — 768 x 1024
-- `mashiro.webp` — 768 x 1024
-- `ginsakura.webp` — 768 x 1024
-- `bluewind.webp` — 768 x 1024
-- `narrator.webp` — 768 x 1024
+release 前應另外執行 npm run verify；verify 會執行 test + build。
 
-所有 `CharacterDefinition.portrait` reference 都能對應到實際檔案。
+## Character assets
 
-### Previous engine runtime smoke
+目前 10 個 portrait path 都有實際檔案。
 
-v0.3 已對真正的 `EngineSession + SkillRuntime + EffectRegistry` 執行 runtime smoke，涵蓋：
+符合正式 768×1024：happy.webp、triangle.webp、fengyang.webp、chaos.webp。
 
-- Pintbox `AI`
-- 79 `虛之會圈`
-- 79 `共鳴`
-- dice modify / convert / remove
-- progress clear
-- injectable `GameContent`
-- 完整 5 回合 player + enemy AI 流程
+仍是 192×256 legacy-size：pintbox.webp、user79.webp、mashiro.webp、ginsakura.webp、narrator.webp、bluewind.webp。
 
-v0.4 未修改上述 game-rule pipeline，主要變更為角色美術、CharacterCard layout 與 repository 規範文件。
+六張 legacy-size 圖比例是 3:4，但不符合目前正式解析度規格；不可宣稱全部角色圖都已完成 768×1024 升級。
 
-## 尚未完成：正式 npm build
+## Validation guidance
 
-本環境執行：
+角色內容先建立完整 atomic commit，在 temporary validation branch 跑 CI，成功後 fast-forward 同一個 commit 到 main。
 
-```bash
-npm install --ignore-scripts
-```
-
-仍無法連線 npm registry：
-
-```text
-GET https://registry.npmjs.org/@emotion%2freact
-EAI_AGAIN
-```
-
-因此本輪不能宣稱以下命令已通過：
-
-```bash
-npm run typecheck
-npm run test
-npm run build
-```
-
-在可正常存取 npm registry 的環境取得 dependency 後，應執行：
-
-```bash
-npm install
-npm run verify
-```
+UI 驗證必須取得真正 Vite/Chrome screenshot，再與 Figma 比較。

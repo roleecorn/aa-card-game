@@ -148,3 +148,16 @@ if (character.id === 'someCharacter') {
 - 若涉及 random，使用 deterministic RNG。
 
 v0.3 的測試也包含一個 injected `GameContent` 技能，證明新增技能不需要修改 `EngineSession`。
+
+
+## 9. 目前的 special mechanics
+
+- Trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
+- `card.permission` schema 已存在，但目前 team-level 出牌沒有 card actor identity；不能把角色級 permission 說成完整 enforce。
+- `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
+- `no-stress`、`not-standard-playable`、`duo-card` 是目前使用的 generic metadata/tag。
+- custom handler `addRandomCardsByKind` 用於高興「編輯長」。
+- custom handler `changeOwnerResource` 用於卡奧斯「Boss 體力」。
+
+`status: implemented` 必須有真正 runtime effect 與 test；資料或文案存在但尚未完整執行時維持 `partial` / `planned`。
+若技能屬於角色 package，另需遵守 `CHARACTER_AUTHORING.md` 的 atomic commit 規範。

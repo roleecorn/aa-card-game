@@ -44,12 +44,12 @@ npm run storybook
 舊版角色圖來自 concept board 的不規則裁切，容易出現頭部、卡框文字或安全區域錯位。v0.4 改成固定規格：
 
 - 3:4 portrait
-- 3:4 WebP；生成母版建議至少 768 x 1024，目前 runtime derivative 為 192 x 256
+- 3:4 WebP；正式 runtime 規格為 768 x 1024
 - runtime asset 不包含名稱、數值、技能文字與卡框
 - 角色資訊由 React/MUI 統一 render
 - `CharacterCard` 不再把 portrait 拉伸到整張資訊卡高度
 
-目前 Pintbox、79、真白、銀櫻、藍風、旁白皆已替換成重新整理後的標準化 asset。
+目前 happy / triangle / fengyang / chaos 已是 768 x 1024；Pintbox、79、真白、銀櫻、藍風、旁白仍是 192 x 256 legacy-size asset，比例正確但尚未符合目前正式解析度規格。完整狀態見 `PROJECT_STATUS.md`。
 
 詳細規格：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 
@@ -69,6 +69,7 @@ Game Event
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
+- [`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
 
 ## Repository 規範
 
@@ -77,8 +78,11 @@ Game Event
 - Contribution：[`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 - 上一輪驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
+- 目前 runtime 規則：[`GAME_RULES.md`](./GAME_RULES.md)
+- 實作與 Known gaps：[`PROJECT_STATUS.md`](./PROJECT_STATUS.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
 - Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
+- Repository-local agent skills：[`skills/README.md`](./skills/README.md)
 
 ## 目錄
 
@@ -116,5 +120,6 @@ aa-card-game/
 - 工作增加 Stress；摸魚降低 Stress
 - 作品具有 `燃 / 謀 / 笑 / 情 / 色 / 怪` 適性
 - 角色被動、主動技能與卡牌效果透過同一套 effect pipeline 執行
+- 目前 catalog 有 10 個 CharacterDefinition；卡奧斯帶 not-standard-playable，不進一般 3v3
 
 這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。

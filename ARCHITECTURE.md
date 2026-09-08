@@ -205,8 +205,8 @@ interface GameContent {
 
 完整 concept sheet / browser mockup 不放進 runtime bundle。只保留實際引用的裁切素材：
 
-- `public/assets/characters/*.png`
-- `public/assets/cards/*.png`
+- `public/assets/characters/*.webp`
+- `public/assets/cards/*`
 
 `CharacterCard` 與 `CardHand` 目前直接引用這些 assets。
 
@@ -216,3 +216,14 @@ interface GameContent {
 角色卡的文字與遊戲資料屬於 React/MUI UI，不烘焙進圖片。runtime portrait 固定使用 `public/assets/characters/*.webp` 的 3:4 asset；`CharacterCard` 只負責 frame、stats、stress 與技能 UI。
 
 這樣角色資料、美術與版面可以各自替換，不需要在新增角色時重新製作整張 raster card，也避免因 responsive layout 造成不規則裁切。詳細規格見 `CHARACTER_CARD_ART.md`。
+
+
+## Standard roster / special resources
+
+- `selectStandardRosters()` 會排除 `not-standard-playable`，shuffle 後先取 player 3 名，再從剩餘角色取 enemy 3 名。
+- `CharacterState.resources` 可保存非 Stress resource；目前卡奧斯使用「體力」。
+- `no-stress` 是 generic tag：`adjustStress()` 對該角色忽略一般 Stress 變化，不依角色 ID 特判。
+- 目前 custom effect 例子：`addRandomCardsByKind`（高興）與 `changeOwnerResource`（卡奧斯）。
+- trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
+
+目前實作狀態與美術尺寸請看 `PROJECT_STATUS.md`；架構規格不代表所有 legacy asset 已完成升級。

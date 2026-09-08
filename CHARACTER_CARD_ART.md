@@ -92,20 +92,23 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 9. 實際用 `CharacterCard` desktop / narrow layout 驗證。
 10. 採用後 commit 到 GitHub；候選稿不可宣稱已進 runtime。
 
-## 8. 目前 roster
+## 8. 目前 roster 與完成狀態
 
-目前 runtime roster 目標為：
+| Asset | 目前尺寸 | 正式規格狀態 |
+| --- | ---: | --- |
+| `pintbox.webp` | 192×256 | Legacy-size；需升級 |
+| `user79.webp` | 192×256 | Legacy-size；需升級 |
+| `mashiro.webp` | 192×256 | Legacy-size；需升級 |
+| `ginsakura.webp` | 192×256 | Legacy-size；需升級 |
+| `narrator.webp` | 192×256 | Legacy-size；需升級 |
+| `bluewind.webp` | 192×256 | Legacy-size；需升級 |
+| `happy.webp` | 768×1024 | 符合 |
+| `triangle.webp` | 768×1024 | 符合 |
+| `fengyang.webp` | 768×1024 | 符合 |
+| `chaos.webp` | 768×1024 | 符合 |
 
-- `pintbox.webp`
-- `user79.webp`
-- `mashiro.webp`
-- `ginsakura.webp`
-- `narrator.webp`
-- `bluewind.webp`
-- `triangle.webp`（三角 + 有希）
-- `fengyang.webp`
-- `chaos.webp`
-
-這九張都應為正式獨立素材；舊的 concept-board crop 不再視為合格來源。
+192×256 圖片雖然維持 3:4，可正常顯示，但不符合目前正式 768×1024 標準。不可單純 upscale 後宣稱成合格母版。
 
 `docs/art/character-card-reference.webp` 僅供版面設計參考，不得作為 runtime 圖片來源。
+
+完整 implementation status 見 `PROJECT_STATUS.md`。

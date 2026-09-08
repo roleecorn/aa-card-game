@@ -46,6 +46,7 @@
 - 圖片本身不要包含角色名稱、能力值、技能文字、卡框、badge 或其他 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area，避免 responsive UI 再次裁掉頭部。
 - 詳細規格見 `CHARACTER_CARD_ART.md`。
+- 注意：目前六張 legacy portrait 仍是 192×256；實際完成狀態見 `PROJECT_STATUS.md`，不可宣稱全部已完成 768×1024 升級。
 
 ## 編碼與 shell
 
@@ -84,3 +85,14 @@ npm run build
 - 若修改 layout、spacing、typography 或 component composition，應同步 Figma；若從 Figma 修改，必須經 design-to-code review 後再修改 TypeScript，不直接把 arbitrary Figma output 視為 production code。
 - 圖片與文字/UI layer 必須分離。
 - 工作流細節見 `FIGMA.md`。
+
+
+## Repository-local skills
+
+對應任務開始前讀取 `skills/` 下相關 `SKILL.md`：
+
+- 新增／完成／修改角色：`skills/character-package/SKILL.md`
+- 根據 Discord / Pintbox 討論判定規則：`skills/discussion-grounding/SKILL.md`
+- 使用者要求「目前程式實際 UI」：`skills/runtime-ui-validation/SKILL.md`
+
+這些 skill 不取代 `AGENTS.md`；若內容衝突，以 `AGENTS.md` 與更直接的使用者要求為準。
