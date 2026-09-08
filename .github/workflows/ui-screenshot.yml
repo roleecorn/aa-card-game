@@ -1,0 +1,59 @@
+name: UI Screenshot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ui-screenshot.yml'
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Start Vite
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/vite.log 2>&1 &
+          echo $! > /tmp/vite.pid
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/vite.log
+          exit 1
+
+      - name: Capture actual UI
+        run: |
+          google-chrome \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --hide-scrollbars \
+            --window-size=1640,920 \
+            --screenshot=ui-main.png \
+            http://127.0.0.1:5173/
+          file ui-main.png
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-main-screenshot
+          path: |
+            ui-main.png
+            /tmp/vite.log
+          if-no-files-found: error
