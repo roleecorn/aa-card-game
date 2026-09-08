@@ -3,6 +3,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import StyleIcon from '@mui/icons-material/Style';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import EditIcon from '@mui/icons-material/Edit';
+import GroupsIcon from '@mui/icons-material/Groups';
 import type { GameState } from '../game/types';
 
 interface Props {
@@ -10,11 +11,12 @@ interface Props {
   playerScore: number;
   enemyScore: number;
   onReset: () => void;
+  onOpenRoster: () => void;
 }
 
 const sketchBorder = '2px solid #dce6f4';
 
-export function GameHeader({ game, playerScore, enemyScore, onReset }: Props) {
+export function GameHeader({ game, playerScore, enemyScore, onReset, onOpenRoster }: Props) {
   return (
     <Paper square elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 20, px: { xs: 1.5, md: 2.5 }, py: 1.15, border: 0, borderBottom: sketchBorder, bgcolor: 'rgba(255,253,248,.97)', backdropFilter: 'blur(12px)' }}>
       <Stack direction={{ xs: 'column', lg: 'row' }} gap={1.2} alignItems={{ lg: 'center' }} justifyContent="space-between">
@@ -32,6 +34,7 @@ export function GameHeader({ game, playerScore, enemyScore, onReset }: Props) {
           <ScoreBox label="我方 Player" value={playerScore} tone="pink" />
           <Typography fontWeight={950} sx={{ px: .2, fontStyle: 'italic' }}>VS</Typography>
           <ScoreBox label="對手 Rival" value={enemyScore} tone="blue" />
+          <Button size="small" variant="outlined" startIcon={<GroupsIcon />} onClick={onOpenRoster}>角色卡</Button>
           <Button size="small" variant="outlined" startIcon={<RestartAltIcon />} onClick={onReset}>重開</Button>
         </Stack>
       </Stack>
