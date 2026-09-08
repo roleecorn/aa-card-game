@@ -11,6 +11,8 @@
 
 因此不要把完整卡片 UI 烘焙進 PNG/WebP。
 
+**Runtime asset 必須是獨立生成的完整角色物件，不得由 concept board、角色卡 mockup、拼圖或其他多物件概念圖裁切取得。**
+
 ## 2. Runtime asset 規格
 
 | 項目 | 規格 |
@@ -20,19 +22,23 @@
 | 標準尺寸 | 768 x 1024 px |
 | 最低建議尺寸 | 576 x 768 px |
 | 色彩 | sRGB |
-| Alpha | 非必要；目前允許不透明背景 |
+| Alpha | 建議透明背景；允許設計上必要的不透明背景 |
 | 檔名 | `character-id.webp` |
 | 位置 | `public/assets/characters/` |
+
+所有角色 runtime asset 必須具有完全相同的 pixel dimensions；不得用 blurred padding、延伸背景、letterbox 或重複像素把錯誤比例硬補成 3:4。
 
 ## 3. 構圖 safe area
 
 以 768 x 1024 為基準：
 
+- 角色必須是單一、完整生成的 subject，不依賴周圍 concept board 內容。
 - 頭頂至少離上緣約 8–10%。
 - 雙眼與臉部中心建議落在畫面上半部的中央 60%。
 - 左右重要輪廓不要貼近最外側 8%。
 - 主要角色資訊盡量保留在中央約 70% 寬度。
-- 允許背景被裁切；不允許裁掉頭部、主要表情或辨識角色的重要配件。
+- 不允許裁掉頭部、主要表情或辨識角色的重要配件。
+- 若使用透明背景，角色輪廓必須完整，不可殘留其他卡片、文字、框線或鄰近角色。
 
 MUI component 應以完整 3:4 frame 顯示圖片，不以角色卡整體高度強迫 `cover`。
 
@@ -69,22 +75,22 @@ MUI component 應以完整 3:4 frame 顯示圖片，不以角色卡整體高度�
 
 ## 6. 生成流程
 
-新角色建議流程：
+新角色流程：
 
 1. 先決定角色的固定視覺描述與辨識元素。
-2. 生成獨立角色 portrait，而不是生成一整張帶文字的卡牌。
-3. 依 3:4 safe area 檢查頭部、臉、手與關鍵配件。
-4. 轉成 WebP。
-5. 放入 `public/assets/characters/`。
-6. 在 `src/content/characters.ts` 引用。
-7. 實際在 `CharacterCard` 的 desktop / narrow layout 檢查。
+2. **直接生成該角色的獨立 portrait / character object；禁止先生成多人 concept board 再切割。**
+3. 生成時以 3:4 composition 為目標，保留完整頭部、臉、手與關鍵配件。
+4. 檢查 alpha 邊緣，不得包含鄰近物件或 concept-board 殘片。
+5. 統一 resize 到 768 x 1024；只允許等比例縮放，不允許用 padding 修補錯誤構圖。
+6. 轉成 WebP。
+7. 放入 `public/assets/characters/`。
+8. 在 `src/content/characters.ts` 引用。
+9. 實際在 `CharacterCard` 的 desktop / narrow layout 檢查。
 
-## 7. 本版重新生成素材
+## 7. 既有素材遷移
 
-v0.4 將 Pintbox、79、真白、銀櫻、藍風、旁白改成重新生成後再依此規格整理的 3:4 WebP，移除舊版從 concept board 不規則裁切的 PNG。
+v0.4 的六張角色圖雖然已整理成 3:4 WebP，但來源仍包含 concept-board / card mockup 的裁切，因此不符合本規範。
 
-縮小後的視覺設計參考放在：
+後續版本必須以**獨立生成角色物件**逐張替換 Pintbox、79、真白、銀櫻、藍風、旁白；替換完成前不得再宣稱這批素材為「重新生成後的標準角色素材」。
 
-`docs/art/character-card-reference.webp`
-
-該圖僅供設計參考，不由 runtime 載入。
+`docs/art/character-card-reference.webp` 僅供版面設計參考，不得作為 runtime 圖片來源。
