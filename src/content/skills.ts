@@ -4,9 +4,9 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'pintboxReview',
     name: '這只是基本的要求……',
-    description: '己方工作擲骰出現低骰時，以該組員壓力 +1 換取一次重擲；Pintbox 壓力達 3 時會處理 1–2，否則只處理 1。',
+    description: '組員骰出 1 或 2 時，可令其壓力 +1 並重骰；Pintbox 自身壓力 3 以上時必須發動。',
     activation: 'triggered',
-    status: 'implemented',
+    status: 'partial',
     triggers: [
       {
         event: 'afterRollBatch',
@@ -24,28 +24,12 @@ export const skillList = skillDefinitionSchema.array().parse([
           { kind: 'dice.rerollBatch', count: 1, maxValue: 2, lowestFirst: true },
         ],
       },
-      {
-        event: 'afterRollBatch',
-        priority: 20,
-        condition: {
-          kind: 'all',
-          conditions: [
-            { kind: 'relation', field: 'actorId', relation: 'ally' },
-            { kind: 'ownerStress', op: 'lte', value: 2 },
-            { kind: 'diceMatch', maxValue: 1 },
-          ],
-        },
-        effects: [
-          { kind: 'stress.change', target: 'eventActor', amount: 1, source: 'Pintbox 審稿' },
-          { kind: 'dice.rerollBatch', count: 1, maxValue: 1, lowestFirst: true },
-        ],
-      },
     ],
   },
   {
     id: 'pintboxAI',
     name: 'AI',
-    description: '每回合第一次因外部效果增加壓力時，增加量 -1（最低 0）。',
+    description: '每回合第一次因其他人效果增加壓力時，增加量 -1（最低 0）。',
     activation: 'triggered',
     status: 'implemented',
     triggers: [
@@ -75,7 +59,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'mashiroSynthesis',
     name: '融會貫通',
-    description: '每回合一次，把自己一顆尚未分配的骰改成另一名己方組員一顆尚未分配骰的數值。',
+    description: '每回合一次，可把自己一顆骰改成另一組員的一顆骰值。',
     activation: 'active',
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
@@ -86,7 +70,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'resonance79',
     name: '共鳴',
-    description: '其他己方組員獲得額外 Design 骰時，79 也獲得等量 Design 骰。',
+    description: '其他組員擲額外 Design 骰時，自身可額外擲等量骰。',
     activation: 'triggered',
     status: 'implemented',
     triggers: [
@@ -109,7 +93,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'virtualCircle79',
     name: '虛之會圈',
-    description: '遊戲開始時額外獲得兩張「語音會議」。',
+    description: '遊戲開始時額外取得兩張「語音會議」。',
     activation: 'triggered',
     status: 'implemented',
     triggers: [{ event: 'gameStart', effects: [{ kind: 'cards.add', cardId: 'voice', count: 2 }] }],
@@ -124,24 +108,32 @@ export const skillList = skillDefinitionSchema.array().parse([
   },
   {
     id: 'triangleAffinity',
-    name: '適應力',
+    name: '全作品適性',
     description: '視為擁有全部作品類型的適性。',
     activation: 'passive',
     status: 'implemented',
     passives: [{ kind: 'affinity.grant', types: 'all' }],
   },
   {
+    id: 'triangleCoordination',
+    name: '統籌權限',
+    description: '可以使用統籌卡。',
+    activation: 'passive',
+    status: 'planned',
+    passives: [{ kind: 'card.permission', cardKind: 'coordination' }],
+  },
+  {
     id: 'commercialAuthor',
     name: '商業作者',
-    description: '所有骰子最低為 4。',
+    description: '不會擲出 3 以下。',
     activation: 'passive',
     status: 'implemented',
-    passives: [{ kind: 'roll.floor', value: 4 }],
+    passives: [{ kind: 'roll.floor', value: 3 }],
   },
   {
     id: 'bluewindDelusion',
     name: '妄想全開',
-    description: '每回合一次：獲得 2 顆 Design 骰、自己的作品篇幅 +1、自身壓力 -1。',
+    description: '擲 2 顆 Design 骰、作品篇幅 +1、自身壓力 -1。',
     activation: 'active',
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
@@ -156,29 +148,44 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'narratorOsaka',
     name: '中國大阪人',
-    description: '討論中提到可增加骰子並可能把參與作品轉為（笑）；細節尚未定案。',
+    description: '可增加骰子，但會使參與的作品轉為（笑）。',
     activation: 'active',
     status: 'planned',
   },
   {
     id: 'narratorLongForm',
     name: '超長發揮',
-    description: '超出篇幅時增加作品長度；觸發條件仍需依規則定稿。',
+    description: '超出篇幅的判定骰會增加作品長度。',
     activation: 'triggered',
     status: 'planned',
   },
   {
     id: 'ginsakuraRise',
     name: '起來',
-    description: '等待正式規則；effect system 已具備 event.cancel / stress.change / dice.modifyPending，可直接組裝。',
+    description: '可以反制外部骰子效果；目前整理紀錄沒有完整觸發條件與數值。',
     activation: 'triggered',
     status: 'planned',
   },
   {
     id: 'ginsakuraSupport',
     name: '愉悅的支援者',
-    description: '等待正式規則；可由 dice.modifyPending / dice.copySelectedValue / stress.change 組裝。',
+    description: '可以用自己的骰替換別人的骰，並使自己降低壓力；目前整理紀錄沒有完整替換限制與降壓數值。',
     activation: 'active',
+    status: 'planned',
+  },
+  {
+    id: 'chaosSteadyRoll',
+    name: 'Boss 級穩定輸出',
+    description: '不會擲出 3 以下。',
+    activation: 'passive',
+    status: 'implemented',
+    passives: [{ kind: 'roll.floor', value: 3 }],
+  },
+  {
+    id: 'chaosVitality',
+    name: 'Boss 體力',
+    description: '體力 5，沒有壓力條；每回合體力 -1。',
+    activation: 'triggered',
     status: 'planned',
   },
 ]);
