@@ -101,7 +101,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'triangleRecovery',
     name: '滾滾三角生物',
-    description: '每回合開始時自身壓力 -1。',
+    description: '每回合開始時，三角希＆有希的壓力 -1。',
     activation: 'triggered',
     status: 'implemented',
     triggers: [{ event: 'roundStart', effects: [{ kind: 'stress.change', target: 'owner', amount: -1, source: '滾滾三角生物' }] }],
@@ -117,7 +117,7 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'triangleCoordination',
     name: '統籌權限',
-    description: '可以使用統籌卡。',
+    description: '可以使用統籌卡；目前 team-level 出牌尚未記錄實際使用角色，因此權限檢查保留為規劃中。',
     activation: 'passive',
     status: 'planned',
     passives: [{ kind: 'card.permission', cardKind: 'coordination' }],

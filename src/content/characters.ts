@@ -90,11 +90,13 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 4,
     affinities: [],
     skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
+    tags: ['duo-card'],
     portrait: '/assets/characters/triangle.webp',
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
       '討論明確指定每回合自身壓力 -1、全作品適性、可以使用統籌卡。',
-      '2026-09-08：目前角色卡改為三角 + 有希的雙人 portrait；未來仍可新增兩人的獨立單人角色卡。',
+      '目前此 id 代表「三角希＆有希」雙人卡：兩人共用同一張 portrait、數值與技能。',
+      '未來可另外新增三角與有希的獨立單人角色卡，不覆寫此雙人卡。',
     ],
   },
   {

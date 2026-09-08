@@ -19,6 +19,11 @@ const HAPPY_ROSTER = {
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
+const TRIANGLE_ROSTER = {
+  playerMemberIds: ['triangle', 'pintbox', 'mashiro'],
+  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+};
+
 function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
   return createInitialGame(rng, content, FIXED_ROSTER);
 }
@@ -329,5 +334,35 @@ describe('高興 complete character package', () => {
     die.value = 4;
     expect(engine.placeDie('player', die.id, work.id, 0)).toBe(true);
     expect(work.type).toBe('怪');
+  });
+});
+
+
+describe('三角希＆有希 complete character package', () => {
+  it('keeps the discussion-backed stats and duo portrait', () => {
+    expect(CHARACTERS.triangle?.name).toBe('三角希＆有希');
+    expect(CHARACTERS.triangle?.stats).toEqual({ design: 1, text: 2, aa: 2 });
+    expect(CHARACTERS.triangle?.maxStress).toBe(4);
+    expect(CHARACTERS.triangle?.tags).toContain('duo-card');
+    expect(CHARACTERS.triangle?.portrait).toBe('/assets/characters/triangle.webp');
+  });
+
+  it('recovers one stress at round start and has all work affinities', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, TRIANGLE_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const member = engine.getCharacter('player', 'triangle')!;
+    member.stress = 2;
+
+    engine.skills.emit({ type: 'roundStart' });
+
+    expect(member.stress).toBe(1);
+    expect(engine.getEffectiveAffinity('triangle')).toBe('all');
+  });
+
+  it('keeps coordination permission explicit until card actor identity exists', () => {
+    expect(SKILLS.triangleCoordination?.status).toBe('planned');
+    expect(SKILLS.triangleCoordination?.passives).toEqual([
+      { kind: 'card.permission', cardKind: 'coordination' },
+    ]);
   });
 });
