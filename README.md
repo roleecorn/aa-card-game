@@ -13,6 +13,7 @@
 - Zustand + Immer
 - Zod
 - Vitest
+- Storybook
 - nanoid
 
 設計原則是盡量使用既有 TypeScript ecosystem，不自行建立大型 UI framework、state framework 或 CSS system。
@@ -33,6 +34,7 @@ npm run typecheck
 npm run test
 npm run build
 npm run verify
+npm run storybook
 ```
 
 ## v0.4 重點
@@ -42,7 +44,7 @@ npm run verify
 舊版角色圖來自 concept board 的不規則裁切，容易出現頭部、卡框文字或安全區域錯位。v0.4 改成固定規格：
 
 - 3:4 portrait
-- 768 x 1024 WebP
+- 3:4 WebP；生成母版建議至少 768 x 1024，目前 runtime derivative 為 192 x 256
 - runtime asset 不包含名稱、數值、技能文字與卡框
 - 角色資訊由 React/MUI 統一 render
 - `CharacterCard` 不再把 portrait 拉伸到整張資訊卡高度
@@ -76,6 +78,7 @@ Game Event
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 - 上一輪驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
+- Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
 
 ## 目錄
 
