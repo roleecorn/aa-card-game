@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - 'src/**'
+      - 'index.html'
       - '.github/workflows/vendor-ui-font.yml'
 
 permissions:
