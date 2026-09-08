@@ -29,6 +29,7 @@ export interface CharacterState {
   timedStatModifiers: TimedStatModifier[];
   skillUsage: Record<string, number>;
   statuses: Record<string, StatusInstance>;
+  resources?: Record<string, number>;
 }
 
 export interface WorkState {

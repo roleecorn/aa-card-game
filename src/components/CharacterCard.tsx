@@ -71,15 +71,33 @@ export function CharacterCard({
           <Stat icon={<LayersIcon />} label="AA" value={stats.aa} tone="#3bb8a5" compact={compact} />
 
           <Box sx={{ pt: .2 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>壓力 Stress</Typography>
-              <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress} / {definition.maxStress === null ? '∞' : definition.maxStress}</Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={stressPercent}
-              sx={{ mt: .25, height: 8, borderRadius: 8, bgcolor: '#e6edf6', border: '1px solid #aab9cd', '& .MuiLinearProgress-bar': { bgcolor: stressPercent >= 80 ? '#ef6e78' : '#ff86aa', borderRadius: 8 } }}
-            />
+            {definition.resource ? (
+              <>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>{definition.resource.name}</Typography>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>
+                    {state.resources?.[definition.resource.name] ?? definition.resource.initial} / {definition.resource.max}
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={((state.resources?.[definition.resource.name] ?? definition.resource.initial) / definition.resource.max) * 100}
+                  sx={{ mt: .25, height: 8, borderRadius: 8, bgcolor: '#e6edf6', border: '1px solid #aab9cd' }}
+                />
+              </>
+            ) : (
+              <>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>壓力 Stress</Typography>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress} / {definition.maxStress === null ? '∞' : definition.maxStress}</Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={stressPercent}
+                  sx={{ mt: .25, height: 8, borderRadius: 8, bgcolor: '#e6edf6', border: '1px solid #aab9cd', '& .MuiLinearProgress-bar': { bgcolor: stressPercent >= 80 ? '#ef6e78' : '#ff86aa', borderRadius: 8 } }}
+                />
+              </>
+            )}
           </Box>
 
           {!compact && <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} />}

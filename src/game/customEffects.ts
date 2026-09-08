@@ -38,3 +38,11 @@ registerCustomSkillEffect('addRandomCardsByKind', (effect, context, engine) => {
   engine.log(`${context.definition.name}：額外取得 ${count} 張${cardKind === 'coordination' ? '統籌' : '事件'}卡。`);
   return true;
 });
+
+
+registerCustomSkillEffect('changeOwnerResource', (effect, context, engine) => {
+  const resource = effect.args?.resource;
+  const amount = effect.args?.amount;
+  if (typeof resource !== 'string' || typeof amount !== 'number') return false;
+  return engine.adjustResource(context.ownerTeamId, context.ownerId, resource, amount);
+});

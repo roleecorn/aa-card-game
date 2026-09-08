@@ -216,6 +216,7 @@ export class EngineSession {
   adjustStress(teamId: TeamId, memberId: string, amount: number, source: string, external = false, sourceId?: string): void {
     const member = this.getCharacter(teamId, memberId);
     if (!member || amount === 0) return;
+    if (this.getDefinition(memberId).tags?.includes('no-stress')) return;
     let actual = amount;
     if (external && amount > 0) {
       const event = this.skills.emit({ type: 'beforeExternalStress', teamId, targetId: memberId, sourceId, sourceKind: source, amount });
@@ -236,6 +237,22 @@ export class EngineSession {
       team.pendingDice = team.pendingDice.filter((die) => die.ownerId !== memberId);
       if (team.pendingDice.length !== beforeDice) this.log(`${this.getDefinition(memberId).name} 壓力爆表，失去尚未分配的骰。`);
     }
+  }
+
+  getResource(teamId: TeamId, memberId: string, resource: string): number | undefined {
+    return this.getCharacter(teamId, memberId)?.resources?.[resource];
+  }
+
+  adjustResource(teamId: TeamId, memberId: string, resource: string, amount: number): boolean {
+    const member = this.getCharacter(teamId, memberId);
+    const definition = this.getDefinition(memberId);
+    const spec = definition.resource;
+    if (!member || !spec || spec.name !== resource) return false;
+    const before = member.resources?.[resource] ?? spec.initial;
+    const next = Math.max(0, Math.min(spec.max, before + amount));
+    member.resources = { ...(member.resources ?? {}), [resource]: next };
+    if (next !== before) this.log(`${definition.name} 的${resource} ${next - before > 0 ? '+' : ''}${next - before}（${next}/${spec.max}）。`);
+    return next !== before;
   }
 
   resizeWork(work: WorkState, amount: number, min = 1): void {
@@ -544,6 +561,7 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
       timedStatModifiers: [],
       skillUsage: {},
       statuses: {},
+      resources: definition.resource ? { [definition.resource.name]: definition.resource.initial } : undefined,
     };
   });
   const works: WorkState[] = memberIds.map((ownerId) => ({

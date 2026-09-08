@@ -137,14 +137,15 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: null,
     affinities: [],
     skillIds: ['chaosSteadyRoll', 'chaosVitality'],
-    tags: ['boss', 'not-standard-playable'],
+    tags: ['boss', 'not-standard-playable', 'no-stress'],
     portrait: '/assets/characters/chaos.webp',
     resource: { name: '體力', max: 5, initial: 5 },
     sourceNotes: [
       '2026-09-05 11:30:40：Text / Design / AA 全 3。',
       '體力 5，沒有壓力條；每回合體力 -1。',
       '不會擲出 3 以下；Pintbox 表示可按 Boss 設計。',
-      'Boss resource runtime 尚未接入標準 3v3 match，因此目前只進 catalog，不加入 DEFAULT_MATCH。',
+      'runtime 以角色 resource 保存體力，roundEnd -1；no-stress 使所有 Stress 變化無效。',
+      '仍標記 not-standard-playable，不加入一般 3v3 隨機池。',
     ],
   },
 ]);

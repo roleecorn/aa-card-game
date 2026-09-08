@@ -217,8 +217,16 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'chaosVitality',
     name: 'Boss 體力',
-    description: '體力 5，沒有壓力條；每回合體力 -1。',
+    description: '初始體力 5，沒有壓力條；每回合結束時體力 -1。',
     activation: 'triggered',
-    status: 'planned',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'roundEnd',
+        effects: [
+          { kind: 'custom', handler: 'changeOwnerResource', args: { resource: '體力', amount: -1 } },
+        ],
+      },
+    ],
   },
 ]);

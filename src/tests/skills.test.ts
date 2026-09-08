@@ -29,6 +29,11 @@ const FENGYANG_ROSTER = {
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
+const CHAOS_ROSTER = {
+  playerMemberIds: ['chaos', 'pintbox', 'mashiro'],
+  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+};
+
 function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
   return createInitialGame(rng, content, FIXED_ROSTER);
 }
@@ -239,7 +244,7 @@ describe('discussion-backed character catalog', () => {
 
   it('keeps discussion-defined but unsupported mechanics explicit instead of inventing behavior', () => {
     expect(SKILLS.triangleCoordination?.status).toBe('planned');
-    expect(SKILLS.chaosVitality?.status).toBe('planned');
+    expect(SKILLS.chaosVitality?.status).toBe('implemented');
     expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
   });
 });
@@ -390,5 +395,50 @@ describe('風揚 complete character package', () => {
 
     const dice = engine.grantDice('player', 'fengyang', 'design', 5, 'test', false);
     expect(dice.every((die) => die.value >= 3)).toBe(true);
+  });
+});
+
+
+describe('卡奧斯 complete character package', () => {
+  function chaosPlayableContent(): GameContent {
+    return {
+      ...DEFAULT_CONTENT,
+      characters: {
+        ...DEFAULT_CONTENT.characters,
+        chaos: {
+          ...DEFAULT_CONTENT.characters.chaos!,
+          tags: ['boss', 'no-stress'],
+        },
+      },
+    };
+  }
+
+  it('keeps the Boss stats, portrait, resource and standard-match exclusion', () => {
+    expect(CHARACTERS.chaos?.stats).toEqual({ design: 3, text: 3, aa: 3 });
+    expect(CHARACTERS.chaos?.portrait).toBe('/assets/characters/chaos.webp');
+    expect(CHARACTERS.chaos?.resource).toEqual({ name: '體力', max: 5, initial: 5 });
+    expect(CHARACTERS.chaos?.tags).toEqual(expect.arrayContaining(['boss', 'not-standard-playable', 'no-stress']));
+  });
+
+  it('starts with 5 vitality, loses one at round end, and ignores stress', () => {
+    const content = chaosPlayableContent();
+    const game = createInitialGame(fixedRng(0.5), content, CHAOS_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5), content);
+
+    expect(engine.getResource('player', 'chaos', '體力')).toBe(5);
+    engine.adjustStress('player', 'chaos', 99, 'test');
+    expect(engine.getCharacter('player', 'chaos')?.stress).toBe(0);
+
+    engine.skills.emit({ type: 'roundEnd' });
+    expect(engine.getResource('player', 'chaos', '體力')).toBe(4);
+  });
+
+  it('never rolls below 3', () => {
+    const content = chaosPlayableContent();
+    const game = createInitialGame(fixedRng(0), content, CHAOS_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0), content);
+
+    expect(engine.skills.getRollFloor('chaos')).toBe(3);
+    expect(engine.rollDieFor('chaos')).toBe(3);
   });
 });
