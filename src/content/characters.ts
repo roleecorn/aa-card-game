@@ -280,6 +280,24 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       'dataset(1).zip 中「キツ」共 1086 則訊息。',
     ],
   },
+  {
+    id: 'grimm',
+    name: '格林',
+    stats: { design: 1, text: 2, aa: 2 },
+    maxStress: 3,
+    affinities: ['情', '燃'],
+    skillIds: ['grimmBurningFrame'],
+    tags: ['leader', 'visual-storyteller'],
+    portrait: '/assets/characters/portrait/grimm.webp',
+    compactPortrait: '/assets/characters/compact/grimm.webp',
+    portraitPosition: { x: 50, y: 12 },
+    sourceNotes: [
+      '2026-09-01 23:40:56：PintBox 將格林描述為「長板很突出但有召喚代價」的類型。',
+      '2026-09-05 11:09:30–11:12:42：PintBox 將格林與 79 並列為燃燒自己產出好作品的類型，並明確設計格林版為「自身 +1 壓力，給一顆 AA 骰 +2 數值」。',
+      '對話反覆提到漫畫分鏡、閉關製作、童話作家與規劃較弱；據此 Prototype 採 Design 1 / Text 2 / AA 2、Stress 3、適性（情／燃）。',
+      '外觀未由 source 明確定義；runtime art 的人物外觀屬 Prototype art direction，僅以分鏡、童話與高投入畫面創作作為視覺依據。',
+    ],
+  },
 
 ]);
 

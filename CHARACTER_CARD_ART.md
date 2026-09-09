@@ -282,3 +282,10 @@ visual brief 必須回答：
 `docs/art/character-card-reference.webp` 僅供版面設計參考，不得作為 runtime 圖片來源。
 
 完整 implementation status 見 `PROJECT_STATUS.md`。
+
+
+### 格林 source-driven visual brief
+- Source-backed：PintBox 將格林描述為「長板突出但有召喚代價」；2026-09-05 明確把燃燒型技能設計成自身壓力 +1、使一顆 AA 骰 +2。對話另反覆提到格林投入漫畫分鏡、閉關製作、童話作家氣質，以及規劃／統籌不是主要長處。
+- Prototype art direction：視覺重點放在高投入的畫面創作、童話／分鏡與燃燒式輸出；可使用層疊畫框、手稿與強烈舞台光，但不把角色名稱或技能文字畫進圖。
+- 構圖：portrait 採半身創作姿態；compact 重新設計成橫向工作台構圖，不由 portrait 裁切。
+- Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。外觀細節未由 source 定義，均屬 Prototype art direction。

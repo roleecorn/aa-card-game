@@ -354,5 +354,18 @@ export const skillList = skillDefinitionSchema.array().parse([
       },
     ],
   },
+  {
+    id: 'grimmBurningFrame',
+    name: '燃燒畫面',
+    description: '選擇自己一顆尚未分配的 AA 骰：自身壓力 +1，該骰 +2（最高 6）。可重複使用；壓力爆表仍依共通規則處理。',
+    activation: 'active',
+    status: 'implemented',
+    activeTarget: { kind: 'pendingDie', relation: 'self' },
+    activeEffects: [
+      { kind: 'stress.change', target: 'owner', amount: 1, source: '燃燒畫面' },
+      { kind: 'dice.modifySelected', add: 2 },
+    ],
+    tags: ['stress-tradeoff', 'aa'],
+  },
 
 ]);
