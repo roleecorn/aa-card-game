@@ -36,8 +36,24 @@ npm run build
 npm run verify
 npm run art:normalize
 npm run art:validate
+npm run image:inspect -- <file>
+npm run image:check -- <file> --width 768 --height 1024 --format webp --single-page --srgb
+npm run image:webp -- <input> <output> --width 768 --height 1024 --fit cover
+npm run test:image-tools
 npm run storybook
 ```
+
+## 圖片工具
+
+Repository 內建通用圖片工具，避免手動轉檔後才在 runtime 發現尺寸或 WebP 損壞：
+
+- `npm run image:inspect -- <file> [file...]`：顯示格式、尺寸、frame/page 數、色彩空間與檔案大小。
+- `npm run image:check -- <file> --width N --height N --format webp --single-page --srgb`：檢查資源是否符合指定規格，失敗時回傳 non-zero exit code。
+- `npm run image:webp -- <input> <output> [--width N --height N --fit cover|contain|fill --quality 82]`：轉成 sRGB WebP；指定尺寸時使用 Sharp resize。
+- `npm run art:validate`：檢查所有角色 portrait / compact 是否完整配對，並驗證 WebP container、尺寸、單幀與 sRGB。
+- `npm run test:image-tools`：只執行圖片工具測試；一般 `npm test` 也會自動包含這些測試。
+
+角色圖正式規格仍以 `CHARACTER_CARD_ART.md` 為準。通用工具刻意不綁角色路徑，因此 cards、UI 素材或後續其他 WebP 也可使用。
 
 ## v0.4 重點
 

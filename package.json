@@ -15,7 +15,11 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "art:normalize": "tsx scripts/character-art.ts normalize",
-    "art:validate": "tsx scripts/character-art.ts validate"
+    "art:validate": "tsx scripts/character-art.ts validate",
+    "image:inspect": "tsx scripts/image-tools.ts inspect",
+    "image:check": "tsx scripts/image-tools.ts check",
+    "image:webp": "tsx scripts/image-tools.ts convert",
+    "test:image-tools": "vitest run scripts/image-tools.test.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

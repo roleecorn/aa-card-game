@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import sharp from 'sharp';
+import { checkImage, convertToWebp } from './image-tools';
 
 const PORTRAIT_WIDTH = 768;
 const PORTRAIT_HEIGHT = 1024;
@@ -11,19 +11,9 @@ const ALPHA_QUALITY = 90;
 const EFFORT = 6;
 const ROOT = path.resolve('public/assets/characters');
 
-function assertWebPContainer(buffer: Buffer, file: string): void {
-  if (buffer.length < 20) throw new Error(`${file}: file is too small to be a valid WebP`);
-  if (buffer.subarray(0, 4).toString('ascii') !== 'RIFF') throw new Error(`${file}: missing RIFF header`);
-  if (buffer.subarray(8, 12).toString('ascii') !== 'WEBP') throw new Error(`${file}: missing WEBP signature`);
-  const declaredTotal = buffer.readUInt32LE(4) + 8;
-  if (declaredTotal !== buffer.length) {
-    throw new Error(`${file}: truncated/corrupt WebP; RIFF declares ${declaredTotal} bytes but file has ${buffer.length}`);
-  }
-}
-
 async function configuredAssets(field: 'portrait' | 'compactPortrait'): Promise<string[]> {
   const source = await fs.readFile(path.resolve('src/content/characters.ts'), 'utf8');
-  const re = new RegExp(`${field}:\\s*['\"]\\/assets\\/characters\\/([^'\"]+\\.webp)['\"]`, 'g');
+  const re = new RegExp(`${field}:\\s*['"]\\/assets\\/characters\\/([^'"]+\\.webp)['"]`, 'g');
   return [...source.matchAll(re)].map((match) => match[1]).sort();
 }
 
@@ -37,15 +27,13 @@ function idsFrom(paths: string[], prefix: string): string[] {
 }
 
 async function validateOne(filePath: string, width: number, height: number): Promise<void> {
-  const buffer = await fs.readFile(filePath);
-  assertWebPContainer(buffer, filePath);
-  const metadata = await sharp(buffer, { animated: true }).metadata();
-  if (metadata.format !== 'webp') throw new Error(`${filePath}: expected WebP, got ${metadata.format ?? 'unknown'}`);
-  if (metadata.width !== width || metadata.height !== height) {
-    throw new Error(`${filePath}: expected ${width}x${height}, got ${metadata.width}x${metadata.height}`);
-  }
-  if ((metadata.pages ?? 1) !== 1) throw new Error(`${filePath}: animated/multi-page WebP is not allowed`);
-  if (metadata.space && metadata.space !== 'srgb') throw new Error(`${filePath}: expected sRGB, got ${metadata.space}`);
+  await checkImage(filePath, {
+    format: 'webp',
+    width,
+    height,
+    singlePage: true,
+    srgb: true,
+  });
 }
 
 async function validate(): Promise<void> {
@@ -69,20 +57,14 @@ async function normalize(): Promise<void> {
   const portraits = await configuredAssets('portrait');
   for (const rel of portraits) {
     const filePath = path.join(ROOT, rel);
-    const input = await fs.readFile(filePath);
-    const metadata = await sharp(input, { animated: true }).metadata();
-    if (!metadata.width || !metadata.height) throw new Error(`${filePath}: cannot read dimensions`);
-    if ((metadata.pages ?? 1) !== 1) throw new Error(`${filePath}: animated/multi-page input is not allowed`);
-    const output = await sharp(input)
-      .rotate()
-      .resize(PORTRAIT_WIDTH, PORTRAIT_HEIGHT, { fit: 'fill', kernel: sharp.kernel.lanczos3 })
-      .toColourspace('srgb')
-      .webp({ quality: QUALITY, alphaQuality: ALPHA_QUALITY, effort: EFFORT, smartSubsample: true })
-      .toBuffer();
-    assertWebPContainer(output, filePath);
-    const tmp = `${filePath}.tmp`;
-    await fs.writeFile(tmp, output);
-    await fs.rename(tmp, filePath);
+    await convertToWebp(filePath, filePath, {
+      width: PORTRAIT_WIDTH,
+      height: PORTRAIT_HEIGHT,
+      fit: 'fill',
+      quality: QUALITY,
+      alphaQuality: ALPHA_QUALITY,
+      effort: EFFORT,
+    });
   }
   await validate();
 }
