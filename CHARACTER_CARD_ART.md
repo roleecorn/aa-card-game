@@ -310,3 +310,10 @@ visual brief 必須回答：
 - Prototype art direction：視覺核心是離群、突然拿出奇怪但有效笑點的創作者；可採偏離中心的構圖、散落片段與強烈留白，不以鬼怪字面造型取代人格線索。
 - 構圖：portrait 以單人、略偏側的寫作姿態；compact 採多個散落小稿件形成橫向節奏，兩張圖各自重新構圖。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；圖片本身不含文字、卡框、Logo 或 UI。
+
+
+### 派大星 source-driven visual brief
+- Selection source：此角色不是 PintBox 已有卡面；依 reply graph fallback 選入。其對話互動度高，且發言反覆處理資訊揭露、段落分配、一致性、整合與排程。
+- Prototype art direction：視覺核心是把散亂資訊整理成可運作結構的系統型創作者；可使用節點、線路、分層便條等抽象背景，但不可畫出可讀 UI 或資料文字。
+- 構圖：portrait 以檢視多個相互關聯物件的姿態；compact 重新安排為橫向節點／流程構圖，不從 portrait 裁切。
+- Runtime：portrait 768×1024 WebP、compact 384×320 WebP；外觀、配色、服裝均屬 Prototype art direction。

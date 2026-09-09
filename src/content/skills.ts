@@ -438,5 +438,16 @@ export const skillList = skillDefinitionSchema.array().parse([
     ],
     tags: ['negative', 'prototype'],
   },
+  {
+    id: 'patrickConsistencyCheck',
+    name: '一致性檢查',
+    description: '每回合一次，重擲自己作品中目前最低的一顆已填入骰。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeEffects: [{ kind: 'work.progress.rerollLowest', target: 'ownerWork', count: 1 }],
+    tags: ['prototype', 'review'],
+  },
 
 ]);

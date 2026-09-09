@@ -354,6 +354,24 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       '作品適性（笑）與技能「鬆散段子」為 source-driven Prototype design；不宣稱為 PintBox 原始卡面定案。',
     ],
   },
+  {
+    id: 'patrick',
+    name: '派大星',
+    stats: { design: 2, text: 2, aa: 1 },
+    maxStress: 4,
+    affinities: ['謀'],
+    skillIds: ['patrickConsistencyCheck'],
+    tags: ['systems-thinker', 'review', 'graph-selected'],
+    portrait: '/assets/characters/portrait/patrick.webp',
+    compactPortrait: '/assets/characters/compact/patrick.webp',
+    portraitPosition: { x: 50, y: 12 },
+    sourceNotes: [
+      '本角色不是 PintBox 已有卡面設計；依使用者指定 fallback 規則，從 dataset(1).zip 的發言 reply graph 選出。',
+      '派大星（.dapie）reply graph degree = 524，為排除既有角色與前四名 PintBox 直接設計候選後，互動度最高的明確未實裝使用者。',
+      '本人發言反覆涉及資訊揭露、段落分配、前後一致性、整合與排程，並提出以資料庫權重檢索對話關鍵字；因此定位為系統／結構檢查型。',
+      'Design 2 / Text 2 / AA 1 / Stress 4、適性（謀）與技能均為 source-driven Prototype design，不宣稱為 PintBox 原始設定。',
+    ],
+  },
 
 ]);
 
