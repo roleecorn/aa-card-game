@@ -14,6 +14,7 @@ interface GameStore {
   placeDie: (dieId: string, workId: string, slotIndex: number) => boolean;
   finishPlayerAssignment: () => void;
   playCard: (teamId: TeamId, instanceId: string, target: SkillActivationTarget) => boolean;
+  discardCards: (teamId: TeamId, instanceIds: string[]) => boolean;
   activateSkill: (teamId: TeamId, memberId: string, skillId: string, target?: SkillActivationTarget) => boolean;
 }
 
@@ -55,6 +56,13 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (state.game) result = new EngineSession(state.game).playCard(teamId, instanceId, target);
+      });
+      return result;
+    },
+    discardCards: (teamId, instanceIds) => {
+      let result = false;
+      set((state) => {
+        if (state.game) result = new EngineSession(state.game).discardCards(teamId, instanceIds);
       });
       return result;
     },

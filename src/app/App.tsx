@@ -31,6 +31,7 @@ import { LogPanel } from '../components/LogPanel';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { StartScreen } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
+import { HandLimitDialog } from '../components/HandLimitDialog';
 
 type AppStage = 'start' | 'draw' | 'battle';
 
@@ -51,6 +52,7 @@ export default function App() {
   const placeDie = useGameStore((state) => state.placeDie);
   const finishPlayerAssignment = useGameStore((state) => state.finishPlayerAssignment);
   const playCard = useGameStore((state) => state.playCard);
+  const discardCards = useGameStore((state) => state.discardCards);
   const activateSkill = useGameStore((state) => state.activateSkill);
 
   const engine = useMemo(() => game ? new EngineSession(game) : undefined, [game]);
@@ -281,6 +283,7 @@ export default function App() {
         </Box>
       </Container>
 
+      <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardCards('player', instanceIds)} />
       <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={() => setCardInstance(undefined)} onConfirm={handleCardConfirm} />
       <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={() => setSkillDialog(undefined)} onConfirm={handleSkillConfirm} />
       <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />

@@ -353,11 +353,41 @@ export class EngineSession {
       if (!cardId) return;
       team.hand.push({ instanceId: this.uid('card'), cardId });
     }
+    if (teamId === 'enemy') this.discardEnemyOverflow();
   }
 
   addCard(teamId: TeamId, cardId: string, count: number): void {
     const team = this.getTeam(teamId);
     for (let i = 0; i < count; i += 1) team.hand.push({ instanceId: this.uid('card'), cardId });
+    if (teamId === 'enemy') this.discardEnemyOverflow();
+  }
+
+  discardCards(teamId: TeamId, instanceIds: string[]): boolean {
+    const team = this.getTeam(teamId);
+    const uniqueIds = [...new Set(instanceIds)];
+    const cards = uniqueIds.map((instanceId) => team.hand.find((card) => card.instanceId === instanceId));
+    if (cards.some((card) => !card)) return false;
+
+    const remainingCount = team.hand.length - uniqueIds.length;
+    if (team.hand.length > DEFAULT_MATCH.handLimit && remainingCount !== DEFAULT_MATCH.handLimit) return false;
+
+    const selected = new Set(uniqueIds);
+    team.hand = team.hand.filter((card) => !selected.has(card.instanceId));
+    for (const card of cards) if (card) team.discard.push(card.cardId);
+    if (uniqueIds.length) this.log(`${team.name} 棄掉 ${uniqueIds.length} 張手牌。`);
+    return true;
+  }
+
+  private discardEnemyOverflow(): void {
+    const team = this.state.enemy;
+    const excess = team.hand.length - DEFAULT_MATCH.handLimit;
+    if (excess <= 0) return;
+    const shuffled = this.shuffle(team.hand);
+    const discarded = shuffled.slice(0, excess);
+    const selected = new Set(discarded.map((card) => card.instanceId));
+    team.hand = team.hand.filter((card) => !selected.has(card.instanceId));
+    team.discard.push(...discarded.map((card) => card.cardId));
+    this.log(`${team.name} 因手牌超過上限，自動棄掉 ${excess} 張牌。`);
   }
 
   canPlaceDie(teamId: TeamId, die: DieToken, work: WorkState, slotIndex: number): boolean {
@@ -393,7 +423,7 @@ export class EngineSession {
   }
 
   performPlayerActions(actions: Record<string, ActionChoice>): void {
-    if (this.state.phase !== 'player-plan') return;
+    if (this.state.phase !== 'player-plan' || this.state.player.hand.length > DEFAULT_MATCH.handLimit) return;
     this.performTeamActions('player', actions);
     this.state.phase = 'player-assign';
   }
@@ -439,6 +469,7 @@ export class EngineSession {
 
   playCard(teamId: TeamId, instanceId: string, target: SkillActivationTarget): boolean {
     const team = this.getTeam(teamId);
+    if (team.hand.length > DEFAULT_MATCH.handLimit) return false;
     const index = team.hand.findIndex((card) => card.instanceId === instanceId);
     const instance = team.hand[index];
     if (!instance) return false;
@@ -563,8 +594,8 @@ export class EngineSession {
     this.state.phase = 'player-plan';
 
     try {
-      this.drawCards('player', 1);
-      this.drawCards('enemy', 1);
+      this.drawCards('player', DEFAULT_MATCH.cardsPerRound);
+      this.drawCards('enemy', DEFAULT_MATCH.cardsPerRound);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`系統保護：回合抽牌失敗，已略過：${message}`);
@@ -677,8 +708,8 @@ export function createInitialGame(
   const enemy = createTeam(bootstrap, 'enemy', DEFAULT_MATCH.enemy.name, enemyMemberIds);
   const state: GameState = { round: 1, maxRounds: DEFAULT_MATCH.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
   const engine = new EngineSession(state, rng, content);
-  engine.drawCards('player', 4);
-  engine.drawCards('enemy', 4);
+  engine.drawCards('player', DEFAULT_MATCH.initialHandSize);
+  engine.drawCards('enemy', DEFAULT_MATCH.initialHandSize);
   engine.log(`本局隨機隊伍：我方 ${playerMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}；對手 ${enemyMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}。`);
   engine.log('遊戲開始：5 回合內完成作品；每個 slot 以 Design / Text / AA 的最低值計分，缺項視為 -2。');
   engine.start();

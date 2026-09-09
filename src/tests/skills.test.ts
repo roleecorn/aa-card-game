@@ -328,7 +328,7 @@ describe('酪梨 complete character package', () => {
 
   it('使用說明 adds one 指導 card at game start', () => {
     const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, AVOCADO_ROSTER);
-    expect(game.player.hand).toHaveLength(5);
+    expect(game.player.hand).toHaveLength(3);
     expect(game.player.hand.some((item) => item.cardId === 'guide')).toBe(true);
   });
 });
@@ -541,7 +541,7 @@ describe('高興 complete character package', () => {
 
   it('gets three extra coordination cards at game start', () => {
     const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
-    expect(game.player.hand).toHaveLength(7);
+    expect(game.player.hand).toHaveLength(5);
     expect(game.logs.some((entry) => entry.text.includes('編輯長：額外取得 3 張統籌卡'))).toBe(true);
   });
 
