@@ -171,6 +171,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     skillIds: ['meteorTrack', 'meteorCoordination'],
     tags: ['vice-leader'],
     portrait: '/assets/characters/portrait/meteor.webp',
+    compactPortrait: '/assets/characters/compact/meteor.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:20:07：PintBox 明確設計「流星」卡：Text 1、AA 2；技能「軌」在（燃）作品時可額外擲 2 顆骰取高；「副組長聖體」可使用統籌卡但自身壓力 +1。',
@@ -189,6 +190,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['yashiroQuickLearner', 'yashiroDeepResearch'],
     portrait: '/assets/characters/portrait/yashiro.webp',
+    compactPortrait: '/assets/characters/compact/yashiro.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-02 07:05:59：PintBox 卡面片段明確列 AA 3、壓力上限 5，以及「可愛又好學：回合開始時壓力最大的組員壓力 -1」。',
@@ -208,6 +210,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     skillIds: ['lemonStrictLeader'],
     tags: ['leader'],
     portrait: '/assets/characters/portrait/lemon.webp',
+    compactPortrait: '/assets/characters/compact/lemon.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-05 05:50:27：PintBox 將檸檬與風揚並列為「比較嚴格的組長」。',
@@ -225,6 +228,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['emotionCraftAwareness'],
     portrait: '/assets/characters/portrait/emotion.webp',
+    compactPortrait: '/assets/characters/compact/emotion.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:12:37：PintBox 明確評價情緒屬於「有意識」能想到簡單改善 AA 效果的人，並表示做 AA 最重要的是意識、其次才是技術。',
