@@ -140,7 +140,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
             const selected = selectedIndex === index;
             return (
               <DrawCard
-                key={character.id}
+                key={index}
                 character={character}
                 index={index}
                 revealed={revealed && !isRerolling}
