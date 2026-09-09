@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#29344f"/><stop offset="1" stop-color="#8a526c"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="594" cy="92" r="58" fill="#f7e7a4" stroke="#c8ae64" stroke-width="10"/>
+  <path d="M140 402 V150 H470 V402" fill="#44546f" stroke="#202b40" stroke-width="13"/>
+  <g fill="#ffd978" stroke="#9d7a36" stroke-width="5">
+    <rect x="185" y="190" width="52" height="46"/><rect x="274" y="190" width="52" height="46"/><rect x="363" y="190" width="52" height="46"/>
+    <rect x="185" y="278" width="52" height="46"/><rect x="274" y="278" width="52" height="46"/><rect x="363" y="278" width="52" height="46"/>
+  </g>
+  <path d="M495 356 q72-70 154 0" fill="#d88c78" stroke="#773f42" stroke-width="12"/>
+  <circle cx="570" cy="292" r="48" fill="#efc3a2" stroke="#6f4d49" stroke-width="9"/>
+  <path d="M530 292 h80" stroke="#6f4d49" stroke-width="9"/>
+  <path d="M518 225 l106 18M530 202 l96 17" stroke="#fff" stroke-width="9" opacity=".75"/>
+  <path d="M485 126 h108 l28 55H513Z" fill="#fff" stroke="#a89e96" stroke-width="8"/>
+  <path d="M514 148 h70" stroke="#c4b7ac" stroke-width="7"/>
+</g>
+</svg>

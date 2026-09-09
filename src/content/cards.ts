@@ -1,12 +1,14 @@
 import { cardDefinitionSchema } from '../game/schema';
 
+const cardArt = (fileName: string) => `${import.meta.env.BASE_URL}assets/cards/${fileName}`;
+
 export const cardList = cardDefinitionSchema.array().parse([
   {
     id: 'soothe',
     name: '安撫',
     kind: 'coordination',
     description: '指定一名己方組員，壓力 -2。統籌卡另使隊長承受 +1 外部壓力。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('soothe.svg'),
     target: { kind: 'member', relation: 'ally' },
     effects: [{ kind: 'stress.change', target: 'selectedMember', amount: -2, source: '安撫' }],
     ai: { autoUse: true, priority: 10, when: 'allyStressAtLeast2' },
@@ -16,7 +18,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '指導',
     kind: 'coordination',
     description: '對能力 0 或 1 的組員：額外擲 1 顆該能力骰；若為 6，該能力永久 +1。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('guide.svg'),
     target: { kind: 'member', relation: 'ally', skillPicker: true },
     customHandler: 'guide',
   },
@@ -25,7 +27,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '精修',
     kind: 'coordination',
     description: '重擲指定作品中最低的 3 顆既有骰。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('polish.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [{ kind: 'work.progress.rerollLowest', target: 'selectedWork', count: 3 }],
   },
@@ -34,7 +36,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '重新考慮一下……',
     kind: 'coordination',
     description: '指定作品篇幅 -2（最低 1），作品負責人壓力 +1。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('reconsider.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [
       { kind: 'work.length', target: 'selectedWork', amount: -2, min: 1 },
@@ -46,7 +48,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '趕工',
     kind: 'coordination',
     description: '用 1 點填滿指定作品所有空置進度。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('rush.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [{ kind: 'work.progress.fill', target: 'selectedWork', value: 1 }],
   },
@@ -55,7 +57,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '語音會議',
     kind: 'coordination',
     description: '全隊選擇：壓力 -1，或每人額外獲得 1 顆 Design / Text 骰。',
-    art: '/assets/cards/coordination.png',
+    art: cardArt('voice.svg'),
     target: { kind: 'voiceMode' },
     customHandler: 'voice',
   },
@@ -64,7 +66,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '突發加班',
     kind: 'event',
     description: '指定一名對手組員，壓力 +3。',
-    art: '/assets/cards/event.png',
+    art: cardArt('overtime.svg'),
     target: { kind: 'member', relation: 'enemy' },
     effects: [{ kind: 'stress.change', target: 'selectedMember', amount: 3, source: '突發加班', external: true }],
     ai: { autoUse: true, priority: 20, when: 'enemyLowestHeadroom' },
@@ -74,7 +76,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     name: '卡文',
     kind: 'event',
     description: '指定對手；其下次工作若擲出 1 或 2，壓力 +2。',
-    art: '/assets/cards/event.png',
+    art: cardArt('writer-block.svg'),
     target: { kind: 'member', relation: 'enemy' },
     effects: [{ kind: 'status.change', target: 'selectedMember', status: 'writerBlock', stacks: 1, stacking: 'replace' }],
   },

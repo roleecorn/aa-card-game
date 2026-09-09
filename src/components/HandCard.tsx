@@ -30,32 +30,61 @@ export function HandCard({ instance, card, rotation = 0, onPlay }: HandCardProps
       <CardActionArea
         disabled={!onPlay}
         onClick={() => onPlay?.(instance)}
-        sx={{ height: '100%' }}
+        sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
       >
+        <Box
+          sx={{
+            minHeight: 32,
+            px: .7,
+            py: .45,
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: coordination ? '#e8fbf7' : '#fff0f4',
+            borderBottom: '1px solid',
+            borderColor: tone,
+          }}
+        >
+          <Chip
+            size="small"
+            icon={coordination ? <HandshakeIcon /> : <ErrorOutlineIcon />}
+            label={coordination ? '支援卡' : '事件卡'}
+            sx={{
+              height: 23,
+              bgcolor: '#fff',
+              border: `1px solid ${tone}`,
+              color: '#26334d',
+              '& .MuiChip-label': { px: .7, fontWeight: 800 },
+              '& .MuiChip-icon': { ml: .45 },
+            }}
+          />
+        </Box>
+
         {card.art && (
-          <Box sx={{ position: 'relative', height: 82, overflow: 'hidden' }}>
+          <Box
+            sx={{
+              width: '100%',
+              aspectRatio: '8 / 5',
+              overflow: 'hidden',
+              bgcolor: '#fff',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
             <CardMedia
               component="img"
               image={card.art}
               alt={card.name}
-              sx={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 25%' }}
-            />
-            <Chip
-              size="small"
-              icon={coordination ? <HandshakeIcon /> : <ErrorOutlineIcon />}
-              label={coordination ? '支援卡' : '事件卡'}
               sx={{
-                position: 'absolute',
-                left: 6,
-                top: 6,
-                height: 23,
-                bgcolor: 'rgba(255,255,255,.93)',
-                border: `1px solid ${tone}`,
-                color: '#26334d',
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                display: 'block',
               }}
             />
           </Box>
         )}
+
         <CardContent sx={{ p: .9, '&:last-child': { pb: .9 } }}>
           <Typography sx={{ fontSize: 13.5, lineHeight: 1.1, fontWeight: 950 }}>{card.name}</Typography>
           <Typography

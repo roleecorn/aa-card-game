@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -70,6 +71,21 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
       <DialogTitle>{card.name}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          {card.art && (
+            <Box
+              component="img"
+              src={card.art}
+              alt={card.name}
+              sx={{
+                width: '100%',
+                aspectRatio: '8 / 5',
+                objectFit: 'cover',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            />
+          )}
           <Typography color="text.secondary">{card.description}</Typography>
           {card.target.kind === 'member' && (
             <FormControl fullWidth>
