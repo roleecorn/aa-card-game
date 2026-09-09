@@ -45,7 +45,7 @@ export default function App() {
   const game = useGameStore((state) => state.game);
   const actionChoices = useGameStore((state) => state.actionChoices);
   const reset = useGameStore((state) => state.reset);
-  const resetWithRosters = useGameStore((state) => state.resetWithRosters);
+  const startGame = useGameStore((state) => state.startGame);
   const setActionChoice = useGameStore((state) => state.setActionChoice);
   const performPlayerActions = useGameStore((state) => state.performPlayerActions);
   const placeDie = useGameStore((state) => state.placeDie);
@@ -53,20 +53,37 @@ export default function App() {
   const playCard = useGameStore((state) => state.playCard);
   const activateSkill = useGameStore((state) => state.activateSkill);
 
-  const engine = useMemo(() => new EngineSession(game), [game]);
+  const engine = useMemo(() => game ? new EngineSession(game) : undefined, [game]);
   const [selectedDieId, setSelectedDieId] = useState<string>();
   const [cardInstance, setCardInstance] = useState<CardInstance>();
   const [skillDialog, setSkillDialog] = useState<{ memberId: string; skillId: string }>();
   const [message, setMessage] = useState<string>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
+  const [draftRoster, setDraftRoster] = useState<{ player: string[]; enemy: string[] }>();
 
-  const selectedDie = game.player.pendingDice.find((die) => die.id === selectedDieId);
-  const playerScore = engine.scoreTeam('player');
-  const enemyScore = engine.scoreTeam('enemy');
+  const selectedDie = game?.player.pendingDice.find((die) => die.id === selectedDieId);
+  const playerScore = engine?.scoreTeam('player') ?? 0;
+  const enemyScore = engine?.scoreTeam('enemy') ?? 0;
+
+  const playableIds = useMemo(
+    () => characterList.filter((character) => !character.tags?.includes('not-standard-playable')).map((character) => character.id),
+    [],
+  );
+
+  const shuffledPlayableIds = useCallback(() => {
+    const ids = [...playableIds];
+    for (let i = ids.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    }
+    return ids;
+  }, [playableIds]);
 
   const handleStart = () => {
     reset();
+    const six = shuffledPlayableIds().slice(0, 6);
+    setDraftRoster({ player: six.slice(0, 3), enemy: six.slice(3, 6) });
     setSelectedDieId(undefined);
     setCardInstance(undefined);
     setSkillDialog(undefined);
@@ -75,28 +92,27 @@ export default function App() {
   };
 
   const handleReroll = useCallback((index: number) => {
-    const currentPlayerIds = game.player.members.map((member) => member.defId);
-    const playableIds = characterList
-      .filter((character) => !character.tags?.includes('not-standard-playable'))
-      .map((character) => character.id);
-    const keptIds = currentPlayerIds.filter((_, memberIndex) => memberIndex !== index);
-    const replacementPool = playableIds.filter((id) => !keptIds.includes(id) && id !== currentPlayerIds[index]);
-    const replacement = replacementPool[Math.floor(Math.random() * replacementPool.length)];
-    if (!replacement) return;
+    setDraftRoster((current) => {
+      if (!current) return current;
+      const participants = [...current.player, ...current.enemy];
+      const replacementPool = playableIds.filter((id) => !participants.includes(id));
+      const replacement = replacementPool[Math.floor(Math.random() * replacementPool.length)];
+      if (!replacement) return current;
+      const player = [...current.player];
+      player[index] = replacement;
+      return { player, enemy: current.enemy };
+    });
+  }, [playableIds]);
 
-    const nextPlayerIds = [...currentPlayerIds];
-    nextPlayerIds[index] = replacement;
-
-    const enemyPool = playableIds.filter((id) => !nextPlayerIds.includes(id));
-    for (let i = enemyPool.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [enemyPool[i], enemyPool[j]] = [enemyPool[j]!, enemyPool[i]!];
-    }
-    resetWithRosters(nextPlayerIds, enemyPool.slice(0, 3));
-  }, [game.player.members, resetWithRosters]);
+  const handleConfirmRoster = () => {
+    if (!draftRoster) return;
+    startGame(draftRoster.player, draftRoster.enemy);
+    setAppStage('battle');
+  };
 
   const handleRestart = () => {
     reset();
+    setDraftRoster(undefined);
     setSelectedDieId(undefined);
     setCardInstance(undefined);
     setSkillDialog(undefined);
@@ -147,20 +163,24 @@ export default function App() {
     );
   }
 
-  if (appStage === 'draw') {
-    const drawnCharacters = game.player.members
-      .map((member) => characterList.find((character) => character.id === member.defId))
+  if (appStage === 'draw' && draftRoster) {
+    const drawnCharacters = draftRoster.player
+      .map((memberId) => characterList.find((character) => character.id === memberId))
       .filter((character): character is (typeof characterList)[number] => !!character);
     return (
       <>
         <DrawPhaseScreen
           characters={drawnCharacters}
           onReroll={handleReroll}
-          onConfirm={() => setAppStage('battle')}
+          onConfirm={handleConfirmRoster}
         />
         <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
       </>
     );
+  }
+
+  if (!game || !engine) {
+    return <StartScreen onStart={handleStart} onOpenRoster={() => setRosterOpen(true)} />;
   }
 
   return (
