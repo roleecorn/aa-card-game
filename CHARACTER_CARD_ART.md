@@ -166,6 +166,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `triangle.webp` | 768×1024 | Valid WebP | canonical，三角希＆有希雙人 portrait |
 | `fengyang.webp` | 768×1024 | Valid WebP | canonical |
 | `chaos.webp` | 768×1024 | Valid WebP | canonical |
+| `meteor.webp` | 768×1024 | Valid WebP | canonical，source-driven 流星 portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -200,6 +201,14 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 
 「normalized derivative」只表示 runtime format 已統一；若來源本身解析度較低，轉成 768×1024 不會憑空增加美術細節，也不得稱為新的高解析母版。
 
+
+### 流星（METEOR）source-driven visual brief
+
+- PintBox 已明確設計其卡面為「軌」與「副組長聖體」，因此視覺核心不是單純 meteor motif，而是「沿著軌跡快速推進、能接手統籌但不是主導型隊長」。
+- dataset 中本人常以短句快速回應，並直接指出資訊一次塞太多、沒有消化時間；視覺可用強方向性線條、前傾姿態與移動感表現節奏敏感與行動性。
+- Source-backed：副組長定位、燃作品技能、節奏敏感、直接反應。
+- Prototype art direction：深色機能服、星軌／流星光跡、強透視動態構圖。
+- 禁止依靠「METEOR」文字、技能字樣或 UI 建立辨識度；辨識應來自姿態、輪廓與動勢。
 
 ## 8.2 Source-driven character differentiation
 

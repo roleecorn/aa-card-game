@@ -182,6 +182,14 @@ export class SkillRuntime {
     return Math.min(6, Math.max(1, floor));
   }
 
+  getCoordinationStressBearer(teamId: 'player' | 'enemy'): string | undefined {
+    const team = this.engine.getTeam(teamId);
+    const eligible = team.members.filter((member) =>
+      this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer'),
+    );
+    return eligible.find((member) => member.defId !== team.leaderId)?.defId ?? eligible[0]?.defId;
+  }
+
   private passives(memberId: string): SkillPassive[] {
     const definition = this.engine.getDefinition(memberId);
     return definition.skillIds.flatMap((skillId) => {

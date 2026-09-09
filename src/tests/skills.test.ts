@@ -182,6 +182,50 @@ describe('additional discussion-ranked character cards', () => {
   });
 });
 
+describe('流星 complete character package', () => {
+  const METEOR_ROSTER = {
+    playerMemberIds: ['pintbox', 'meteor', 'mashiro'],
+    enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+  };
+
+  it('uses the discussion-backed stats and production portrait', () => {
+    expect(CHARACTERS.meteor?.stats).toEqual({ design: 0, text: 1, aa: 2 });
+    expect(CHARACTERS.meteor?.maxStress).toBe(4);
+    expect(CHARACTERS.meteor?.portrait).toBe('/assets/characters/portrait/meteor.webp');
+    expect(SKILLS.meteorTrack?.status).toBe('implemented');
+    expect(SKILLS.meteorCoordination?.status).toBe('implemented');
+  });
+
+  it('軌 only works on a 燃 owner work and keeps the better of two rolls', () => {
+    const rolls = [0, 0.999, 0.2, 0.4];
+    const rng = () => rolls.shift() ?? 0.5;
+    const game = createInitialGame(rng, DEFAULT_CONTENT, METEOR_ROSTER);
+    const engine = new EngineSession(game, rng);
+    const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
+    work.type = '謀';
+    expect(engine.activateSkill('player', 'meteor', 'meteorTrack')).toBe(false);
+
+    work.type = '燃';
+    expect(engine.activateSkill('player', 'meteor', 'meteorTrack')).toBe(true);
+    const die = game.player.pendingDice.find((item) => item.ownerId === 'meteor' && item.origin === '軌');
+    expect(die?.skill).toBe('text');
+    expect(die?.value).toBe(6);
+    expect(engine.activateSkill('player', 'meteor', 'meteorTrack')).toBe(false);
+  });
+
+  it('副組長聖體 makes 流星 take coordination-card stress instead of the leader', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, METEOR_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    engine.getCharacter('player', 'mashiro')!.stress = 2;
+    engine.addCard('player', 'soothe', 1);
+    const card = game.player.hand.find((item) => item.cardId === 'soothe')!;
+
+    expect(engine.playCard('player', card.instanceId, { memberId: 'mashiro' })).toBe(true);
+    expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
+    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(0);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));

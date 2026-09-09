@@ -67,6 +67,23 @@ export const builtInEffects = new EffectRegistry()
     }
     return targets.length > 0 && count > 0;
   })
+  .register('dice.grantBestOf', (effect, context, engine) => {
+    if (effect.requireOwnerWorkType) {
+      const ownerWork = engine.getTeam(context.ownerTeamId).works.find((work) => work.ownerId === context.ownerId);
+      if (ownerWork?.type !== effect.requireOwnerWorkType) return false;
+    }
+    const targets = engine.resolveMembers(effect.target, context);
+    const rolls = Array.from({ length: effect.rolls }, () => engine.rollDieFor(context.ownerId));
+    const best = Math.max(...rolls);
+    let grantedCount = 0;
+    for (const { teamId, member } of targets) {
+      const granted = engine.grantDice(teamId, member.defId, effect.skill, effect.count, effect.origin ?? context.definition.name, true);
+      for (const die of granted) die.value = engine.asDieValue(best);
+      grantedCount += granted.length;
+    }
+    if (grantedCount > 0) engine.log(`${context.definition.name}：擲出 ${rolls.join('、')}，保留 ${best}。`);
+    return grantedCount > 0;
+  })
   .register('dice.rerollBatch', (effect, context, engine) => {
     let dice = context.event.dice ?? [];
     dice = dice.filter((die) => {

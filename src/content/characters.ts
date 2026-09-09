@@ -170,12 +170,15 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['meteorTrack', 'meteorCoordination'],
     tags: ['vice-leader'],
+    portrait: '/assets/characters/portrait/meteor.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:20:07：PintBox 明確設計「流星」卡：Text 1、AA 2；技能「軌」在（燃）作品時可額外擲 2 顆骰取高；「副組長聖體」可使用統籌卡但自身壓力 +1。',
-      '2026-09-03 07:32:45：PintBox 後續將流星壓力上限修正為約 4，因此 prototype 採 4。',
+      '2026-09-03 07:32:45：PintBox 後續將流星壓力上限修正為約 4，因此採 4。',
       'Design 未在卡面訊息中列出；依目前 prototype 對未列能力的慣例採 0。',
-      '目前 runtime 尚無「指定作品類型時額外擲兩顆並取高」的等價 generic mechanic，因此兩項技能保留 planned，不自行改寫規則。',
-      'dataset(1).zip 中 METEOR 共 1637 則訊息；此角色因 PintBox 明確設計卡片而優先新增。',
+      '「軌」runtime：每回合一次，自己的作品為（燃）時擲兩次 Text 判定並保留較高者作為 1 顆額外 Text 骰。',
+      '「副組長聖體」runtime：隊伍使用統籌卡時，具此權限的流星代替隊長承擔 +1 外部壓力。',
+      'dataset(1).zip 中 METEOR 共 1637 則訊息；其短促直接、對資訊節奏敏感的發言用於 visual brief，但不改寫 PintBox 已定義的卡面數值。',
     ],
   },
   {

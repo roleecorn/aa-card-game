@@ -452,7 +452,10 @@ export class EngineSession {
     team.hand.splice(index, 1);
     team.discard.push(card.id);
     this.log(`${team.name} 使用「${card.name}」。`);
-    if (card.kind === 'coordination' && team.leaderId) this.adjustStress(teamId, team.leaderId, 1, '使用統籌卡', true);
+    if (card.kind === 'coordination') {
+      const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? team.leaderId;
+      if (bearerId) this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true);
+    }
     this.skills.emit({ type: 'cardPlayed', teamId, sourceKind: card.kind, metadata: { cardId: card.id } });
     return true;
   }

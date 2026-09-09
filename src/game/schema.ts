@@ -175,6 +175,15 @@ export const effectSchema = z.discriminatedUnion('kind', [
     extra: z.boolean().optional(),
   }),
   z.object({
+    kind: z.literal('dice.grantBestOf'),
+    target: memberSelectorSchema,
+    skill: skillStatSchema,
+    rolls: z.number().int().min(2),
+    count: z.number().int().positive().default(1),
+    origin: z.string().optional(),
+    requireOwnerWorkType: workTypeSchema.optional(),
+  }),
+  z.object({
     kind: z.literal('dice.rerollBatch'),
     count: z.number().int().positive(),
     skill: skillStatSchema.optional(),
@@ -276,6 +285,7 @@ export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('affinity.grant'), types: z.union([z.array(workTypeSchema), z.literal('all')]) }),
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
   z.object({ kind: z.literal('card.permission'), cardKind: z.enum(['coordination', 'event']) }),
+  z.object({ kind: z.literal('coordination.stressBearer') }),
 ]);
 
 export const triggerSchema = z.object({
