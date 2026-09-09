@@ -151,7 +151,7 @@ describe('additional discussion-ranked character cards', () => {
 
     expect(CHARACTERS.meteor?.stats).toEqual({ design: 0, text: 1, aa: 2 });
     expect(CHARACTERS.meteor?.maxStress).toBe(4);
-    expect(SKILLS.meteorTrack?.status).toBe('planned');
+    expect(SKILLS.meteorTrack?.status).toBe('implemented');
 
     expect(CHARACTERS.yashiro?.stats).toEqual({ design: 1, text: 1, aa: 3 });
     expect(CHARACTERS.yashiro?.maxStress).toBe(5);
@@ -161,8 +161,8 @@ describe('additional discussion-ranked character cards', () => {
       expect(CHARACTERS[id]?.maxStress).toBe(5);
     }
 
-    expect(CHARACTERS.lemon?.portrait).toBeUndefined();
-    expect(CHARACTERS.kitsu?.portrait).toBeUndefined();
+    expect(CHARACTERS.lemon?.portrait).toBe('/assets/characters/portrait/lemon.webp');
+    expect(CHARACTERS.kitsu?.portrait).toBe('/assets/characters/portrait/kitsu.webp');
   });
 
   it('八代 reduces the highest allied stress by one at round start', () => {
@@ -197,10 +197,10 @@ describe('流星 complete character package', () => {
   });
 
   it('軌 only works on a 燃 owner work and keeps the better of two rolls', () => {
-    const rolls = [0, 0.999, 0.2, 0.4];
-    const rng = () => rolls.shift() ?? 0.5;
-    const game = createInitialGame(rng, DEFAULT_CONTENT, METEOR_ROSTER);
-    const engine = new EngineSession(game, rng);
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, METEOR_ROSTER);
+    const rolls = [0, 0.999];
+    const skillRng = () => rolls.shift() ?? 0.5;
+    const engine = new EngineSession(game, skillRng);
     const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
     work.type = '謀';
     expect(engine.activateSkill('player', 'meteor', 'meteorTrack')).toBe(false);
