@@ -226,6 +226,41 @@ describe('流星 complete character package', () => {
   });
 });
 
+describe('八代 complete character package', () => {
+  const YASHIRO_ROSTER = {
+    playerMemberIds: ['yashiro', 'lemon', 'meteor'],
+    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+  };
+
+  it('uses the sourced stats and production portrait', () => {
+    expect(CHARACTERS.yashiro?.stats).toEqual({ design: 1, text: 1, aa: 3 });
+    expect(CHARACTERS.yashiro?.maxStress).toBe(5);
+    expect(CHARACTERS.yashiro?.portrait).toBe('/assets/characters/portrait/yashiro.webp');
+    expect(SKILLS.yashiroQuickLearner?.status).toBe('implemented');
+    expect(SKILLS.yashiroDeepResearch?.status).toBe('implemented');
+  });
+
+  it('可愛又好學 reduces the highest allied stress at round start', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, YASHIRO_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    engine.getCharacter('player', 'yashiro')!.stress = 1;
+    engine.getCharacter('player', 'lemon')!.stress = 4;
+    engine.getCharacter('player', 'meteor')!.stress = 2;
+    engine.skills.emit({ type: 'roundStart' });
+    expect(engine.getCharacter('player', 'lemon')?.stress).toBe(3);
+  });
+
+  it('查到比預期更深 grants one Text die with floor 3 once per round', () => {
+    const game = createInitialGame(fixedRng(0), DEFAULT_CONTENT, YASHIRO_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0));
+    expect(engine.activateSkill('player', 'yashiro', 'yashiroDeepResearch')).toBe(true);
+    const die = game.player.pendingDice.find((item) => item.ownerId === 'yashiro' && item.origin === '查到比預期更深');
+    expect(die?.skill).toBe('text');
+    expect(die?.value).toBeGreaterThanOrEqual(3);
+    expect(engine.activateSkill('player', 'yashiro', 'yashiroDeepResearch')).toBe(false);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));

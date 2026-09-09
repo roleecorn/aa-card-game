@@ -167,6 +167,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `fengyang.webp` | 768×1024 | Valid WebP | canonical |
 | `chaos.webp` | 768×1024 | Valid WebP | canonical |
 | `meteor.webp` | 768×1024 | Valid WebP | canonical，source-driven 流星 portrait |
+| `yashiro.webp` | 768×1024 | Valid WebP | canonical，source-driven 八代 portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -209,6 +210,13 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - Source-backed：副組長定位、燃作品技能、節奏敏感、直接反應。
 - Prototype art direction：深色機能服、星軌／流星光跡、強透視動態構圖。
 - 禁止依靠「METEOR」文字、技能字樣或 UI 建立辨識度；辨識應來自姿態、輪廓與動勢。
+
+### 八代 source-driven visual brief
+
+- PintBox 明確定義「可愛又好學」與減壓定位；本人在對話中同時呈現高互動性、鼓勵他人、提醒休息，以及主動深入查資料的傾向。
+- 2026-09-04 PintBox 特別指出八代找資料深度遠超預期；本人也提到實地考察、老街古蹟、科學觀光與具體 AA 編輯細節。
+- Source-backed：親和支援、主動研究、對團隊成員給予正向回饋、實際查證。
+- Prototype art direction：開放姿態、帶研究／考察感的小道具、柔和但不幼兒化的表情；避免只用「可愛」作為唯一辨識特徵。
 
 ## 8.2 Source-driven character differentiation
 

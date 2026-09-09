@@ -271,6 +271,18 @@ export const skillList = skillDefinitionSchema.array().parse([
     ],
   },
   {
+    id: 'yashiroDeepResearch',
+    name: '查到比預期更深',
+    description: '每回合一次，額外取得 1 顆 Text 骰；這顆骰最低為 3。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeEffects: [
+      { kind: 'dice.grant', target: 'owner', skill: 'text', count: 1, minRoll: 3, origin: '查到比預期更深', extra: true },
+    ],
+  },
+  {
     id: 'lemonStrictLeader',
     name: '嚴格的組長',
     description: 'PintBox 將檸檬列為較嚴格的組長；原始討論沒有給出可直接落地的數值效果。',
