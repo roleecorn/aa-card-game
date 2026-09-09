@@ -1,6 +1,6 @@
 import { characterDefinitionSchema } from '../game/schema';
 
-export const characterList = characterDefinitionSchema.array().parse([
+const characterDefinitions = characterDefinitionSchema.array().parse([
   {
     id: 'pintbox',
     name: 'Pintbox',
@@ -163,3 +163,14 @@ export const characterList = characterDefinitionSchema.array().parse([
     ],
   },
 ]);
+
+function withBaseUrl(assetPath: string): string {
+  const relativePath = assetPath.startsWith('/') ? assetPath.slice(1) : assetPath;
+  return `${import.meta.env.BASE_URL}${relativePath}`;
+}
+
+export const characterList = characterDefinitions.map((character) => ({
+  ...character,
+  portrait: withBaseUrl(character.portrait),
+  compactPortrait: character.compactPortrait ? withBaseUrl(character.compactPortrait) : undefined,
+}));
