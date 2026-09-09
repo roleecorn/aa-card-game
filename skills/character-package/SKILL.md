@@ -36,6 +36,17 @@ description: "Complete or modify a game character as one atomic package: source-
 - 不把文字、數值、技能烘焙到 image。
 - portrait 與 React/MUI layer 永遠分離。
 
+
+### Documentation gate before Image Generation
+
+在 workflow 的 Image Generation 步驟前，必須先完成：
+
+- 將角色 visual brief、runtime art constraints 與本批特殊要求寫入 repository 文件。
+- 先 commit 文件。
+- commit 完成後才可呼叫 Image Generation。
+
+禁止把 prompt 當作唯一規格來源，也禁止先生成再補文件。若順序違反，生成物只能視為 candidate，不能直接宣稱為 production asset。
+
 ### Atomic character commit
 
 角色 package 必須同一 commit 包含：
@@ -64,13 +75,14 @@ description: "Complete or modify a game character as one atomic package: source-
 3. 決定技能哪些是 implemented / partial / planned。
 4. 用既有 generic effect vocabulary 實作。
 5. 只有必要時增加 reusable mechanic。
-6. 依美術規範生成正式 3:4 portrait。
-7. 執行 `npm run art:normalize`。
-8. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
-9. 寫 tests。
-10. 一次建立 atomic Git commit。
-11. validation branch 跑 CI。
-12. 成功後 fast-forward 同一 commit 到 main。
+6. 先將 visual brief 與本批規格寫入 repository 文件並 commit。
+7. 依已 commit 的美術規範生成正式 3:4 portrait。
+8. 執行 `npm run art:normalize`。
+9. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
+10. 寫 tests。
+11. 一次建立 atomic Git commit。
+12. validation branch 跑 CI。
+13. 成功後 fast-forward 同一 commit 到 main。
 
 ## Failure handling
 

@@ -130,6 +130,17 @@ runtime 存入 `CharacterState.resources`。
 
 雙人角色必須是同一張自然構圖的 portrait，不是兩張卡拼接。
 
+
+### Image Generation documentation gate
+
+新增或補角色圖片時，**在任何 Image Generation 發生前**必須：
+
+1. 先把該角色的 visual brief 與構圖限制寫入 `CHARACTER_CARD_ART.md` 或角色專屬文件。
+2. 確認內容已 commit。
+3. 才能生成候選圖。
+
+聊天中的臨時描述不能取代 repository 文件。若先生成後補文件，視為流程違規；該圖片只能視為未採用 candidate，不可直接進 runtime。
+
 ## 5. Tests
 
 至少測：

@@ -13,6 +13,28 @@
 
 **Runtime asset 必須是獨立生成的完整角色素材，不得由 concept board、角色卡 mockup、拼圖或其他多物件展示圖裁切取得。**
 
+
+## 1.1 Image Generation 前置文件 Gate
+
+**任何新的角色圖在開始 Image Generation 前，必須先把該批次的規格與角色 visual brief 寫入 repository 文件並 commit。**
+
+這是硬性順序，不可倒置：
+
+1. 先確認 source / 人設依據。
+2. 在 `CHARACTER_CARD_ART.md` 或該角色專屬文件寫入固定 visual brief、構圖限制與 runtime asset 規格。
+3. 將文件變更 commit 到目前開發 branch。
+4. 文件 commit 完成後，才可開始 Image Generation。
+5. 生成完成後再做 normalize、validate、runtime integration 與 UI verification。
+
+禁止：
+
+- 先生成圖片，再回頭補文件。
+- 只在聊天訊息或 prompt 中定義規格，卻沒有寫入 repository。
+- 未固定 visual brief 就反覆生成，導致同一角色外觀漂移。
+- 為了配合已生成圖片而反過來修改 UI UX 或角色卡版面規格。
+
+若使用者在同一任務中同時要求「新增角色」與「繪製角色圖」，也必須先完成上述文件 Gate。
+
 ## 2. Runtime asset 規格
 
 | 項目 | 規格 |
@@ -117,6 +139,32 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `chaos.webp` | 768×1024 | Valid WebP | canonical |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
+
+
+## 8.1 2026-09-09 新增角色批次 visual brief
+
+以下 visual brief 必須在本批角色 Image Generation 前固定。圖片只表現角色本身與必要背景，不把這些說明文字畫進圖片。
+
+| Character | Visual brief |
+| --- | --- |
+| 檸檬 | 嚴格但可靠的組長氣質；俐落、整潔、具管理感。可使用 lemon yellow / light green 作辨識色，但不可把「檸檬」文字畫進圖。 |
+| 流星（METEOR） | 俐落、速度感、帶「燃」系舞台／流星動勢；可使用 deep blue / charcoal 搭配 orange-red highlight。應呈現副組長般的可靠與行動力。 |
+| 情緒 | 敏銳、有意識、擅長觀察細節與改善呈現；視覺可偏 violet / muted blue / teal，氣質內斂、觀察型。 |
+| 八代 | 可愛、好學、偏支援型，給人能降低團隊壓力的安心感；可使用 light blue / white / soft accent，姿態親和但不幼兒化。 |
+| 酪梨 | 技術導向、條理清楚、像會整理使用說明與能力邊界的人；可使用 avocado green / cream / brown，允許眼鏡或文件／技術小道具。 |
+| キツ | 冷靜、神秘、略帶銳利感；可使用 black / indigo / muted purple。允許低調 fox-like motif，但角色本身維持人類外觀。 |
+
+### 本批共同限制
+
+- 每張都是**獨立角色 portrait asset**，不是整張角色卡。
+- 生成母版維持 3:4，最終 runtime canonical asset 為 768×1024 WebP。
+- 頭部與上半身必須清楚可辨識，不能靠 UI 裁切來補救構圖。
+- 背景保持簡潔，避免文字、Logo、UI、卡框、數值、技能說明。
+- 同一批次應維持一致的 anime-inspired game-art rendering language、線條密度、光影與完成度。
+- 角色之間必須有明確的色彩、髮型、服裝與 silhouette 區隔，不可只是同一人物換配色。
+- 若 source 沒有明確外觀設定，visual brief 只能作為 prototype art direction，不得在 `sourceNotes` 宣稱為原始 Discord 定案。
+- compact asset 若需要，應依 compact UX 重新構圖，不可只把 portrait 機械裁成橫圖。
+
 
 「normalized derivative」只表示 runtime format 已統一；若來源本身解析度較低，轉成 768×1024 不會憑空增加美術細節，也不得稱為新的高解析母版。
 
