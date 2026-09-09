@@ -91,7 +91,7 @@ export const characterList = characterDefinitionSchema.array().parse([
   },
   {
     id: 'triangle',
-    name: '三角希＆有希',
+    name: '三角希',
     stats: { design: 1, text: 2, aa: 2 },
     maxStress: 4,
     affinities: [],
@@ -103,8 +103,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
       '討論明確指定每回合自身壓力 -1、全作品適性、可以使用統籌卡。',
-      '目前此 id 代表「三角希＆有希」雙人卡：兩人共用同一張 portrait、數值與技能。',
-      '未來可另外新增三角與有希的獨立單人角色卡，不覆寫此雙人卡。',
+      '目前此 id 代表「三角希」雙人卡，由三角赤 + 有希組成；兩人共用同一張 portrait、數值與技能。',
+      '未來可另外新增三角赤與有希的獨立單人角色卡，不覆寫此雙人卡。',
     ],
   },
   {
