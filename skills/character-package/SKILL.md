@@ -65,11 +65,12 @@ description: "Complete or modify a game character as one atomic package: source-
 4. 用既有 generic effect vocabulary 實作。
 5. 只有必要時增加 reusable mechanic。
 6. 依美術規範生成正式 3:4 portrait。
-7. 驗證 image dimensions / path。
-8. 寫 tests。
-9. 一次建立 atomic Git commit。
-10. validation branch 跑 CI。
-11. 成功後 fast-forward 同一 commit 到 main。
+7. 執行 `npm run art:normalize`。
+8. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
+9. 寫 tests。
+10. 一次建立 atomic Git commit。
+11. validation branch 跑 CI。
+12. 成功後 fast-forward 同一 commit 到 main。
 
 ## Failure handling
 

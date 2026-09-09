@@ -7,8 +7,9 @@ https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH
 ## Source of truth
 
 - **GitHub / TypeScript**：遊戲規則、資料結構、互動邏輯、可執行 React/MUI 實作。
-- **Figma**：視覺排版、spacing、尺寸、component composition、設計稿與美術 layer。
-- 角色圖片、卡牌插圖等 raster asset 與文字/UI 必須分層；不要把名稱、能力值或技能說明烘焙進圖片。
+- **Figma**：概念、流程、視覺排版、spacing、尺寸與 component composition。
+- **Figma 不負責保存、同步或發布 runtime raster 圖片。** 角色圖與卡牌圖的實際檔案只存在 GitHub runtime asset pipeline。
+- 圖片與文字/UI 在程式中仍必須分層；不要把名稱、能力值或技能說明烘焙進圖片。
 
 Figma 不是自動覆寫 production code 的唯一來源。排版在 Figma 修改後，必須經過一次 design-to-code sync，再提交 GitHub commit。
 
@@ -51,11 +52,9 @@ Code Connect 只負責 component 對應與 design-to-code context，不代表 Fi
 
 ## Asset 狀態
 
-Figma layout 使用可編輯 layers；角色 ART 與名稱 / stats / Stress / resource / 技能文字應保持分離。
+Figma 只保留概念／流程／layout 層級的 ART placeholder 或構圖意圖，不同步實際 runtime raster。
 
-GitHub runtime assets 才是角色圖片 source of truth。Figma image fill 可能落後於 runtime，因此不要僅根據 Figma 判定某張角色圖已進遊戲。
-
-同步 asset 時先確認 `public/assets/characters/`，再更新 Figma ART fill；不要把整張 React card screenshot 當成角色圖片，也不要把 Figma placeholder 說成 runtime 已採用素材。
+角色圖片的唯一 source of truth 是 GitHub `public/assets/characters/`。是否已採用、尺寸、格式與完整性都以 GitHub asset validator 為準；Figma 不參與圖片發布流程。
 
 目前實際 runtime art 完成狀態見 `PROJECT_STATUS.md`。
 

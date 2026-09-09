@@ -22,11 +22,16 @@
 | Runtime 尺寸 | 768 x 1024 px |
 | 生成母版 | 建議至少 768 x 1024；可使用更高解析度後等比例縮小 |
 | 色彩 | sRGB |
-| Alpha | 建議透明背景；允許角色設計上必要的不透明場景背景 |
+| Alpha | 允許 RGB 或 RGBA；透明背景不是強制 |
+| WebP encode | quality 82 / alphaQuality 90 / effort 6 / smartSubsample |
+| Frame | 單幀；禁止 animated WebP |
+| Container | RIFF 宣告長度必須等於實際檔案長度，禁止 truncated WebP |
 | 檔名 | `character-id.webp` |
 | 位置 | `public/assets/characters/` |
 
-所有角色 runtime asset 必須具有完全相同的 pixel dimensions。不得用 blurred padding、letterbox、延伸背景或重複像素把錯誤比例硬補成 3:4。
+所有角色 runtime asset 必須具有完全相同的 pixel dimensions。**壓縮後 byte size 不要求相同**；WebP 檔案大小會隨畫面細節、透明區域與色彩複雜度改變。不得為了追求相同 KB 數而降低或填充圖片。
+
+不得用 blurred padding、letterbox、延伸背景或重複像素把錯誤比例硬補成 3:4。
 
 ## 3. 構圖 safe area
 
@@ -85,29 +90,31 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 2. 決定角色固定 visual brief 與辨識元素。
 3. 直接生成獨立 3:4 portrait；禁止先做 UI mockup 再裁切。
 4. 檢查人物 safe area、文字污染、鄰近物件與 alpha 邊緣。
-5. 等比例縮放到 768 x 1024。
-6. 轉成 WebP。
-7. 放入 `public/assets/characters/`。
+5. 確認來源本身是 3:4；不要由轉檔工具裁切成 3:4。
+6. 放入 `public/assets/characters/` 後執行 `npm run art:normalize`，統一成 768×1024 / sRGB / WebP canonical encoding。
+7. 執行 `npm run art:validate`，確認尺寸、單幀與 RIFF 完整性。
 8. 在 `src/content/characters.ts` 引用。
 9. 實際用 `CharacterCard` desktop / narrow layout 驗證。
 10. 採用後 commit 到 GitHub；候選稿不可宣稱已進 runtime。
 
 ## 8. 目前 roster 與完成狀態
 
-| Asset | 目前尺寸 | 正式規格狀態 |
-| --- | ---: | --- |
-| `pintbox.webp` | 192×256 | Legacy-size；需升級 |
-| `user79.webp` | 192×256 | Legacy-size；需升級 |
-| `mashiro.webp` | 192×256 | Legacy-size；需升級 |
-| `ginsakura.webp` | 192×256 | Legacy-size；需升級 |
-| `narrator.webp` | 192×256 | Legacy-size；需升級 |
-| `bluewind.webp` | 192×256 | Legacy-size；需升級 |
-| `happy.webp` | 768×1024 | 符合 |
-| `triangle.webp` | 768×1024 | 符合 |
-| `fengyang.webp` | 768×1024 | 符合 |
-| `chaos.webp` | 768×1024 | 符合 |
+| Asset | Runtime 尺寸 | Container | 備註 |
+| --- | ---: | --- | --- |
+| `pintbox.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `user79.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `mashiro.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `ginsakura.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `narrator.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `bluewind.webp` | 768×1024 | Valid WebP | legacy-quality source 的 normalized derivative |
+| `happy.webp` | 768×1024 | Valid WebP | canonical |
+| `triangle.webp` | 768×1024 | Valid WebP | canonical，三角希＆有希雙人 portrait |
+| `fengyang.webp` | 768×1024 | Valid WebP | canonical |
+| `chaos.webp` | 768×1024 | Valid WebP | canonical |
 
-192×256 圖片雖然維持 3:4，可正常顯示，但不符合目前正式 768×1024 標準。不可單純 upscale 後宣稱成合格母版。
+所有 runtime 檔案都已通過 `npm run art:validate`。
+
+「normalized derivative」只表示 runtime format 已統一；若來源本身解析度較低，轉成 768×1024 不會憑空增加美術細節，也不得稱為新的高解析母版。
 
 `docs/art/character-card-reference.webp` 僅供版面設計參考，不得作為 runtime 圖片來源。
 

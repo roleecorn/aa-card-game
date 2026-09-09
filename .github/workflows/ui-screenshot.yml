@@ -7,6 +7,9 @@ on:
     paths:
       - 'src/**'
       - 'public/fonts/**'
+      - 'public/assets/characters/**'
+      - 'scripts/character-art.ts'
+      - 'package.json'
       - '.github/workflows/ui-screenshot.yml'
 
 jobs:
@@ -22,6 +25,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Validate character art
+        run: npm run art:validate
 
       - name: Typecheck
         run: npm run typecheck

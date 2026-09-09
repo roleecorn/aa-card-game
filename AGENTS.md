@@ -45,8 +45,11 @@
 - 不得用 blurred padding、letterbox、延伸背景等方式把錯誤比例偽裝成 3:4。
 - 圖片本身不要包含角色名稱、能力值、技能文字、卡框、badge 或其他 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area，避免 responsive UI 再次裁掉頭部。
+- 每次新增／替換 portrait 後必須執行 `npm run art:normalize` 與 `npm run art:validate`。
+- validator 必須檢查 WebP RIFF 宣告長度與實際 bytes 是否一致；檔案存在不代表 binary 完整。
+- WebP 壓縮後檔案大小不要求相同；只要求 canonical dimensions / encoding / container 完整性。
 - 詳細規格見 `CHARACTER_CARD_ART.md`。
-- 注意：目前六張 legacy portrait 仍是 192×256；實際完成狀態見 `PROJECT_STATUS.md`，不可宣稱全部已完成 768×1024 升級。
+- 目前所有 runtime portrait 都規範化為 768×1024；其中六張由 legacy-quality source 轉成 runtime derivative，格式統一不代表原始細節被提升。實際狀態見 `PROJECT_STATUS.md`。
 
 ## 編碼與 shell
 
@@ -83,6 +86,7 @@ npm run build
 - 視覺排版與 component design 的 Figma file：`https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH`。
 - GitHub/TypeScript 仍是 runtime logic 的 source of truth；Figma 是 visual/layout source。
 - 若修改 layout、spacing、typography 或 component composition，應同步 Figma；若從 Figma 修改，必須經 design-to-code review 後再修改 TypeScript，不直接把 arbitrary Figma output 視為 production code。
+- Figma 只處理概念、流程與 layout；**不要把 runtime raster asset 上傳／同步到 Figma 作為發布流程的一部分**。
 - 圖片與文字/UI layer 必須分離。
 - 工作流細節見 `FIGMA.md`。
 

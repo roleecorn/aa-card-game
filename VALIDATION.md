@@ -2,36 +2,58 @@
 
 最後更新：2026-09-09
 
-## 最近完整 runtime 驗證
+## Character art repair
 
-最近驗證的角色內容 chain head：76c2e50a79b21d1349940dd034f3f3462843cab0
+2026-09-09 audit 確認先前四張 WebP 曾發生 binary 截斷：
 
-GitHub Actions：
-- UI Screenshot run 34256722438 — success
-- Vendor UI Font run 34256722608 — success
+- happy.webp
+- triangle.webp
+- fengyang.webp
+- chaos.webp
 
-UI Screenshot 實際執行：npm install、npm run typecheck、npm run test、Vite dev server、headless Chrome runtime render、screenshot artifact。
+症狀是 GitHub 上檔案存在，但 RIFF header 宣告的總長度大於實際 Git blob bytes，因此 GitHub 無法預覽。
 
-因此可以確認 TypeScript typecheck、Vitest、Vite startup 與 Chrome runtime render 已通過。
+修復採 GitHub-side staging/reassembly，避免再次透過 connector 直接傳大型 binary。
 
-## Production build 界線
+Repair Character Art workflow run `34302878793` 已成功執行：
 
-UI Screenshot workflow 目前沒有執行 npm run build，因此不能把 screenshot workflow success 寫成 production build 已通過。
+- 重新組合既有美術素材
+- `npm install`
+- `npm run art:normalize`
+- `npm run art:validate`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
-release 前應另外執行 npm run verify；verify 會執行 test + build。
+驗證用 staging head：
+
+`fe4f1371234cce299199bf0de8ea53518380e189`
 
 ## Character assets
 
-目前 10 個 portrait path 都有實際檔案。
+目前 10 張角色 portrait 都符合 runtime canonical format：
 
-符合正式 768×1024：happy.webp、triangle.webp、fengyang.webp、chaos.webp。
+- WebP
+- 768×1024
+- 3:4
+- sRGB
+- single-frame
+- RIFF 宣告長度與實際檔案 bytes 一致
 
-仍是 192×256 legacy-size：pintbox.webp、user79.webp、mashiro.webp、ginsakura.webp、narrator.webp、bluewind.webp。
+實際壓縮後檔案大小不要求相同。
 
-六張 legacy-size 圖比例是 3:4，但不符合目前正式解析度規格；不可宣稱全部角色圖都已完成 768×1024 升級。
+Pintbox、79、真白、銀櫻、旁白、藍風是由既有 legacy-quality 素材規範化為 768×1024 runtime derivative；這次沒有重新生成美術，因此不代表原始細節品質被提升。
 
-## Validation guidance
+## Repository validation
 
-角色內容先建立完整 atomic commit，在 temporary validation branch 跑 CI，成功後 fast-forward 同一個 commit 到 main。
+`npm run verify` 現在會先執行：
 
-UI 驗證必須取得真正 Vite/Chrome screenshot，再與 Figma 比較。
+```text
+npm run art:validate
+npm run test
+npm run build
+```
+
+`UI Screenshot` workflow 也會先執行 `art:validate`，再跑 typecheck、Vitest、Vite 與 Chrome runtime render。
+
+角色內容仍遵守 atomic package 規則；runtime UI 驗證必須使用真正 Vite/Chrome screenshot，不以 Figma 代替。

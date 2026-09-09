@@ -34,6 +34,8 @@ npm run typecheck
 npm run test
 npm run build
 npm run verify
+npm run art:normalize
+npm run art:validate
 npm run storybook
 ```
 
@@ -49,7 +51,7 @@ npm run storybook
 - 角色資訊由 React/MUI 統一 render
 - `CharacterCard` 不再把 portrait 拉伸到整張資訊卡高度
 
-目前 happy / triangle / fengyang / chaos 已是 768 x 1024；Pintbox、79、真白、銀櫻、藍風、旁白仍是 192 x 256 legacy-size asset，比例正確但尚未符合目前正式解析度規格。完整狀態見 `PROJECT_STATUS.md`。
+目前 10 張 runtime portrait 都已規範化為 768 x 1024 WebP，並由 `npm run art:validate` 檢查尺寸、單幀與 WebP RIFF 完整性。Pintbox、79、真白、銀櫻、藍風、旁白的來源仍屬 legacy-quality，因此格式已統一不代表細節被重新生成。完整狀態見 `PROJECT_STATUS.md`。
 
 詳細規格：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 
@@ -90,7 +92,7 @@ Game Event
 aa-card-game/
 ├─ public/
 │  └─ assets/
-│     ├─ characters/     # 3:4 WebP runtime portraits
+│     ├─ characters/     # canonical 768x1024 WebP runtime portraits
 │     └─ cards/
 ├─ src/
 │  ├─ app/

@@ -6,38 +6,31 @@
 
 | id | 顯示名稱 | Standard 3v3 | Portrait | 主要狀態 |
 | --- | --- | --- | --- | --- |
-| pintbox | Pintbox | Yes | 192×256 | AI 已實裝；審稿 partial |
-| mashiro | 真白 | Yes | 192×256 | 全適性、骰值複製已實裝 |
-| user79 | 79 | Yes | 192×256 | 共鳴、虛之會圈已實裝 |
-| narrator | 旁白 | Yes | 192×256 | 主要技能 planned |
-| ginsakura | 銀櫻 | Yes | 192×256 | 主要技能 planned |
-| bluewind | 藍風 | Yes | 192×256 | 妄想全開已實裝 |
+| pintbox | Pintbox | Yes | 768×1024 | AI 已實裝；審稿 partial |
+| mashiro | 真白 | Yes | 768×1024 | 全適性、骰值複製已實裝 |
+| user79 | 79 | Yes | 768×1024 | 共鳴、虛之會圈已實裝 |
+| narrator | 旁白 | Yes | 768×1024 | 主要技能 planned |
+| ginsakura | 銀櫻 | Yes | 768×1024 | 主要技能 planned |
+| bluewind | 藍風 | Yes | 768×1024 | 妄想全開已實裝 |
 | triangle | 三角希＆有希 | Yes | 768×1024 | 雙人卡；回復、全適性已實裝；統籌權限 planned |
 | fengyang | 風揚 | Yes | 768×1024 | 商業作者已實裝 |
 | happy | 高興 | Yes | 768×1024 | 高興、編輯長已實裝 |
 | chaos | 卡奧斯 | No | 768×1024 | Boss resource / no-stress / roll floor 已實裝；Boss mode 未完成 |
 
-## Character art gap
+## Character art status
 
-正式規格是 **768×1024 WebP / 3:4**。
+目前 10 張 runtime portrait 都已通過 canonical validation：
 
-目前仍有六張 legacy-size asset：
+- WebP
+- 768×1024
+- 3:4
+- sRGB
+- single-frame
+- RIFF 宣告長度 = 實際 Git blob bytes
 
-- `pintbox.webp`
-- `user79.webp`
-- `mashiro.webp`
-- `ginsakura.webp`
-- `narrator.webp`
-- `bluewind.webp`
+2026-09-09 audit 曾發現 `happy / triangle / fengyang / chaos` 的 GitHub WebP blob 被截斷，因此檔案存在但無法預覽。現在 `scripts/character-art.ts` 與 CI 會直接拒絕這類 truncated WebP。
 
-它們都是 192×256，比例正確但解析度**不符合目前正式規格**。後續應重新生成或由合格母版輸出 768×1024；不可用 upscale 假裝成正式母版。
-
-目前已符合 768×1024：
-
-- `happy.webp`
-- `triangle.webp`
-- `fengyang.webp`
-- `chaos.webp`
+Pintbox、79、真白、銀櫻、旁白、藍風這六張是從既有 legacy-quality 素材規範化成 768×1024 runtime derivative；格式已一致，但這次沒有重新生成美術，不應把 upscale 說成新增高解析細節。
 
 ## Known rules gaps
 

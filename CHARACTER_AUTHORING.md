@@ -125,6 +125,8 @@ runtime 存入 `CharacterState.resources`。
 - 768×1024
 - 無名稱 / 數值 / 技能 / Logo / UI
 - 圖與文字分層
+- 採用後執行 `npm run art:normalize`
+- commit 前執行 `npm run art:validate`
 
 雙人角色必須是同一張自然構圖的 portrait，不是兩張卡拼接。
 
@@ -167,5 +169,6 @@ npm run build
 - [ ] 所有 implemented 技能有 test
 - [ ] portrait 是正式 runtime asset
 - [ ] portrait 實際存在於 Git tree
+- [ ] `npm run art:validate` 已確認 WebP container 未被截斷
 - [ ] CharacterDefinition path 與檔名一致
 - [ ] atomic commit 同時包含 code + tests + image
