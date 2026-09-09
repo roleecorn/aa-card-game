@@ -261,6 +261,32 @@ describe('八代 complete character package', () => {
   });
 });
 
+describe('檸檬 complete character package', () => {
+  const LEMON_ROSTER = {
+    playerMemberIds: ['lemon', 'yashiro', 'meteor'],
+    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+  };
+
+  it('uses the prototype baseline and production portrait', () => {
+    expect(CHARACTERS.lemon?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.lemon?.maxStress).toBe(5);
+    expect(CHARACTERS.lemon?.portrait).toBe('/assets/characters/portrait/lemon.webp');
+    expect(SKILLS.lemonStrictLeader?.status).toBe('implemented');
+  });
+
+  it('嚴格的組長 rerolls the first low allied work die once per round', () => {
+    const game = createInitialGame(fixedRng(0.999), DEFAULT_CONTENT, LEMON_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.999));
+    const dieA = { id: 'low-a', ownerId: 'yashiro', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
+    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'yashiro', dice: [dieA], amount: 1, sourceKind: 'work' });
+    expect(dieA.value).toBe(6);
+
+    const dieB = { id: 'low-b', ownerId: 'meteor', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
+    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'meteor', dice: [dieB], amount: 1, sourceKind: 'work' });
+    expect(dieB.value).toBe(1);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));

@@ -168,6 +168,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `chaos.webp` | 768×1024 | Valid WebP | canonical |
 | `meteor.webp` | 768×1024 | Valid WebP | canonical，source-driven 流星 portrait |
 | `yashiro.webp` | 768×1024 | Valid WebP | canonical，source-driven 八代 portrait |
+| `lemon.webp` | 768×1024 | Valid WebP | canonical，source-driven 檸檬 portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -217,6 +218,13 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - 2026-09-04 PintBox 特別指出八代找資料深度遠超預期；本人也提到實地考察、老街古蹟、科學觀光與具體 AA 編輯細節。
 - Source-backed：親和支援、主動研究、對團隊成員給予正向回饋、實際查證。
 - Prototype art direction：開放姿態、帶研究／考察感的小道具、柔和但不幼兒化的表情；避免只用「可愛」作為唯一辨識特徵。
+
+### 檸檬 source-driven visual brief
+
+- 本人的長篇評論重點常落在故事核心、整體脈絡、角色銜接與觀眾對作品連貫性的預期；並直接提出即時溝通與預案的重要性。
+- PintBox 另明確將她描述為較嚴格的組長，因此視覺重心應是「會在混亂前先整理結構的人」，不是單純 lemon motif。
+- Source-backed：嚴格組長、結構審查、預案、即時溝通。
+- Prototype art direction：整潔而有控制感的 silhouette、像在整理稿件／流程的姿態；黃色或綠色只能作次要辨識，不得成為唯一角色設計理由。
 
 ## 8.2 Source-driven character differentiation
 

@@ -285,9 +285,24 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'lemonStrictLeader',
     name: '嚴格的組長',
-    description: 'PintBox 將檸檬列為較嚴格的組長；原始討論沒有給出可直接落地的數值效果。',
-    activation: 'passive',
-    status: 'planned',
+    description: '每回合第一次有我方角色工作骰出 1 或 2 時，重擲最低的一顆。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'afterRollBatch',
+        priority: 10,
+        usage: { scope: 'round', limit: 1, key: 'contingency' },
+        condition: {
+          kind: 'all',
+          conditions: [
+            { kind: 'relation', field: 'actorId', relation: 'ally' },
+            { kind: 'diceMatch', maxValue: 2 },
+          ],
+        },
+        effects: [{ kind: 'dice.rerollBatch', count: 1, maxValue: 2, lowestFirst: true }],
+      },
+    ],
   },
   {
     id: 'emotionCraftAwareness',

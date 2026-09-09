@@ -206,11 +206,15 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     maxStress: 5,
     affinities: [],
     skillIds: ['lemonStrictLeader'],
+    tags: ['leader'],
+    portrait: '/assets/characters/portrait/lemon.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
-      '目前 Discord source 未找到 PintBox 為檸檬寫出的完整角色卡數值。',
-      '2026-09-05 05:50:27：PintBox 將檸檬與風揚並列為「比較嚴格的組長」；技能僅保留此來源特徵，不擅自定義 runtime 數值。',
+      '2026-09-05 05:50:27：PintBox 將檸檬與風揚並列為「比較嚴格的組長」。',
+      '2026-09-02 07:35–07:38：檸檬評論作品時反覆強調整體脈絡、連貫性、即時溝通，以及問題出現時應先做預案。',
       '基礎數值採 PintBox 2026-09-05 12:04:02 所述標準白板：Design / Text / AA 各 1、壓力上限 5，屬 Prototype assumption。',
-      'dataset(1).zip 中「【自掛東南枝】檸檬」共 2425 則訊息；在未已有角色中發言量最高，因此依使用者排序規則新增。',
+      '「嚴格的組長」runtime 為 source-driven prototype：每回合第一次有我方角色工作骰出 1 或 2 時，重擲最低的一顆，表現提前介入與預案修正。',
+      'dataset(1).zip 中「【自掛東南枝】檸檬」共 2425 則訊息；在新增角色中發言量最高。',
     ],
   },
   {
