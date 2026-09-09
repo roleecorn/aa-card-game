@@ -127,6 +127,10 @@ export class SkillRuntime {
         }
       }
       return event;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.engine.log(`技能事件「${event.type}」處理失敗，已隔離：${message}`);
+      return event;
     } finally {
       this.depth -= 1;
     }

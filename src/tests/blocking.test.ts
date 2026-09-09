@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createInitialGame, EngineSession } from '../game/engine';
 import { DEFAULT_CONTENT } from '../content/catalog';
+import { builtInEffects } from '../game/effectRegistry';
 
 function fixedRng(value: number) {
   return () => value;
@@ -88,4 +89,82 @@ describe('blocking-safety guards', () => {
     expect(game.phase).toBe('player-plan');
     expect(game.logs.some((entry) => entry.text.includes('系統保護'))).toBe(true);
   });
+
+  it('isolates an opponent defensive trigger failure during a player card effect', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+      playerMemberIds: ['mashiro', 'user79', 'lemon'],
+      enemyMemberIds: ['pintbox', 'ginsakura', 'bluewind'],
+    });
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const overtime = game.player.hand.find((item) => item.cardId === 'overtime');
+    if (!overtime) {
+      engine.addCard('player', 'overtime', 1);
+    }
+    const instance = game.player.hand.find((item) => item.cardId === 'overtime')!;
+
+    const originalExecute = builtInEffects.execute.bind(builtInEffects);
+    const executeSpy = vi.spyOn(builtInEffects, 'execute').mockImplementation((effect, context, currentEngine) => {
+      if (context.ownerTeamId === 'enemy' && context.definition.id === 'pintboxAI') {
+        throw new Error('simulated opponent defensive trigger failure');
+      }
+      return originalExecute(effect as never, context, currentEngine);
+    });
+
+    expect(() => engine.playCard('player', instance.instanceId, { memberId: 'pintbox' })).not.toThrow();
+    expect(game.player.hand.some((item) => item.instanceId === instance.instanceId)).toBe(false);
+    expect(game.logs.some((entry) => entry.text.includes('Pintbox') || entry.text.includes('觸發失敗'))).toBe(true);
+
+    executeSpy.mockRestore();
+  });
+
+  it('isolates a player defensive trigger failure caused by an opponent effect', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+      playerMemberIds: ['pintbox', 'mashiro', 'user79'],
+      enemyMemberIds: ['lemon', 'meteor', 'bluewind'],
+    });
+    const engine = new EngineSession(game, fixedRng(0.5));
+    engine.addCard('enemy', 'overtime', 1);
+    const instance = game.enemy.hand.find((item) => item.cardId === 'overtime')!;
+
+    const originalExecute = builtInEffects.execute.bind(builtInEffects);
+    const executeSpy = vi.spyOn(builtInEffects, 'execute').mockImplementation((effect, context, currentEngine) => {
+      if (context.ownerTeamId === 'player' && context.definition.id === 'pintboxAI') {
+        throw new Error('simulated player defensive trigger failure');
+      }
+      return originalExecute(effect as never, context, currentEngine);
+    });
+
+    expect(() => engine.playCard('enemy', instance.instanceId, { memberId: 'pintbox' })).not.toThrow();
+    expect(game.enemy.hand.some((item) => item.instanceId === instance.instanceId)).toBe(false);
+    expect(game.logs.some((entry) => entry.text.includes('觸發失敗'))).toBe(true);
+
+    executeSpy.mockRestore();
+  });
+
+  it('never lets trigger discovery errors escape an emitted opponent event', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+      playerMemberIds: ['pintbox', 'mashiro', 'user79'],
+      enemyMemberIds: ['lemon', 'meteor', 'bluewind'],
+    });
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const originalGetDefinition = engine.getDefinition.bind(engine);
+    let injected = false;
+
+    vi.spyOn(engine, 'getDefinition').mockImplementation((memberId) => {
+      if (!injected && memberId === 'lemon') {
+        injected = true;
+        throw new Error('simulated opponent trigger discovery failure');
+      }
+      return originalGetDefinition(memberId);
+    });
+
+    expect(() => engine.skills.emit({
+      type: 'afterExternalStress',
+      teamId: 'enemy',
+      targetId: 'lemon',
+      amount: 1,
+    })).not.toThrow();
+    expect(game.logs.some((entry) => entry.text.includes('技能事件') && entry.text.includes('已隔離'))).toBe(true);
+  });
+
 });
