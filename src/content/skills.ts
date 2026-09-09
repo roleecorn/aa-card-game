@@ -101,10 +101,16 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'triangleRecovery',
     name: '滾滾三角生物',
-    description: '每回合開始時，三角希＆有希的壓力 -1。',
-    activation: 'triggered',
+    description: '每回合一次，選擇自己以外的一個「三角生物」（不分敵我）；自己與該角色的壓力各 -1。',
+    activation: 'active',
     status: 'implemented',
-    triggers: [{ event: 'roundStart', effects: [{ kind: 'stress.change', target: 'owner', amount: -1, source: '滾滾三角生物' }] }],
+    activeUsage: { scope: 'round', limit: 1 },
+    activeHint: '可選擇我方或敵方的三角生物，但不能選擇三角希自己。',
+    activeTarget: { kind: 'taggedMember', tag: 'triangle-creature', excludeSelf: true },
+    activeEffects: [
+      { kind: 'stress.change', target: 'owner', amount: -1, source: '滾滾三角生物' },
+      { kind: 'stress.change', target: 'selectedMember', amount: -1, source: '滾滾三角生物' },
+    ],
   },
   {
     id: 'triangleAffinity',

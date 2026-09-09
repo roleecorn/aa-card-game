@@ -312,6 +312,7 @@ export const triggerSchema = z.object({
 export const activeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('none') }),
   z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'otherAlly', 'enemy']) }),
+  z.object({ kind: z.literal('taggedMember'), tag: z.string().min(1), excludeSelf: z.boolean().default(false) }),
   z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy', 'owner']) }),
   z.object({ kind: z.literal('copyPendingDie'), source: z.literal('otherAlly'), target: z.literal('self') }),
   z.object({ kind: z.literal('pendingDie'), relation: z.enum(['self', 'ally', 'otherAlly', 'enemy']) }),

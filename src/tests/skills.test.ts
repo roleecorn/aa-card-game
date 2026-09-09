@@ -20,8 +20,8 @@ const HAPPY_ROSTER = {
 };
 
 const TRIANGLE_ROSTER = {
-  playerMemberIds: ['triangle', 'pintbox', 'mashiro'],
-  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+  playerMemberIds: ['triangle', 'avocado', 'pintbox'],
+  enemyMemberIds: ['yashiro', 'ginsakura', 'bluewind'],
 };
 
 const FENGYANG_ROSTER = {
@@ -579,20 +579,28 @@ describe('三角希 complete character package', () => {
     expect(CHARACTERS.triangle?.stats).toEqual({ design: 1, text: 2, aa: 2 });
     expect(CHARACTERS.triangle?.maxStress).toBe(4);
     expect(CHARACTERS.triangle?.tags).toContain('duo-card');
+    expect(CHARACTERS.triangle?.tags).toContain('triangle-creature');
     expect(CHARACTERS.triangle?.portrait).toBe('/assets/characters/portrait/triangle.webp');
     expect(CHARACTERS.triangle?.compactPortrait).toBe('/assets/characters/compact/triangle.webp');
     expect(CHARACTERS.triangle?.portraitPosition).toEqual({ x: 50, y: 12 });
   });
 
-  it('recovers one stress at round start and has all work affinities', () => {
+  it('滾滾三角生物 targets another triangle creature on either team once per round', () => {
     const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, TRIANGLE_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    const member = engine.getCharacter('player', 'triangle')!;
-    member.stress = 2;
+    const triangle = engine.getCharacter('player', 'triangle')!;
+    const avocado = engine.getCharacter('player', 'avocado')!;
+    const yashiro = engine.getCharacter('enemy', 'yashiro')!;
+    triangle.stress = 3;
+    avocado.stress = 2;
+    yashiro.stress = 2;
 
-    engine.skills.emit({ type: 'roundStart' });
-
-    expect(member.stress).toBe(1);
+    expect(engine.activateSkill('player', 'triangle', 'triangleRecovery', { memberId: 'triangle' })).toBe(false);
+    expect(engine.activateSkill('player', 'triangle', 'triangleRecovery', { memberId: 'yashiro' })).toBe(true);
+    expect(triangle.stress).toBe(2);
+    expect(yashiro.stress).toBe(1);
+    expect(avocado.stress).toBe(2);
+    expect(engine.activateSkill('player', 'triangle', 'triangleRecovery', { memberId: 'avocado' })).toBe(false);
     expect(engine.getEffectiveAffinity('triangle')).toBe('all');
   });
 

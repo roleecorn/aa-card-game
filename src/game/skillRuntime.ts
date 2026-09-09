@@ -237,6 +237,13 @@ export class SkillRuntime {
       if (spec.relation === 'otherAlly') return targetTeam === teamId && target.memberId !== memberId;
       return targetTeam === teamId;
     }
+    if (spec.kind === 'taggedMember') {
+      if (!target.memberId) return false;
+      if (spec.excludeSelf && target.memberId === memberId) return false;
+      const targetTeam = this.engine.findMemberTeam(target.memberId);
+      if (!targetTeam) return false;
+      return this.engine.getDefinition(target.memberId).tags?.includes(spec.tag) ?? false;
+    }
     if (spec.kind === 'work') {
       if (!target.workId) return false;
       const ownTeam = this.engine.getTeam(teamId);

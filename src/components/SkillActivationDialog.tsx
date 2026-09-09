@@ -41,7 +41,14 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   const spec = skill?.activeTarget ?? { kind: 'none' as const };
 
   const memberOptions = useMemo(() => {
-    if (!memberId || spec.kind !== 'member') return [];
+    if (!memberId) return [];
+    if (spec.kind === 'taggedMember') {
+      return [...game.player.members, ...game.enemy.members].filter((member) => {
+        if (spec.excludeSelf && member.defId === memberId) return false;
+        return CHARACTERS[member.defId]?.tags?.includes(spec.tag) ?? false;
+      });
+    }
+    if (spec.kind !== 'member') return [];
     if (spec.relation === 'enemy') return game.enemy.members;
     if (spec.relation === 'otherAlly') return game.player.members.filter((member) => member.defId !== memberId);
     return game.player.members;
@@ -82,7 +89,7 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   };
 
   const valid = spec.kind === 'none'
-    || (spec.kind === 'member' && !!selectedMemberId)
+    || ((spec.kind === 'member' || spec.kind === 'taggedMember') && !!selectedMemberId)
     || (spec.kind === 'work' && !!selectedWorkId)
     || (spec.kind === 'copyPendingDie' && !!sourceDieId && !!targetDieId)
     || (spec.kind === 'pendingDie' && !!targetDieId);
@@ -95,7 +102,7 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
           <Typography color="text.secondary">{skill.description}</Typography>
           {skill.activeHint && <Typography variant="body2">{skill.activeHint}</Typography>}
 
-          {spec.kind === 'member' && (
+          {(spec.kind === 'member' || spec.kind === 'taggedMember') && (
             <FormControl fullWidth>
               <InputLabel>目標角色</InputLabel>
               <Select value={selectedMemberId} label="目標角色" onChange={(event) => setSelectedMemberId(event.target.value)}>

@@ -102,7 +102,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
-      '討論明確指定每回合自身壓力 -1、全作品適性、可以使用統籌卡。',
+      '「滾滾三角生物」目前規則：每回合一次，選擇自己以外的一個三角生物（不分敵我），自己與對方壓力各 -1；另保留全作品適性與統籌卡權限。',
       '目前此 id 代表「三角希」雙人卡，由三角赤 + 有希組成；兩人共用同一張 portrait、數值與技能。',
       '未來可另外新增三角赤與有希的獨立單人角色卡，不覆寫此雙人卡。',
     ],
