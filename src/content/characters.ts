@@ -9,7 +9,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['謀', '情'],
     skillIds: ['pintboxReview', 'pintboxAI'],
     tags: ['leader', 'review'],
-    portrait: '/assets/characters/pintbox.webp',
+    portrait: '/assets/characters/portrait/pintbox.webp',
+    compactPortrait: '/assets/characters/compact/pintbox.webp',
     sourceNotes: [
       '2026-09-03 07:24:17：Design 2、AA 2、壓力上限 5。',
       'Text 未在目前整理紀錄中明確列出；prototype 暫用 0。',
@@ -23,7 +24,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 5,
     affinities: [],
     skillIds: ['mashiroAffinity', 'mashiroSynthesis'],
-    portrait: '/assets/characters/mashiro.webp',
+    portrait: '/assets/characters/portrait/mashiro.webp',
+    compactPortrait: '/assets/characters/compact/mashiro.webp',
     sourceNotes: [
       '2026-09-03 07:56:48：Text 1、Design 2、AA 2、壓力上限 5。',
       '討論明確指定全作品適性。',
@@ -36,7 +38,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 4,
     affinities: ['燃', '謀'],
     skillIds: ['resonance79', 'virtualCircle79'],
-    portrait: '/assets/characters/user79.webp',
+    portrait: '/assets/characters/portrait/user79.webp',
+    compactPortrait: '/assets/characters/compact/user79.webp',
     sourceNotes: [
       '2026-09-03 23:06:59：Text 3、Design 2、AA 2、壓力上限 4。',
       '作品適性目前沿用 prototype 暫定值。',
@@ -49,7 +52,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 5,
     affinities: ['笑'],
     skillIds: ['narratorOsaka', 'narratorLongForm'],
-    portrait: '/assets/characters/narrator.webp',
+    portrait: '/assets/characters/portrait/narrator.webp',
+    compactPortrait: '/assets/characters/compact/narrator.webp',
     sourceNotes: [
       '2026-09-03 08:00:45：Text 3、Design 1、AA 1。',
       '壓力上限未在目前整理紀錄中明確列出；prototype 暫用 5。',
@@ -63,7 +67,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 3,
     affinities: ['情', '燃'],
     skillIds: ['ginsakuraRise', 'ginsakuraSupport'],
-    portrait: '/assets/characters/ginsakura.webp',
+    portrait: '/assets/characters/portrait/ginsakura.webp',
+    compactPortrait: '/assets/characters/compact/ginsakura.webp',
     sourceNotes: [
       '2026-09-03 07:49:52：Text 2、Design 1、AA 3、壓力上限 3。',
       '作品適性目前為 prototype 暫定。',
@@ -76,7 +81,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: 3,
     affinities: ['情', '謀'],
     skillIds: ['bluewindDelusion'],
-    portrait: '/assets/characters/bluewind.webp',
+    portrait: '/assets/characters/portrait/bluewind.webp',
+    compactPortrait: '/assets/characters/compact/bluewind.webp',
     sourceNotes: [
       '2026-09-03 19:21:48：Text 1、Design 1、壓力上限 3。',
       'AA 未在目前整理紀錄中明確列出；prototype 暫用 0。',
@@ -91,8 +97,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
     tags: ['duo-card'],
-    portrait: '/assets/characters/triangle.webp',
-    compactPortrait: '/assets/characters/triangle-compact.webp',
+    portrait: '/assets/characters/portrait/triangle.webp',
+    compactPortrait: '/assets/characters/compact/triangle.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
@@ -109,8 +115,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: ['謀', '情'],
     skillIds: ['commercialAuthor'],
     tags: ['commercial-author'],
-    portrait: '/assets/characters/fengyang.webp',
-    compactPortrait: '/assets/characters/fengyang-compact.webp',
+    portrait: '/assets/characters/portrait/fengyang.webp',
+    compactPortrait: '/assets/characters/compact/fengyang.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
@@ -126,8 +132,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     maxStress: null,
     affinities: [],
     skillIds: ['happyContagion', 'happyEditor'],
-    portrait: '/assets/characters/happy.webp',
-    compactPortrait: '/assets/characters/happy-compact.webp',
+    portrait: '/assets/characters/portrait/happy.webp',
+    compactPortrait: '/assets/characters/compact/happy.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '原始角色卡明確列出 Design 3、壓力上限 ∞。',
@@ -144,8 +150,8 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['chaosSteadyRoll', 'chaosVitality'],
     tags: ['boss', 'not-standard-playable', 'no-stress'],
-    portrait: '/assets/characters/chaos.webp',
-    compactPortrait: '/assets/characters/chaos-compact.webp',
+    portrait: '/assets/characters/portrait/chaos.webp',
+    compactPortrait: '/assets/characters/compact/chaos.webp',
     portraitPosition: { x: 50, y: 12 },
     resource: { name: '體力', max: 5, initial: 5 },
     sourceNotes: [
