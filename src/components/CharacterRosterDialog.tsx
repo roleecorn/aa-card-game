@@ -16,6 +16,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { CHARACTERS, SKILLS } from '../content/catalog';
 
+const CHARACTER_TAG_LABELS: Record<string, string> = {
+  'duo-card': '雙人角色',
+  'commercial-author': '商業作者',
+  'not-standard-playable': '非標準對局',
+  'no-stress': '無壓力',
+};
+
 export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const characters = Object.values(CHARACTERS);
 
@@ -45,6 +52,13 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
         >
           {characters.map((character) => {
             const boss = character.tags?.includes('boss');
+            const portraitPosition = character.portraitPosition
+              ? `${character.portraitPosition.x}% ${character.portraitPosition.y}%`
+              : 'center 20%';
+            const visibleTags = (character.tags ?? [])
+              .filter((tag) => tag !== 'boss')
+              .map((tag) => CHARACTER_TAG_LABELS[tag])
+              .filter((label): label is string => Boolean(label));
             return (
               <Card key={character.id} sx={{ overflow: 'hidden', borderColor: boss ? '#d2a84a' : '#dfe8f4' }}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: character.portrait ? '126px minmax(0,1fr)' : '1fr', minHeight: 176 }}>
@@ -53,13 +67,16 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
                       component="img"
                       image={character.portrait}
                       alt={character.name}
-                      sx={{ width: 126, height: '100%', objectFit: 'cover', objectPosition: 'center 20%' }}
+                      sx={{ width: 126, height: '100%', objectFit: 'cover', objectPosition: portraitPosition }}
                     />
                   )}
                   <CardContent sx={{ p: 1.2, '&:last-child': { pb: 1.2 }, minWidth: 0 }}>
                     <Stack direction="row" spacing={.6} alignItems="center" flexWrap="wrap" useFlexGap>
                       <Typography sx={{ fontSize: 18, fontWeight: 950 }}>{character.name}</Typography>
                       {boss && <Chip size="small" label="Boss" color="warning" variant="outlined" />}
+                      {visibleTags.map((label) => (
+                        <Chip key={label} size="small" label={label} variant="outlined" />
+                      ))}
                     </Stack>
 
                     <Stack direction="row" spacing={1.2} sx={{ mt: .8 }} flexWrap="wrap" useFlexGap>

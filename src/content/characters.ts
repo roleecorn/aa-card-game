@@ -92,6 +92,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
     tags: ['duo-card'],
     portrait: '/assets/characters/triangle.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
       '討論明確指定每回合自身壓力 -1、全作品適性、可以使用統籌卡。',
@@ -108,6 +109,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['commercialAuthor'],
     tags: ['commercial-author'],
     portrait: '/assets/characters/fengyang.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
       'AA 未在目前整理紀錄中明確列出；依 prototype 未列能力的資料慣例採 0。',
@@ -123,6 +125,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['happyContagion', 'happyEditor'],
     portrait: '/assets/characters/happy.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '原始角色卡明確列出 Design 3、壓力上限 ∞。',
       'Text / AA 未在角色卡中列出；依目前 prototype 對未列能力的資料慣例採 0。',
@@ -139,6 +142,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['chaosSteadyRoll', 'chaosVitality'],
     tags: ['boss', 'not-standard-playable', 'no-stress'],
     portrait: '/assets/characters/chaos.webp',
+    portraitPosition: { x: 50, y: 12 },
     resource: { name: '體力', max: 5, initial: 5 },
     sourceNotes: [
       '2026-09-05 11:30:40：Text / Design / AA 全 3。',

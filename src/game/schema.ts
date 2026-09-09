@@ -332,6 +332,10 @@ export const characterDefinitionSchema = z.object({
   skillIds: z.array(z.string()),
   tags: z.array(z.string()).optional(),
   portrait: z.string().optional(),
+  portraitPosition: z.object({
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+  }).optional(),
   resource: z.object({
     name: z.string().min(1),
     max: z.number().int().positive(),

@@ -40,6 +40,9 @@ export function CharacterCard({
 }: Props) {
   const maxStress = definition.maxStress ?? 1;
   const stressPercent = definition.maxStress === null ? 0 : Math.min(100, (state.stress / maxStress) * 100);
+  const portraitPosition = definition.portraitPosition
+    ? `${definition.portraitPosition.x}% ${definition.portraitPosition.y}%`
+    : 'center 22%';
 
   return (
     <Card sx={{ overflow: 'hidden', bgcolor: '#fff', borderWidth: 1.5 }}>
@@ -50,7 +53,7 @@ export function CharacterCard({
               component="img"
               src={definition.portrait}
               alt={definition.name}
-              sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, objectFit: 'cover', objectPosition: 'center 22%', display: 'block' }}
+              sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, objectFit: 'cover', objectPosition: portraitPosition, display: 'block' }}
             />
             <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 54%, rgba(26,38,62,.58) 100%)', pointerEvents: 'none' }} />
             <Box sx={{ position: 'absolute', left: 7, top: 7, px: .8, py: .2, bgcolor: 'rgba(255,255,255,.94)', border: '1.5px solid #d7e2ef', borderRadius: 1, transform: 'rotate(-3deg)', boxShadow: '0 1px 3px rgba(31,48,78,.1)' }}>
