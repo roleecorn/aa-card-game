@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8f2dc"/><stop offset="1" stop-color="#f7e8c8"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M92 355 Q180 250 302 304 T520 290 Q616 270 690 350 L690 480 70 480Z" fill="#8fc59e" stroke="#4f8262" stroke-width="12"/>
+  <circle cx="290" cy="215" r="58" fill="#f2c9a8" stroke="#7a5a4d" stroke-width="10"/>
+  <circle cx="468" cy="215" r="58" fill="#f2c9a8" stroke="#7a5a4d" stroke-width="10"/>
+  <path d="M222 350 Q282 267 350 330 Q410 266 532 350" fill="#e7a8b8" stroke="#9a5b70" stroke-width="12"/>
+  <path d="M354 187 Q384 152 414 187 Q384 222 354 187Z" fill="#fff6a5" stroke="#d2a84f" stroke-width="8"/>
+  <path d="M365 190 q18 18 38 0" fill="none" stroke="#6d5548" stroke-width="7"/>
+  <path d="M274 220 q16 13 32 0M452 220 q16 13 32 0" fill="none" stroke="#6d5548" stroke-width="7"/>
+  <path d="M336 112 Q384 62 432 112" fill="none" stroke="#fff" stroke-width="14" opacity=".8"/>
+</g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#efe3ff"/><stop offset="1" stop-color="#d9f4ef"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M212 332 L324 138 456 214 390 388Z" fill="#a9d5e8" stroke="#5c84a1" stroke-width="13"/>
+  <path d="M244 314 L330 180 411 225 360 350Z" fill="#d9f2ff" stroke="#78abc2" stroke-width="8"/>
+  <path d="M500 125 Q548 168 514 226 Q480 286 406 270" fill="none" stroke="#c47f8b" stroke-width="26"/>
+  <circle cx="511" cy="127" r="28" fill="#f0c5a4" stroke="#795448" stroke-width="8"/>
+  <path d="M154 144 l18 34 38 7-28 26 7 38-35-18-34 18 7-38-28-26 38-7Z" fill="#fff3a6" stroke="#d7ae4d" stroke-width="8"/>
+  <path d="M562 298 l11 22 25 4-18 17 4 25-22-12-22 12 4-25-18-17 25-4Z" fill="#fff" stroke="#b9a7d9" stroke-width="7"/>
+</g>
+</svg>
