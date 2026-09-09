@@ -331,7 +331,12 @@ export class EngineSession {
   applyEffects(effects: SkillEffect[], context: EffectContext): boolean {
     let applied = false;
     for (const effect of effects) {
-      applied = builtInEffects.execute(effect, context, this) || applied;
+      try {
+        applied = builtInEffects.execute(effect, context, this) || applied;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.log(`效果「${context.definition.name}」執行失敗，已略過：${message}`);
+      }
       if (context.event.cancelled) break;
     }
     return applied;
@@ -396,33 +401,38 @@ export class EngineSession {
   private performTeamActions(teamId: TeamId, actions: Record<string, ActionChoice>): void {
     const team = this.getTeam(teamId);
     for (const member of team.members) {
-      const definition = this.getDefinition(member.defId);
-      const mustSlack = definition.maxStress !== null && member.stress >= definition.maxStress;
-      const action = mustSlack ? 'slack' : actions[member.defId] ?? 'work';
-      if (action === 'slack') {
-        this.adjustStress(teamId, member.defId, -2, '摸魚');
-        continue;
-      }
-
-      const batch: DieToken[] = [];
-      for (const skill of ['design', 'text', 'aa'] as const) {
-        for (let i = 0; i < this.getEffectiveStat(member.defId, skill); i += 1) {
-          batch.push({ id: this.uid('die'), ownerId: member.defId, skill, value: this.rollDieFor(member.defId), round: this.state.round, origin: '工作' });
+      try {
+        const definition = this.getDefinition(member.defId);
+        const mustSlack = definition.maxStress !== null && member.stress >= definition.maxStress;
+        const action = mustSlack ? 'slack' : actions[member.defId] ?? 'work';
+        if (action === 'slack') {
+          this.adjustStress(teamId, member.defId, -2, '摸魚');
+          continue;
         }
-      }
-      this.skills.emit({ type: 'afterRollBatch', teamId, actorId: member.defId, dice: batch, amount: batch.length, sourceKind: 'work' });
 
-      if ((member.statuses.writerBlock?.stacks ?? 0) > 0 && batch.some((die) => die.value <= 2)) {
-        delete member.statuses.writerBlock;
-        this.adjustStress(teamId, member.defId, 2, '卡文', true);
-      }
+        const batch: DieToken[] = [];
+        for (const skill of ['design', 'text', 'aa'] as const) {
+          for (let i = 0; i < this.getEffectiveStat(member.defId, skill); i += 1) {
+            batch.push({ id: this.uid('die'), ownerId: member.defId, skill, value: this.rollDieFor(member.defId), round: this.state.round, origin: '工作' });
+          }
+        }
+        this.skills.emit({ type: 'afterRollBatch', teamId, actorId: member.defId, dice: batch, amount: batch.length, sourceKind: 'work' });
 
-      this.adjustStress(teamId, member.defId, 1, '工作');
-      this.log(`${definition.name} 工作，產生 ${batch.length} 顆骰。`);
-      if (definition.maxStress !== null && member.stress > definition.maxStress) {
-        this.log(`${definition.name} 壓力超過上限，本回合剛擲出的骰全部歸零。`);
-      } else {
-        team.pendingDice.push(...batch);
+        if ((member.statuses.writerBlock?.stacks ?? 0) > 0 && batch.some((die) => die.value <= 2)) {
+          delete member.statuses.writerBlock;
+          this.adjustStress(teamId, member.defId, 2, '卡文', true);
+        }
+
+        this.adjustStress(teamId, member.defId, 1, '工作');
+        this.log(`${definition.name} 工作，產生 ${batch.length} 顆骰。`);
+        if (definition.maxStress !== null && member.stress > definition.maxStress) {
+          this.log(`${definition.name} 壓力超過上限，本回合剛擲出的骰全部歸零。`);
+        } else {
+          team.pendingDice.push(...batch);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.log(`系統保護：${this.getDefinition(member.defId).name} 的回合處理失敗，已略過：${message}`);
       }
     }
   }
@@ -446,7 +456,15 @@ export class EngineSession {
       };
       success = this.applyEffects(card.effects, context);
     }
-    if (card.customHandler) success = executeCardHandler(card.customHandler, team, card, target, this) || success;
+    if (card.customHandler) {
+      try {
+        success = executeCardHandler(card.customHandler, team, card, target, this) || success;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.log(`卡牌「${card.name}」處理失敗，已取消本次使用：${message}`);
+        return false;
+      }
+    }
     if (!success) return false;
 
     team.hand.splice(index, 1);
@@ -480,9 +498,27 @@ export class EngineSession {
   }
 
   private runEnemyTurn(): void {
-    runEnemyPreTurnAi(this);
-    this.performTeamActions('enemy', chooseEnemyActions(this));
-    this.autoAssign('enemy');
+    try {
+      runEnemyPreTurnAi(this);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：對手技能／卡牌 AI 處理失敗，已略過：${message}`);
+    }
+
+    try {
+      this.performTeamActions('enemy', chooseEnemyActions(this));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：對手行動處理失敗，已略過：${message}`);
+    }
+
+    try {
+      this.autoAssign('enemy');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：對手骰子分配失敗，已略過：${message}`);
+    }
+
     this.state.enemy.pendingDice = [];
   }
 
@@ -500,7 +536,13 @@ export class EngineSession {
   }
 
   private advanceRound(): void {
-    this.skills.emit({ type: 'roundEnd' });
+    try {
+      this.skills.emit({ type: 'roundEnd' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：回合結束效果失敗，已略過：${message}`);
+    }
+
     if (this.state.round >= this.state.maxRounds) {
       const playerScore = this.scoreTeam('player');
       const enemyScore = this.scoreTeam('enemy');
@@ -509,13 +551,32 @@ export class EngineSession {
       this.log(`遊戲結束：你 ${playerScore} 分，對手 ${enemyScore} 分。`);
       return;
     }
-    this.cleanupRoundScopedState();
+
+    try {
+      this.cleanupRoundScopedState();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：回合狀態清理失敗，已略過：${message}`);
+    }
+
     this.state.round += 1;
     this.state.phase = 'player-plan';
-    this.drawCards('player', 1);
-    this.drawCards('enemy', 1);
+
+    try {
+      this.drawCards('player', 1);
+      this.drawCards('enemy', 1);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：回合抽牌失敗，已略過：${message}`);
+    }
+
     this.log(`進入第 ${this.state.round} 回合。`);
-    this.skills.emit({ type: 'roundStart' });
+    try {
+      this.skills.emit({ type: 'roundStart' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`系統保護：回合開始效果失敗，已略過：${message}`);
+    }
   }
 
   private cleanupRoundScopedState(): void {

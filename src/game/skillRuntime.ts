@@ -116,10 +116,15 @@ export class SkillRuntime {
           definition: entry.skill,
           event,
         };
-        if (!matchesCondition(entry.trigger.condition ?? { kind: 'always' }, context, this.engine)) continue;
-        if (entry.trigger.usage && !this.canUse(entry.ownerId, entry.skill.id, entry.trigger.usage)) continue;
-        const applied = this.applyEffects(entry.trigger.effects, context);
-        if (applied && entry.trigger.usage) this.markUsed(entry.ownerId, entry.skill.id, entry.trigger.usage);
+        try {
+          if (!matchesCondition(entry.trigger.condition ?? { kind: 'always' }, context, this.engine)) continue;
+          if (entry.trigger.usage && !this.canUse(entry.ownerId, entry.skill.id, entry.trigger.usage)) continue;
+          const applied = this.applyEffects(entry.trigger.effects, context);
+          if (applied && entry.trigger.usage) this.markUsed(entry.ownerId, entry.skill.id, entry.trigger.usage);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.engine.log(`技能「${entry.skill.name}」觸發失敗，已略過：${message}`);
+        }
       }
       return event;
     } finally {
@@ -161,7 +166,58 @@ export class SkillRuntime {
   canUseActive(memberId: string, skillId: string): boolean {
     const skill = this.engine.content.skills[skillId];
     if (!skill || skill.activation !== 'active' || skill.status === 'planned') return false;
-    return !skill.activeUsage || this.canUse(memberId, skillId, skill.activeUsage);
+    if (skill.activeUsage && !this.canUse(memberId, skillId, skill.activeUsage)) return false;
+    const teamId = this.engine.findMemberTeam(memberId);
+    if (!teamId) return false;
+    return this.hasUsableActiveTarget(teamId, memberId, skill);
+  }
+
+  private hasUsableActiveTarget(teamId: 'player' | 'enemy', memberId: string, skill: SkillDefinition): boolean {
+    const spec = skill.activeTarget ?? { kind: 'none' as const };
+
+    if (spec.kind === 'none') {
+      const effects = skill.activeEffects ?? [];
+      if (!effects.length) return false;
+
+      return effects.some((effect) => {
+        if (effect.kind === 'dice.modifyPending') {
+          const team = this.engine.getTeam(teamId);
+          let dice = team.pendingDice.filter((die) => die.ownerId === memberId);
+          if (effect.skill) dice = dice.filter((die) => die.skill === effect.skill);
+          if (effect.minValue !== undefined) dice = dice.filter((die) => die.value >= effect.minValue!);
+          if (effect.maxValue !== undefined) dice = dice.filter((die) => die.value <= effect.maxValue!);
+          return dice.length > 0;
+        }
+        if (effect.kind === 'dice.grantBestOf' && effect.requireOwnerWorkType) {
+          return this.engine.getTeam(teamId).works.some(
+            (work) => work.ownerId === memberId && work.type === effect.requireOwnerWorkType,
+          );
+        }
+        return true;
+      });
+    }
+
+    if (spec.kind === 'member' || spec.kind === 'taggedMember') {
+      return [...this.engine.state.player.members, ...this.engine.state.enemy.members]
+        .some((member) => this.validateActiveTarget(teamId, memberId, skill, { memberId: member.defId }));
+    }
+
+    if (spec.kind === 'work') {
+      return [...this.engine.state.player.works, ...this.engine.state.enemy.works]
+        .some((work) => this.validateActiveTarget(teamId, memberId, skill, { workId: work.id }));
+    }
+
+    if (spec.kind === 'copyPendingDie') {
+      const team = this.engine.getTeam(teamId);
+      const sources = team.pendingDice.filter((die) => die.ownerId !== memberId);
+      const targets = team.pendingDice.filter((die) => die.ownerId === memberId);
+      return sources.length > 0 && targets.length > 0;
+    }
+
+    const dice = spec.relation === 'enemy'
+      ? this.engine.getTeam(this.engine.opponentId(teamId)).pendingDice
+      : this.engine.getTeam(teamId).pendingDice;
+    return dice.some((die) => this.validateActiveTarget(teamId, memberId, skill, { targetDieId: die.id }));
   }
 
   getAffinity(memberId: string, base: WorkType[]): WorkType[] | 'all' {
@@ -201,7 +257,12 @@ export class SkillRuntime {
   private applyEffects(effects: SkillEffect[], context: EffectContext): boolean {
     let applied = false;
     for (const effect of effects) {
-      applied = builtInEffects.execute(effect, context, this.engine) || applied;
+      try {
+        applied = builtInEffects.execute(effect, context, this.engine) || applied;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.engine.log(`技能「${context.definition.name}」效果執行失敗，已略過：${message}`);
+      }
       if (context.event.cancelled) break;
     }
     return applied;

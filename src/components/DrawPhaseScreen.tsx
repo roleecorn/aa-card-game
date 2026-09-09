@@ -61,20 +61,6 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     return () => window.clearTimeout(timer);
   }, [phase]);
 
-  useEffect(() => {
-    if (phase !== 'rerolling' || rerollIndex === undefined) return;
-    const swapTimer = window.setTimeout(() => onReroll(rerollIndex), 300);
-    const finishTimer = window.setTimeout(() => {
-      setSelectedIndex(undefined);
-      setRerollIndex(undefined);
-      setPhase('selection');
-    }, 1050);
-    return () => {
-      window.clearTimeout(swapTimer);
-      window.clearTimeout(finishTimer);
-    };
-  }, [phase, rerollIndex, onReroll]);
-
   const revealCount = phase === 'revealing-1'
     ? 1
     : phase === 'revealing-2'
@@ -97,13 +83,16 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     if (selectedIndex === undefined || rerollUsed || phase !== 'selection') return;
     setRerollUsed(true);
     setRerollIndex(selectedIndex);
-    setPhase('rerolling');
+    onReroll(selectedIndex);
+    setSelectedIndex(undefined);
+    setRerollIndex(undefined);
+    setPhase('selection');
   };
 
   const handleConfirm = () => {
     if (phase !== 'selection') return;
     setPhase('confirmed');
-    window.setTimeout(onConfirm, 650);
+    onConfirm();
   };
 
   return (
@@ -154,6 +143,15 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
         </Box>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+          {!['selection', 'confirmed'].includes(phase) && (
+            <Button
+              variant="text"
+              onClick={() => setPhase('selection')}
+              sx={{ minWidth: 140, fontWeight: 850 }}
+            >
+              跳過抽卡動畫
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={<ReplayRoundedIcon />}
