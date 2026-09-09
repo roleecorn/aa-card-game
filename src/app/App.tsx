@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -16,6 +16,7 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import { CARDS, SKILLS } from '../content/catalog';
+import { characterList } from '../content/characters';
 import { EngineSession } from '../game/engine';
 import type { CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
@@ -28,6 +29,10 @@ import { CardPlayDialog } from '../components/CardPlayDialog';
 import { SkillActivationDialog } from '../components/SkillActivationDialog';
 import { LogPanel } from '../components/LogPanel';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
+import { StartScreen } from '../components/StartScreen';
+import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
+
+type AppStage = 'start' | 'draw' | 'battle';
 
 const panelSx = {
   p: 1.15,
@@ -40,6 +45,7 @@ export default function App() {
   const game = useGameStore((state) => state.game);
   const actionChoices = useGameStore((state) => state.actionChoices);
   const reset = useGameStore((state) => state.reset);
+  const resetWithRosters = useGameStore((state) => state.resetWithRosters);
   const setActionChoice = useGameStore((state) => state.setActionChoice);
   const performPlayerActions = useGameStore((state) => state.performPlayerActions);
   const placeDie = useGameStore((state) => state.placeDie);
@@ -53,10 +59,50 @@ export default function App() {
   const [skillDialog, setSkillDialog] = useState<{ memberId: string; skillId: string }>();
   const [message, setMessage] = useState<string>();
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [appStage, setAppStage] = useState<AppStage>('start');
 
   const selectedDie = game.player.pendingDice.find((die) => die.id === selectedDieId);
   const playerScore = engine.scoreTeam('player');
   const enemyScore = engine.scoreTeam('enemy');
+
+  const handleStart = () => {
+    reset();
+    setSelectedDieId(undefined);
+    setCardInstance(undefined);
+    setSkillDialog(undefined);
+    setMessage(undefined);
+    setAppStage('draw');
+  };
+
+  const handleReroll = useCallback((index: number) => {
+    const currentPlayerIds = game.player.members.map((member) => member.defId);
+    const playableIds = characterList
+      .filter((character) => !character.tags?.includes('not-standard-playable'))
+      .map((character) => character.id);
+    const keptIds = currentPlayerIds.filter((_, memberIndex) => memberIndex !== index);
+    const replacementPool = playableIds.filter((id) => !keptIds.includes(id) && id !== currentPlayerIds[index]);
+    const replacement = replacementPool[Math.floor(Math.random() * replacementPool.length)];
+    if (!replacement) return;
+
+    const nextPlayerIds = [...currentPlayerIds];
+    nextPlayerIds[index] = replacement;
+
+    const enemyPool = playableIds.filter((id) => !nextPlayerIds.includes(id));
+    for (let i = enemyPool.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [enemyPool[i], enemyPool[j]] = [enemyPool[j]!, enemyPool[i]!];
+    }
+    resetWithRosters(nextPlayerIds, enemyPool.slice(0, 3));
+  }, [game.player.members, resetWithRosters]);
+
+  const handleRestart = () => {
+    reset();
+    setSelectedDieId(undefined);
+    setCardInstance(undefined);
+    setSkillDialog(undefined);
+    setMessage(undefined);
+    setAppStage('start');
+  };
 
   const handleSlotClick = (workId: string, slotIndex: number) => {
     if (!selectedDie) return;
@@ -92,6 +138,31 @@ export default function App() {
     setMessage(ok ? `已發動「${skill?.name ?? skillDialog.skillId}」。` : '技能目前不能發動，請檢查目標與使用次數。');
   };
 
+  if (appStage === 'start') {
+    return (
+      <>
+        <StartScreen onStart={handleStart} onOpenRoster={() => setRosterOpen(true)} />
+        <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
+      </>
+    );
+  }
+
+  if (appStage === 'draw') {
+    const drawnCharacters = game.player.members
+      .map((member) => characterList.find((character) => character.id === member.defId))
+      .filter((character): character is (typeof characterList)[number] => !!character);
+    return (
+      <>
+        <DrawPhaseScreen
+          characters={drawnCharacters}
+          onReroll={handleReroll}
+          onConfirm={() => setAppStage('battle')}
+        />
+        <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
+      </>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -106,7 +177,7 @@ export default function App() {
         playerScore={playerScore}
         enemyScore={enemyScore}
         onOpenRoster={() => setRosterOpen(true)}
-        onReset={() => { reset(); setSelectedDieId(undefined); }}
+        onReset={handleRestart}
       />
       <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
         {game.phase === 'finished' && (
