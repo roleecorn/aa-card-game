@@ -378,5 +378,35 @@ export const skillList = skillDefinitionSchema.array().parse([
     activeEffects: [{ kind: 'dice.modifySelected', add: 1 }],
     tags: ['support', 'prototype'],
   },
+  {
+    id: 'tanxiHardPush',
+    name: '硬憋',
+    description: '每回合一次：自身壓力 +1，額外取得 1 顆 Text 骰；該骰擲 2 次並保留較高結果。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeEffects: [
+      { kind: 'stress.change', target: 'owner', amount: 1, source: '硬憋' },
+      { kind: 'dice.grantBestOf', target: 'owner', skill: 'text', rolls: 2, count: 1, origin: '硬憋' },
+    ],
+    tags: ['prototype', 'stress-tradeoff'],
+  },
+  {
+    id: 'tanxiHardToCoordinate',
+    name: '難以配合',
+    description: '每回合第一次其他我方角色放置骰子後，自身壓力 +1。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'afterDiePlaced',
+        usage: { scope: 'round', limit: 1, key: 'hardToCoordinate' },
+        condition: { kind: 'relation', field: 'actorId', relation: 'otherAlly' },
+        effects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '難以配合' }],
+      },
+    ],
+    tags: ['negative', 'prototype'],
+  },
 
 ]);

@@ -316,6 +316,25 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       '本人多次討論資訊優先度、讀者實際讀到什麼、減少文字量與節奏；Prototype 適性採（謀／情）。',
     ],
   },
+  {
+    id: 'tanxi',
+    name: '嘆息',
+    stats: { design: 1, text: 1, aa: 1 },
+    maxStress: 3,
+    affinities: ['情'],
+    skillIds: ['tanxiHardPush', 'tanxiHardToCoordinate'],
+    tags: ['solo-creator', 'stress-driven'],
+    portrait: '/assets/characters/portrait/tanxi.webp',
+    compactPortrait: '/assets/characters/compact/tanxi.webp',
+    portraitPosition: { x: 50, y: 12 },
+    sourceNotes: [
+      '2026-09-05 11:30:10：本人主動向 PintBox 詢問角色卡；PintBox 回覆目前只能給較低能力值。',
+      '2026-09-05 11:32:10：PintBox 明確給出 Design 1、壓力上限 3，並表示目前能想到的技能偏負面。',
+      'Text / AA 未在 PintBox 卡面討論中明確定義；依標準白板採 1 / 1，屬 Prototype assumption。',
+      '本人表示「幾乎都是硬憋的作品分高一點，比較用心的就比較低」，因此「硬憋」設計為 source-driven Prototype skill。',
+      'PintBox 後續把嘆息與鬼影並列為較難和其他人配合的類型；「難以配合」以每回合一次的負面壓力觸發表現。',
+    ],
+  },
 
 ]);
 

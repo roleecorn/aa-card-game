@@ -296,3 +296,10 @@ visual brief 必須回答：
 - Prototype art direction：不是以名字字面造型為核心，而是「正在整理讀者會看到什麼」的編輯／閱讀者形象；使用清楚的前後景、重新排列的紙頁與視線導引。
 - 構圖：portrait 偏安靜閱讀與標記；compact 用橫向紙頁流動構圖，不由 portrait 裁切。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。
+
+
+### 嘆息 source-driven visual brief
+- Source-backed：PintBox 明確給出 Design 1、Stress 3，並表示目前想到的技能偏負面；本人自述常見「硬憋的作品反而分高」。
+- Prototype art direction：角色核心是高壓下勉強推出成果、但不擅長協作。畫面可採收束、封閉的工作空間與壓迫感，避免把「嘆息」只畫成悲傷表情。
+- 構圖：portrait 以獨自趕稿、收緊肩線的姿態表現壓力；compact 以橫向狹窄桌面與聚焦稿件重新構圖。
+- Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無角色名、數值、技能文字或 UI。
