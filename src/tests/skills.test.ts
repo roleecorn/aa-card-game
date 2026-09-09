@@ -350,9 +350,9 @@ describe('高興 complete character package', () => {
 });
 
 
-describe('三角希＆有希 complete character package', () => {
+describe('三角希 complete character package', () => {
   it('keeps the discussion-backed stats and duo portrait', () => {
-    expect(CHARACTERS.triangle?.name).toBe('三角希＆有希');
+    expect(CHARACTERS.triangle?.name).toBe('三角希');
     expect(CHARACTERS.triangle?.stats).toEqual({ design: 1, text: 2, aa: 2 });
     expect(CHARACTERS.triangle?.maxStress).toBe(4);
     expect(CHARACTERS.triangle?.tags).toContain('duo-card');
