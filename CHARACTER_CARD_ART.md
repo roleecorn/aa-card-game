@@ -170,6 +170,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `yashiro.webp` | 768×1024 | Valid WebP | canonical，source-driven 八代 portrait |
 | `lemon.webp` | 768×1024 | Valid WebP | canonical，source-driven 檸檬 portrait |
 | `emotion.webp` | 768×1024 | Valid WebP | canonical，source-driven 情緒 portrait |
+| `avocado.webp` | 768×1024 | Valid WebP | canonical，source-driven 酪梨 portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -233,6 +234,13 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - 本人發言會快速判斷畫面／作品效果，也會直接對不合氣氛的 emoji 做反應，且常用強烈語氣表達自我界線。
 - Source-backed：AA 呈現意識、氣氛敏感、直接評價、強烈自我感。
 - Prototype art direction：表情與視線應有高感受度與觀察性，可使用局部對比與不對稱構圖表現情緒張力；避免套用固定「陰沉角色」模板。
+
+### 酪梨 source-driven visual brief
+
+- PintBox 對酪梨的核心描述是「有使用說明」與「先跑 code 理解能力邊界」，本人也明確整理技術職責、可追溯紀錄與流程規則。
+- 本人對「做得到」與「適不適合做」有強烈區分，並經常指出修改成本、bug 與順序問題，因此角色核心是技術邊界與可操作性，而不是 avocado motif。
+- Source-backed：使用說明、code、能力邊界、流程／順序、debug 與 implementation cost。
+- Prototype art direction：研究／工程筆記、眼鏡與技術小道具可以使用；綠色只是輔助色，辨識度應來自「正在檢查與說明」的姿態。
 
 ## 8.2 Source-driven character differentiation
 

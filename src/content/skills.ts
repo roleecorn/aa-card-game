@@ -319,9 +319,12 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'avocadoManual',
     name: '使用說明',
-    description: '有明確的技術能力邊界與使用方式；原始討論沒有定義成遊戲中的數值效果。',
-    activation: 'passive',
-    status: 'planned',
+    description: '遊戲開始時額外取得一張「指導」。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      { event: 'gameStart', effects: [{ kind: 'cards.add', cardId: 'guide', count: 1 }] },
+    ],
   },
 
 ]);

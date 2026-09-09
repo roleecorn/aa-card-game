@@ -312,6 +312,27 @@ describe('情緒 complete character package', () => {
   });
 });
 
+describe('酪梨 complete character package', () => {
+  const AVOCADO_ROSTER = {
+    playerMemberIds: ['avocado', 'emotion', 'lemon'],
+    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+  };
+
+  it('uses the prototype baseline and production assets', () => {
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(5);
+    expect(CHARACTERS.avocado?.portrait).toBe('/assets/characters/portrait/avocado.webp');
+    expect(CHARACTERS.avocado?.compactPortrait).toBe('/assets/characters/compact/avocado.webp');
+    expect(SKILLS.avocadoManual?.status).toBe('implemented');
+  });
+
+  it('使用說明 adds one 指導 card at game start', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, AVOCADO_ROSTER);
+    expect(game.player.hand).toHaveLength(5);
+    expect(game.player.hand.some((item) => item.cardId === 'guide')).toBe(true);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));
