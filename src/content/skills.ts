@@ -408,5 +408,35 @@ export const skillList = skillDefinitionSchema.array().parse([
     ],
     tags: ['negative', 'prototype'],
   },
+  {
+    id: 'ghostLoosePunchlines',
+    name: '鬆散段子',
+    description: '每回合一次：自己的作品篇幅 +1，並額外取得 2 顆 Text 骰。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeEffects: [
+      { kind: 'work.length', target: 'ownerWork', amount: 1 },
+      { kind: 'dice.grant', target: 'owner', skill: 'text', count: 2, origin: '鬆散段子', extra: true },
+    ],
+    tags: ['prototype', 'text'],
+  },
+  {
+    id: 'ghostHardToCoordinate',
+    name: '各寫各的',
+    description: '每回合第一次其他我方角色放置骰子後，自身壓力 +1。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'afterDiePlaced',
+        usage: { scope: 'round', limit: 1, key: 'ghostHardToCoordinate' },
+        condition: { kind: 'relation', field: 'actorId', relation: 'otherAlly' },
+        effects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '各寫各的' }],
+      },
+    ],
+    tags: ['negative', 'prototype'],
+  },
 
 ]);

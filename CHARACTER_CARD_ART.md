@@ -303,3 +303,10 @@ visual brief 必須回答：
 - Prototype art direction：角色核心是高壓下勉強推出成果、但不擅長協作。畫面可採收束、封閉的工作空間與壓迫感，避免把「嘆息」只畫成悲傷表情。
 - 構圖：portrait 以獨自趕稿、收緊肩線的姿態表現壓力；compact 以橫向狹窄桌面與聚焦稿件重新構圖。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無角色名、數值、技能文字或 UI。
+
+
+### 鬼影 source-driven visual brief
+- Source-backed：PintBox 明確給出 Text 2 / Stress 2，描述其接到任務後會自己鑽回去產出，主要寫「鬆散但很好笑」的段子，且與他人配合較困難。
+- Prototype art direction：視覺核心是離群、突然拿出奇怪但有效笑點的創作者；可採偏離中心的構圖、散落片段與強烈留白，不以鬼怪字面造型取代人格線索。
+- 構圖：portrait 以單人、略偏側的寫作姿態；compact 採多個散落小稿件形成橫向節奏，兩張圖各自重新構圖。
+- Runtime：portrait 768×1024 WebP、compact 384×320 WebP；圖片本身不含文字、卡框、Logo 或 UI。

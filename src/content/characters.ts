@@ -335,6 +335,25 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       'PintBox 後續把嘆息與鬼影並列為較難和其他人配合的類型；「難以配合」以每回合一次的負面壓力觸發表現。',
     ],
   },
+  {
+    id: 'ghostshadow',
+    name: '鬼影',
+    stats: { design: 0, text: 2, aa: 1 },
+    maxStress: 2,
+    affinities: ['笑'],
+    skillIds: ['ghostLoosePunchlines', 'ghostHardToCoordinate'],
+    tags: ['gag-writer', 'solo-creator'],
+    portrait: '/assets/characters/portrait/ghostshadow.webp',
+    compactPortrait: '/assets/characters/compact/ghostshadow.webp',
+    portraitPosition: { x: 50, y: 12 },
+    sourceNotes: [
+      '2026-09-05 11:42:37：PintBox 直接評估鬼影為「布置下任務後鑽回去掏出東西」的類型，明確給出 Text 2、壓力上限 2。',
+      '同一段 PintBox 將鬼影與嘆息並列為較難和其他人配合、會帶負面技能的類型。',
+      '2026-09-05 11:44:20–11:44:57：PintBox 表示鬼影主要在寫鬆散段子，而且很好笑；Design 以去年組活觀感而言「不太像正常東西」。',
+      'Design 0 為依上述 Design 評語與專案對能力 0 的 prototype 慣例做出的 Prototype assumption；AA 未明確列出，採標準白板 1。',
+      '作品適性（笑）與技能「鬆散段子」為 source-driven Prototype design；不宣稱為 PintBox 原始卡面定案。',
+    ],
+  },
 
 ]);
 
