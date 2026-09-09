@@ -171,6 +171,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `lemon.webp` | 768×1024 | Valid WebP | canonical，source-driven 檸檬 portrait |
 | `emotion.webp` | 768×1024 | Valid WebP | canonical，source-driven 情緒 portrait |
 | `avocado.webp` | 768×1024 | Valid WebP | canonical，source-driven 酪梨 portrait |
+| `kitsu.webp` | 768×1024 | Valid WebP | canonical，source-driven キツ portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -241,6 +242,13 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - 本人對「做得到」與「適不適合做」有強烈區分，並經常指出修改成本、bug 與順序問題，因此角色核心是技術邊界與可操作性，而不是 avocado motif。
 - Source-backed：使用說明、code、能力邊界、流程／順序、debug 與 implementation cost。
 - Prototype art direction：研究／工程筆記、眼鏡與技術小道具可以使用；綠色只是輔助色，辨識度應來自「正在檢查與說明」的姿態。
+
+### キツ source-driven visual brief
+
+- 本人明確表示成品當天重播約 30 次，並會指出背景被洗回原樣、段落其實彼此有關聯；角色核心因此是 regression / continuity check，而不是狐系名字聯想。
+- Source-backed：反覆重播、背景 regression、段落關聯、對錯誤與脈絡的敏感度。
+- Prototype art direction：冷靜、聚焦、像在盯著畫面找差異；低調 fox-like motif 可以存在，但不得比 QA / observation 特徵更突出。
+- 黑／靛／紫可以作輔助，但辨識應來自觀察姿態、銳利視線與「正在驗證」的構圖節奏。
 
 ## 8.2 Source-driven character differentiation
 

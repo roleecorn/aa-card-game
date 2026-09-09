@@ -326,5 +326,27 @@ export const skillList = skillDefinitionSchema.array().parse([
       { event: 'gameStart', effects: [{ kind: 'cards.add', cardId: 'guide', count: 1 }] },
     ],
   },
+  {
+    id: 'kitsuReplayThirty',
+    name: '重播三十次',
+    description: '每回合第一次自己工作骰出 1 時，自動重擲最低的一顆。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'afterRollBatch',
+        priority: 15,
+        usage: { scope: 'round', limit: 1, key: 'replayThirty' },
+        condition: {
+          kind: 'all',
+          conditions: [
+            { kind: 'relation', field: 'actorId', relation: 'self' },
+            { kind: 'diceMatch', maxValue: 1 },
+          ],
+        },
+        effects: [{ kind: 'dice.rerollBatch', count: 1, maxValue: 1, lowestFirst: true }],
+      },
+    ],
+  },
 
 ]);

@@ -333,6 +333,34 @@ describe('酪梨 complete character package', () => {
   });
 });
 
+describe('キツ complete character package', () => {
+  const KITSU_ROSTER = {
+    playerMemberIds: ['kitsu', 'avocado', 'emotion'],
+    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+  };
+
+  it('uses the prototype baseline and production assets', () => {
+    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.kitsu?.maxStress).toBe(5);
+    expect(CHARACTERS.kitsu?.portrait).toBe('/assets/characters/portrait/kitsu.webp');
+    expect(CHARACTERS.kitsu?.compactPortrait).toBe('/assets/characters/compact/kitsu.webp');
+    expect(SKILLS.kitsuReplayThirty?.status).toBe('implemented');
+  });
+
+  it('重播三十次 rerolls the first self work die of 1 once per round', () => {
+    const game = createInitialGame(fixedRng(0.999), DEFAULT_CONTENT, KITSU_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.999));
+
+    const first = { id: 'kitsu-low-a', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
+    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [first], amount: 1, sourceKind: 'work' });
+    expect(first.value).toBe(6);
+
+    const second = { id: 'kitsu-low-b', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
+    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [second], amount: 1, sourceKind: 'work' });
+    expect(second.value).toBe(1);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));
