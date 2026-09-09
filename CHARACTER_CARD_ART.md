@@ -20,7 +20,7 @@
 | 格式 | WebP |
 | Aspect ratio | 3:4 |
 | Runtime 尺寸 | 768 x 1024 px |
-| Compact slot 尺寸 | 768 x 640 px（僅需要橫向構圖的角色） |
+| Compact slot 尺寸 | 384 x 320 px（僅需要橫向構圖的角色） |
 | 生成母版 | 建議至少 768 x 1024；可使用更高解析度後等比例縮小 |
 | 色彩 | sRGB |
 | Alpha | 允許 RGB 或 RGBA；透明背景不是強制 |
@@ -80,8 +80,8 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 {
   id: 'pintbox',
   name: 'Pintbox',
-  portrait: '/assets/characters/pintbox.webp',
-  compactPortrait: '/assets/characters/pintbox-compact.webp',
+  portrait: '/assets/characters/portrait/pintbox.webp',
+  compactPortrait: '/assets/characters/compact/pintbox.webp',
   stats: { design: 2, text: 0, aa: 2 },
 }
 ```
