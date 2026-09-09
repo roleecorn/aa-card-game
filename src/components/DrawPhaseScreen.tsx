@@ -115,7 +115,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
         bgcolor: '#f7f9fd',
         backgroundImage: 'radial-gradient(circle at 15% 15%, rgba(255,112,152,.09) 0 3px, transparent 4px), radial-gradient(circle at 86% 18%, rgba(79,143,230,.09) 0 3px, transparent 4px)',
         backgroundSize: '92px 92px, 120px 120px',
-        overflow: 'hidden',
+        overflowX: 'hidden',
       }}
     >
       <Stack alignItems="center" spacing={2.1}>
@@ -126,14 +126,14 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontWeight: 700 }}>
             {phase === 'selection'
-              ? (rerollUsed ? '已使用本局重抽。點擊卡片可查看與確認隊伍。' : '可選擇一張角色卡重抽一次。')
+              ? (rerollUsed ? '已使用本局重抽。技能資訊會直接顯示在角色卡上。' : '點擊角色卡即可選擇；每張卡會直接顯示技能效果。')
               : phase === 'confirmed'
               ? '準備進入創作對局'
               : '角色卡將依序揭曉'}
           </Typography>
         </Stack>
 
-        <Box sx={{ width: 'min(1060px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0,1fr))' }, gap: { xs: 1.4, md: 2 } }}>
+        <Box sx={{ width: 'min(1280px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0,1fr))' }, gap: { xs: 1.4, md: 2.2 } }}>
           {characters.map((character, index) => {
             const isRerolling = phase === 'rerolling' && rerollIndex === index;
             const revealed = phase === 'selection' || phase === 'confirmed' || index < revealCount;
@@ -195,8 +195,8 @@ function DrawCard({
   isRerolling: boolean;
   onClick: () => void;
 }) {
-  const skillNames = useMemo(
-    () => character.skillIds.map((skillId) => SKILLS[skillId]?.name).filter((name): name is string => !!name),
+  const skills = useMemo(
+    () => character.skillIds.map((skillId) => SKILLS[skillId]).filter((skill): skill is NonNullable<typeof skill> => !!skill),
     [character.skillIds],
   );
 
@@ -206,7 +206,7 @@ function DrawCard({
       sx={{
         perspective: '1200px',
         cursor: interactive ? 'pointer' : 'default',
-        minHeight: { xs: 430, md: 510 },
+        minHeight: { xs: 540, md: 590 },
         animation: isRerolling ? 'rerollCard .95s ease-in-out both' : `dealCard .55s cubic-bezier(.2,.8,.2,1) ${index * 90}ms both`,
         '@keyframes dealCard': {
           from: { opacity: 0, transform: 'translateY(48px) scale(.9) rotate(2deg)' },
@@ -264,7 +264,7 @@ function DrawCard({
             bgcolor: '#fff',
           }}
         >
-          <Box sx={{ position: 'relative', height: { xs: 270, md: 330 }, overflow: 'hidden', bgcolor: '#eef3f9' }}>
+          <Box sx={{ position: 'relative', height: { xs: 245, md: 265 }, overflow: 'hidden', bgcolor: '#eef3f9' }}>
             <Box
               component="img"
               src={character.portrait}
@@ -277,22 +277,54 @@ function DrawCard({
             </Typography>
           </Box>
 
-          <Stack spacing={1.15} sx={{ p: 1.7 }}>
+          <Stack spacing={1.2} sx={{ p: { xs: 1.5, md: 1.8 } }}>
             <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
               <StatChip icon={<EditNoteIcon />} label="Design" value={character.stats.design} />
               <StatChip icon={<SubjectIcon />} label="Text" value={character.stats.text} />
               <StatChip icon={<LayersIcon />} label="AA" value={character.stats.aa} />
             </Stack>
             <Box>
-              <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .45 }}>技能</Typography>
-              <Stack direction="row" spacing={.55} flexWrap="wrap" useFlexGap>
-                {skillNames.map((name) => <Chip key={name} label={name} size="small" variant="outlined" sx={{ fontWeight: 800 }} />)}
+              <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .65 }}>技能</Typography>
+              <Stack spacing={.75}>
+                {skills.map((skill) => (
+                  <Box
+                    key={skill.id}
+                    sx={{
+                      px: 1,
+                      py: .8,
+                      border: '1px solid #d9e2ee',
+                      borderRadius: 2,
+                      bgcolor: '#f8fbff',
+                    }}
+                  >
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 950, lineHeight: 1.25 }}>
+                      {skill.name}
+                    </Typography>
+                    <Typography sx={{ mt: .3, fontSize: 11.25, color: 'text.secondary', fontWeight: 650, lineHeight: 1.45 }}>
+                      {skill.description}
+                    </Typography>
+                  </Box>
+                ))}
               </Stack>
             </Box>
             {selected && (
-              <Typography sx={{ fontSize: 11.5, color: '#e54f7a', fontWeight: 900 }}>
-                已選取此角色
-              </Typography>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  px: 1,
+                  py: .35,
+                  borderRadius: 999,
+                  bgcolor: '#ff7098',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 950,
+                  boxShadow: '0 4px 12px rgba(229,79,122,.28)',
+                }}
+              >
+                已選取
+              </Box>
             )}
           </Stack>
         </Paper>
