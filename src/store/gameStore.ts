@@ -8,6 +8,7 @@ interface GameStore {
   game: GameState;
   actionChoices: Record<string, ActionChoice>;
   reset: () => void;
+  resetWithRosters: (playerMemberIds: string[], enemyMemberIds: string[]) => void;
   setActionChoice: (memberId: string, action: ActionChoice) => void;
   performPlayerActions: () => void;
   placeDie: (dieId: string, workId: string, slotIndex: number) => boolean;
@@ -28,6 +29,10 @@ export const useGameStore = create<GameStore>()(
     actionChoices: defaultChoices(firstGame),
     reset: () => set((state) => {
       state.game = createInitialGame();
+      state.actionChoices = defaultChoices(state.game);
+    }),
+    resetWithRosters: (playerMemberIds, enemyMemberIds) => set((state) => {
+      state.game = createInitialGame(Math.random, undefined, { playerMemberIds, enemyMemberIds });
       state.actionChoices = defaultChoices(state.game);
     }),
     setActionChoice: (memberId, action) => set((state) => {
