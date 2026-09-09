@@ -135,11 +135,15 @@ runtime 存入 `CharacterState.resources`。
 
 新增或補角色圖片時，**在任何 Image Generation 發生前**必須：
 
-1. 先把該角色的 visual brief 與構圖限制寫入 `CHARACTER_CARD_ART.md` 或角色專屬文件。
-2. 確認內容已 commit。
-3. 才能生成候選圖。
+1. 先從原始對話整理該角色具區分度的發言、語氣、行為與他人描述。
+2. 將 source-backed 視覺推導、prototype art direction 與構圖限制寫入 `CHARACTER_CARD_ART.md` 或角色專屬文件。
+3. 確認 visual brief 與其他角色有足夠區分度，且不是同一模板換色。
+4. 確認內容已 commit。
+5. 才能生成候選圖。
 
 聊天中的臨時描述不能取代 repository 文件。若先生成後補文件，視為流程違規；該圖片只能視為未採用 candidate，不可直接進 runtime。
+
+角色視覺不要求與同批角色共用畫風。共通的是 runtime asset 技術規格；角色設計本身必須由各自 source 驅動。
 
 ## 5. Tests
 

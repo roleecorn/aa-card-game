@@ -41,11 +41,14 @@ description: "Complete or modify a game character as one atomic package: source-
 
 在 workflow 的 Image Generation 步驟前，必須先完成：
 
-- 將角色 visual brief、runtime art constraints 與本批特殊要求寫入 repository 文件。
+- 先分析該角色 source，整理足夠有區分度的發言、語氣、行為與他人描述。
+- 將角色獨立 visual brief、source-backed 視覺推導、runtime art constraints 與必要的 prototype art direction 寫入 repository 文件。
 - 先 commit 文件。
 - commit 完成後才可呼叫 Image Generation。
 
 禁止把 prompt 當作唯一規格來源，也禁止先生成再補文件。若順序違反，生成物只能視為 candidate，不能直接宣稱為 production asset。
+
+不得要求同批角色使用一致畫風。若多個角色看起來像同一模板換色，必須回到 source 分析重做 visual brief。
 
 ### Atomic character commit
 

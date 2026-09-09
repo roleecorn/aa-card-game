@@ -160,13 +160,46 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - 生成母版維持 3:4，最終 runtime canonical asset 為 768×1024 WebP。
 - 頭部與上半身必須清楚可辨識，不能靠 UI 裁切來補救構圖。
 - 背景保持簡潔，避免文字、Logo、UI、卡框、數值、技能說明。
-- 同一批次應維持一致的 anime-inspired game-art rendering language、線條密度、光影與完成度。
-- 角色之間必須有明確的色彩、髮型、服裝與 silhouette 區隔，不可只是同一人物換配色。
+- **禁止以「同批角色維持一致畫風」作為角色設計目標。** 共通的只能是 runtime 技術規格，例如尺寸、比例、禁止文字/UI、safe area 與可讀性要求。
+- 每個角色的造型、畫面語言、姿態、服裝、配色、構圖與氣氛都應優先由該角色自己的 Discord 發言、語氣、行為、創作傾向，以及其他人對其明確描述推導。
+- 生成前必須先整理出足夠有區分度的 source evidence；若 visual brief 只是職業模板、顏色模板或同一人物換配色，視為不合格。
+- 角色之間應有明顯不同的 silhouette、構圖節奏、表情、服裝邏輯與視覺重心；不要求共用相同 anime rendering style。
+- 若 source 足以支持不同的媒材感或風格方向，可以讓不同角色採用不同的 illustration language，只要仍符合 runtime portrait 的技術規格。
 - 若 source 沒有明確外觀設定，visual brief 只能作為 prototype art direction，不得在 `sourceNotes` 宣稱為原始 Discord 定案。
 - compact asset 若需要，應依 compact UX 重新構圖，不可只把 portrait 機械裁成橫圖。
 
 
 「normalized derivative」只表示 runtime format 已統一；若來源本身解析度較低，轉成 768×1024 不會憑空增加美術細節，也不得稱為新的高解析母版。
+
+
+## 8.2 Source-driven character differentiation
+
+角色視覺必須是 **source-driven**，不是 batch-driven。
+
+每個角色在生成前至少要整理：
+
+- 該角色本人具有代表性的發言內容。
+- 穩定出現的語氣、價值判斷或工作方式。
+- 與其他角色明顯不同的行為特徵。
+- PintBox 或其他人對該角色的明確描述。
+- 能轉成視覺語彙的具體線索，例如：節奏感、混亂度、嚴謹度、社交性、技術性、戲劇性、審美偏好。
+
+visual brief 必須回答：
+
+1. 為什麼這個角色看起來應該是這樣？
+2. 哪些 source 支持這個判斷？
+3. 如果把名字遮住，和其他角色相比仍能否辨認出差異？
+4. 哪些元素是 source-backed，哪些只是 prototype art direction？
+
+禁止：
+
+- 用同一套服裝版型只換配色。
+- 每個角色都使用相同髮型結構、相同姿勢、相同表情或相同背景構圖。
+- 因為「同一批」而強迫共用畫風。
+- 只靠角色名稱做字面聯想，例如看到「檸檬」就只加入 lemon motif，而沒有對話人格依據。
+- 在 source 區分度不足時直接生成正式 production portrait。
+
+若 source evidence 還不夠形成有辨識度的 visual brief，應先繼續分析對話，不應先生成圖片。
 
 `docs/art/character-card-reference.webp` 僅供版面設計參考，不得作為 runtime 圖片來源。
 
