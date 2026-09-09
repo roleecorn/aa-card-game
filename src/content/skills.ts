@@ -229,4 +229,54 @@ export const skillList = skillDefinitionSchema.array().parse([
       },
     ],
   },
+  {
+    id: 'meteorTrack',
+    name: '軌',
+    description: '作品類型為（燃）時可以額外擲 2 顆骰並取高；目前 runtime 尚無完全等價的 generic mechanic。',
+    activation: 'triggered',
+    status: 'planned',
+  },
+  {
+    id: 'meteorCoordination',
+    name: '副組長聖體',
+    description: '可以使用統籌類動作卡，但使用時自身壓力 +1；目前 team-level 出牌尚未記錄實際使用角色，因此保留為規劃中。',
+    activation: 'passive',
+    status: 'planned',
+    passives: [{ kind: 'card.permission', cardKind: 'coordination' }],
+  },
+  {
+    id: 'yashiroQuickLearner',
+    name: '可愛又好學',
+    description: '每回合開始時，壓力最高的我方組員壓力 -1。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'roundStart',
+        effects: [{ kind: 'stress.change', target: 'highestStressAlly', amount: -1, source: '可愛又好學' }],
+      },
+    ],
+  },
+  {
+    id: 'lemonStrictLeader',
+    name: '嚴格的組長',
+    description: 'PintBox 將檸檬列為較嚴格的組長；原始討論沒有給出可直接落地的數值效果。',
+    activation: 'passive',
+    status: 'planned',
+  },
+  {
+    id: 'emotionCraftAwareness',
+    name: '改善效果的意識',
+    description: '擅長注意到可以簡單改善 AA 效果的地方；原始討論沒有給出對應的骰子或壓力數值。',
+    activation: 'passive',
+    status: 'planned',
+  },
+  {
+    id: 'avocadoManual',
+    name: '使用說明',
+    description: '有明確的技術能力邊界與使用方式；原始討論沒有定義成遊戲中的數值效果。',
+    activation: 'passive',
+    status: 'planned',
+  },
+
 ]);

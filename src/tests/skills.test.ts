@@ -138,6 +138,50 @@ describe('data-driven skill runtime', () => {
   });
 });
 
+describe('additional discussion-ranked character cards', () => {
+  it('adds the six requested characters with source-grounded or explicit prototype values', () => {
+    expect(Object.keys(CHARACTERS)).toEqual(expect.arrayContaining([
+      'lemon',
+      'meteor',
+      'emotion',
+      'yashiro',
+      'avocado',
+      'kitsu',
+    ]));
+
+    expect(CHARACTERS.meteor?.stats).toEqual({ design: 0, text: 1, aa: 2 });
+    expect(CHARACTERS.meteor?.maxStress).toBe(4);
+    expect(SKILLS.meteorTrack?.status).toBe('planned');
+
+    expect(CHARACTERS.yashiro?.stats).toEqual({ design: 1, text: 1, aa: 3 });
+    expect(CHARACTERS.yashiro?.maxStress).toBe(5);
+
+    for (const id of ['lemon', 'emotion', 'avocado', 'kitsu'] as const) {
+      expect(CHARACTERS[id]?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+      expect(CHARACTERS[id]?.maxStress).toBe(5);
+    }
+
+    expect(CHARACTERS.lemon?.portrait).toBeUndefined();
+    expect(CHARACTERS.kitsu?.portrait).toBeUndefined();
+  });
+
+  it('八代 reduces the highest allied stress by one at round start', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+      playerMemberIds: ['yashiro', 'lemon', 'meteor'],
+      enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+    });
+    const engine = new EngineSession(game, fixedRng(0.5));
+    engine.getCharacter('player', 'yashiro')!.stress = 1;
+    engine.getCharacter('player', 'lemon')!.stress = 4;
+    engine.getCharacter('player', 'meteor')!.stress = 2;
+
+    engine.skills.emit({ type: 'roundStart' });
+
+    expect(engine.getCharacter('player', 'lemon')?.stress).toBe(3);
+    expect(engine.getCharacter('player', 'meteor')?.stress).toBe(2);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));
