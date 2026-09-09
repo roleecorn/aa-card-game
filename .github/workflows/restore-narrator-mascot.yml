@@ -22,8 +22,8 @@ jobs:
       - run: npm ci
       - name: Restore original sources from repository history
         run: |
-          git show 2c311ef8e0a4a26057b7ddda98af62770feddc26:public/assets/characters/narrator.webp > /tmp/narrator-original.webp
-          git show 2c311ef8e0a4a26057b7ddda98af62770feddc26:public/assets/characters/ginsakura.webp > /tmp/ginsakura-original.webp
+          git show 043756e1cdcb038e0e7e2da9ecf56bcda54cb935:public/assets/characters/narrator.webp > /tmp/narrator-original.webp
+          git show 043756e1cdcb038e0e7e2da9ecf56bcda54cb935:public/assets/characters/ginsakura.webp > /tmp/ginsakura-original.webp
       - run: npx tsx scripts/restore-narrator-mascot.ts
       - run: npm run art:validate
       - name: Commit restored assets
