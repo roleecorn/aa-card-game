@@ -164,7 +164,8 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
   },
 ]);
 
-function withBaseUrl(assetPath: string): string {
+function withBaseUrl(assetPath: string | undefined): string | undefined {
+  if (!assetPath) return undefined;
   const relativePath = assetPath.startsWith('/') ? assetPath.slice(1) : assetPath;
   return `${import.meta.env.BASE_URL}${relativePath}`;
 }
