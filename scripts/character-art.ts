@@ -4,6 +4,7 @@ import sharp from 'sharp';
 
 const WIDTH = 768;
 const HEIGHT = 1024;
+const COMPACT_HEIGHT = 640;
 const RATIO = WIDTH / HEIGHT;
 const QUALITY = 82;
 const ALPHA_QUALITY = 90;
@@ -26,13 +27,19 @@ async function portraitNames(): Promise<string[]> {
   return [...new Set(matches.map((match) => match[1]))].sort();
 }
 
-async function validateOne(filePath: string): Promise<void> {
+async function compactPortraitNames(): Promise<string[]> {
+  const source = await fs.readFile(path.resolve('src/content/characters.ts'), 'utf8');
+  const matches = [...source.matchAll(/compactPortrait:\s*['"]\/assets\/characters\/([^'"]+\.webp)['"]/g)];
+  return [...new Set(matches.map((match) => match[1]))].sort();
+}
+
+async function validateOne(filePath: string, width = WIDTH, height = HEIGHT): Promise<void> {
   const buffer = await fs.readFile(filePath);
   assertWebPContainer(buffer, filePath);
   const metadata = await sharp(buffer, { animated: true }).metadata();
   if (metadata.format !== 'webp') throw new Error(`${filePath}: expected WebP, got ${metadata.format ?? 'unknown'}`);
-  if (metadata.width !== WIDTH || metadata.height !== HEIGHT) {
-    throw new Error(`${filePath}: expected ${WIDTH}x${HEIGHT}, got ${metadata.width}x${metadata.height}`);
+  if (metadata.width !== width || metadata.height !== height) {
+    throw new Error(`${filePath}: expected ${width}x${height}, got ${metadata.width}x${metadata.height}`);
   }
   if ((metadata.pages ?? 1) !== 1) throw new Error(`${filePath}: animated/multi-page WebP is not allowed`);
   if (metadata.space && metadata.space !== 'srgb') {
@@ -42,11 +49,13 @@ async function validateOne(filePath: string): Promise<void> {
 
 async function validate(dir = DEFAULT_DIR): Promise<void> {
   const names = await portraitNames();
+  const compactNames = await compactPortraitNames();
   const entries = new Set(await fs.readdir(dir));
-  const missing = names.filter((name) => !entries.has(name));
+  const missing = [...names, ...compactNames].filter((name) => !entries.has(name));
   if (missing.length) throw new Error(`Missing character portraits: ${missing.join(', ')}`);
   for (const name of names) await validateOne(path.join(dir, name));
-  console.log(`Validated ${names.length} character portraits: WebP, ${WIDTH}x${HEIGHT}, single-frame, complete RIFF containers.`);
+  for (const name of compactNames) await validateOne(path.join(dir, name), WIDTH, COMPACT_HEIGHT);
+  console.log(`Validated ${names.length} standard portraits and ${compactNames.length} compact portraits: WebP, single-frame, complete RIFF containers.`);
 }
 
 async function normalizeOne(filePath: string): Promise<void> {

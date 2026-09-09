@@ -92,6 +92,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
     tags: ['duo-card'],
     portrait: '/assets/characters/triangle.webp',
+    compactPortrait: '/assets/characters/triangle-compact.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',
@@ -109,6 +110,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['commercialAuthor'],
     tags: ['commercial-author'],
     portrait: '/assets/characters/fengyang.webp',
+    compactPortrait: '/assets/characters/fengyang-compact.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
@@ -125,6 +127,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     affinities: [],
     skillIds: ['happyContagion', 'happyEditor'],
     portrait: '/assets/characters/happy.webp',
+    compactPortrait: '/assets/characters/happy-compact.webp',
     portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
       '原始角色卡明確列出 Design 3、壓力上限 ∞。',
@@ -142,6 +145,7 @@ export const characterList = characterDefinitionSchema.array().parse([
     skillIds: ['chaosSteadyRoll', 'chaosVitality'],
     tags: ['boss', 'not-standard-playable', 'no-stress'],
     portrait: '/assets/characters/chaos.webp',
+    compactPortrait: '/assets/characters/chaos-compact.webp',
     portraitPosition: { x: 50, y: 12 },
     resource: { name: '體力', max: 5, initial: 5 },
     sourceNotes: [

@@ -307,6 +307,7 @@ describe('高興 complete character package', () => {
     expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 0 });
     expect(CHARACTERS.happy?.maxStress).toBeNull();
     expect(CHARACTERS.happy?.portrait).toBe('/assets/characters/happy.webp');
+    expect(CHARACTERS.happy?.compactPortrait).toBe('/assets/characters/happy-compact.webp');
     expect(CHARACTERS.happy?.portraitPosition).toEqual({ x: 50, y: 12 });
 
     const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
@@ -356,6 +357,7 @@ describe('三角希＆有希 complete character package', () => {
     expect(CHARACTERS.triangle?.maxStress).toBe(4);
     expect(CHARACTERS.triangle?.tags).toContain('duo-card');
     expect(CHARACTERS.triangle?.portrait).toBe('/assets/characters/triangle.webp');
+    expect(CHARACTERS.triangle?.compactPortrait).toBe('/assets/characters/triangle-compact.webp');
     expect(CHARACTERS.triangle?.portraitPosition).toEqual({ x: 50, y: 12 });
   });
 
@@ -386,6 +388,7 @@ describe('風揚 complete character package', () => {
     expect(CHARACTERS.fengyang?.maxStress).toBe(2);
     expect(CHARACTERS.fengyang?.tags).toContain('commercial-author');
     expect(CHARACTERS.fengyang?.portrait).toBe('/assets/characters/fengyang.webp');
+    expect(CHARACTERS.fengyang?.compactPortrait).toBe('/assets/characters/fengyang-compact.webp');
     expect(CHARACTERS.fengyang?.portraitPosition).toEqual({ x: 50, y: 12 });
   });
 
@@ -419,6 +422,7 @@ describe('卡奧斯 complete character package', () => {
   it('keeps the Boss stats, portrait, resource and standard-match exclusion', () => {
     expect(CHARACTERS.chaos?.stats).toEqual({ design: 3, text: 3, aa: 3 });
     expect(CHARACTERS.chaos?.portrait).toBe('/assets/characters/chaos.webp');
+    expect(CHARACTERS.chaos?.compactPortrait).toBe('/assets/characters/chaos-compact.webp');
     expect(CHARACTERS.chaos?.portraitPosition).toEqual({ x: 50, y: 12 });
     expect(CHARACTERS.chaos?.resource).toEqual({ name: '體力', max: 5, initial: 5 });
     expect(CHARACTERS.chaos?.tags).toEqual(expect.arrayContaining(['boss', 'not-standard-playable', 'no-stress']));
