@@ -18,6 +18,7 @@ import { CHARACTERS, SKILLS } from '../content/catalog';
 
 const CHARACTER_TAG_LABELS: Record<string, string> = {
   'duo-card': '雙人角色',
+  'triangle-creature': '三角生物',
   'commercial-author': '商業作者',
   'not-standard-playable': '非標準對局',
   'no-stress': '無壓力',
