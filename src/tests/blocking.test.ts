@@ -136,7 +136,7 @@ describe('blocking-safety guards', () => {
 
     expect(() => engine.playCard('enemy', instance.instanceId, { memberId: 'pintbox' })).not.toThrow();
     expect(game.enemy.hand.some((item) => item.instanceId === instance.instanceId)).toBe(false);
-    expect(game.logs.some((entry) => entry.text.includes('觸發失敗'))).toBe(true);
+    expect(game.logs.some((entry) => entry.text.includes('效果執行失敗') && entry.text.includes('AI'))).toBe(true);
 
     executeSpy.mockRestore();
   });
