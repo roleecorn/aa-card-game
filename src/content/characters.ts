@@ -96,7 +96,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     maxStress: 4,
     affinities: [],
     skillIds: ['triangleRecovery', 'triangleAffinity', 'triangleCoordination'],
-    tags: ['duo-card'],
+    tags: ['duo-card', 'triangle-creature'],
     portrait: '/assets/characters/portrait/triangle.webp',
     compactPortrait: '/assets/characters/compact/triangle.webp',
     portraitPosition: { x: 50, y: 12 },
