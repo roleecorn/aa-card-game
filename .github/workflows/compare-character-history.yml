@@ -1,6 +1,11 @@
 name: Compare Historical Character Art
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - fix/restore-narrator-mascot
+    paths:
+      - '.github/workflows/compare-character-history.yml'
+      - 'scripts/compare-character-history.ts'
 permissions:
   contents: read
 jobs:
