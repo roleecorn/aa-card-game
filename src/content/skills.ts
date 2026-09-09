@@ -307,9 +307,14 @@ export const skillList = skillDefinitionSchema.array().parse([
   {
     id: 'emotionCraftAwareness',
     name: '改善效果的意識',
-    description: '擅長注意到可以簡單改善 AA 效果的地方；原始討論沒有給出對應的骰子或壓力數值。',
-    activation: 'passive',
-    status: 'planned',
+    description: '每回合一次，把自己尚未分配的一顆 AA 骰 +1（最高 6）。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeEffects: [
+      { kind: 'dice.modifyPending', target: 'owner', skill: 'aa', add: 1, limit: 1 },
+    ],
   },
   {
     id: 'avocadoManual',

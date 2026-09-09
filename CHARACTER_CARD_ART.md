@@ -169,6 +169,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `meteor.webp` | 768×1024 | Valid WebP | canonical，source-driven 流星 portrait |
 | `yashiro.webp` | 768×1024 | Valid WebP | canonical，source-driven 八代 portrait |
 | `lemon.webp` | 768×1024 | Valid WebP | canonical，source-driven 檸檬 portrait |
+| `emotion.webp` | 768×1024 | Valid WebP | canonical，source-driven 情緒 portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
 
@@ -225,6 +226,13 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - PintBox 另明確將她描述為較嚴格的組長，因此視覺重心應是「會在混亂前先整理結構的人」，不是單純 lemon motif。
 - Source-backed：嚴格組長、結構審查、預案、即時溝通。
 - Prototype art direction：整潔而有控制感的 silhouette、像在整理稿件／流程的姿態；黃色或綠色只能作次要辨識，不得成為唯一角色設計理由。
+
+### 情緒 source-driven visual brief
+
+- PintBox 明確指出情緒具備「可以簡單改善效果」的 AA 意識，因此視覺核心應是對細節與氣氛非常敏感，而不是把角色簡化成憂鬱或紫色系。
+- 本人發言會快速判斷畫面／作品效果，也會直接對不合氣氛的 emoji 做反應，且常用強烈語氣表達自我界線。
+- Source-backed：AA 呈現意識、氣氛敏感、直接評價、強烈自我感。
+- Prototype art direction：表情與視線應有高感受度與觀察性，可使用局部對比與不對稱構圖表現情緒張力；避免套用固定「陰沉角色」模板。
 
 ## 8.2 Source-driven character differentiation
 

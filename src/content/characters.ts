@@ -224,11 +224,14 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     maxStress: 5,
     affinities: [],
     skillIds: ['emotionCraftAwareness'],
+    portrait: '/assets/characters/portrait/emotion.webp',
+    portraitPosition: { x: 50, y: 12 },
     sourceNotes: [
-      '目前 Discord source 未找到 PintBox 為情緒寫出的完整角色卡數值。',
-      '2026-09-03 07:12:37：PintBox 明確評價情緒屬於「有意識」能想到簡單改善 AA 效果的人；技能名稱與描述僅保留此來源特徵。',
+      '2026-09-03 07:12:37：PintBox 明確評價情緒屬於「有意識」能想到簡單改善 AA 效果的人，並表示做 AA 最重要的是意識、其次才是技術。',
+      '本人發言同時具有強烈的語氣與氣氛敏感度，例如對作品效果直接判斷「但崩」，以及提醒不要在悲傷情境放笑面 emoji。',
       '基礎數值採 PintBox 2026-09-05 12:04:02 所述標準白板：Design / Text / AA 各 1、壓力上限 5，屬 Prototype assumption。',
-      'dataset(1).zip 中「〖ヰ/情緒〗何ヰ味穹蘆【消滅旁白】」共 1600 則訊息；依發言量排序新增。',
+      '「改善效果的意識」runtime 為 source-driven prototype：每回合一次，把自己尚未分配的一顆 AA 骰 +1，代表有意識地做小幅但有效的呈現修正。',
+      'dataset(1).zip 中「〖ヰ/情緒〗何ヰ味穹蘆【消滅旁白】」共 1600 則訊息。',
     ],
   },
   {

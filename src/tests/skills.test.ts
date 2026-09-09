@@ -287,6 +287,31 @@ describe('檸檬 complete character package', () => {
   });
 });
 
+describe('情緒 complete character package', () => {
+  const EMOTION_ROSTER = {
+    playerMemberIds: ['emotion', 'lemon', 'meteor'],
+    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
+  };
+
+  it('uses the prototype baseline and production portrait', () => {
+    expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.emotion?.maxStress).toBe(5);
+    expect(CHARACTERS.emotion?.portrait).toBe('/assets/characters/portrait/emotion.webp');
+    expect(SKILLS.emotionCraftAwareness?.status).toBe('implemented');
+  });
+
+  it('改善效果的意識 improves one pending AA die by one once per round', () => {
+    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, EMOTION_ROSTER);
+    const engine = new EngineSession(game, fixedRng(0.5));
+    const die = engine.grantDice('player', 'emotion', 'aa', 1, 'test', false, 4)[0]!;
+    die.value = 4;
+
+    expect(engine.activateSkill('player', 'emotion', 'emotionCraftAwareness')).toBe(true);
+    expect(die.value).toBe(5);
+    expect(engine.activateSkill('player', 'emotion', 'emotionCraftAwareness')).toBe(false);
+  });
+});
+
 describe('generic effect vocabulary', () => {
   it('can choose members by stress without character-specific code', () => {
     const game = createFixedGame(fixedRng(0.5));
