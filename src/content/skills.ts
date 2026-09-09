@@ -367,5 +367,16 @@ export const skillList = skillDefinitionSchema.array().parse([
     ],
     tags: ['stress-tradeoff', 'aa'],
   },
+  {
+    id: 'pigeonReaderPerspective',
+    name: '讀者視角',
+    description: '每回合一次，選擇另一名我方角色一顆尚未分配的骰，使其 +1（最高 6）。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'pendingDie', relation: 'otherAlly' },
+    activeEffects: [{ kind: 'dice.modifySelected', add: 1 }],
+    tags: ['support', 'prototype'],
+  },
 
 ]);

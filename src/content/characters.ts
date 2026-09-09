@@ -298,6 +298,24 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       '外觀未由 source 明確定義；runtime art 的人物外觀屬 Prototype art direction，僅以分鏡、童話與高投入畫面創作作為視覺依據。',
     ],
   },
+  {
+    id: 'pigeon',
+    name: '鴿子的化身',
+    stats: { design: 1, text: 2, aa: 1 },
+    maxStress: 3,
+    affinities: ['謀', '情'],
+    skillIds: ['pigeonReaderPerspective'],
+    tags: ['editorial', 'reader-perspective'],
+    portrait: '/assets/characters/portrait/pigeon.webp',
+    compactPortrait: '/assets/characters/compact/pigeon.webp',
+    portraitPosition: { x: 50, y: 12 },
+    sourceNotes: [
+      '2026-09-05 11:22:13：PintBox 直接回覆鴿子的卡面基礎為 Text 2 / Design 1 / AA 1 / Stress 4。',
+      '2026-09-05 11:25:52–11:29:17：PintBox 再確認「鴿子只有壓力 3 嗎」並暫定 3，因此以後續值 Stress 3 為準。',
+      'PintBox 同時明確表示技能觀測資料不足；「讀者視角」因此標為 source-driven Prototype skill，不冒充原始 PintBox 技能。',
+      '本人多次討論資訊優先度、讀者實際讀到什麼、減少文字量與節奏；Prototype 適性採（謀／情）。',
+    ],
+  },
 
 ]);
 

@@ -289,3 +289,10 @@ visual brief 必須回答：
 - Prototype art direction：視覺重點放在高投入的畫面創作、童話／分鏡與燃燒式輸出；可使用層疊畫框、手稿與強烈舞台光，但不把角色名稱或技能文字畫進圖。
 - 構圖：portrait 採半身創作姿態；compact 重新設計成橫向工作台構圖，不由 portrait 裁切。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。外觀細節未由 source 定義，均屬 Prototype art direction。
+
+
+### 鴿子的化身 source-driven visual brief
+- Source-backed：PintBox 直接估為 Text 2 / Design 1 / AA 1，Stress 後續由 4 修正為 3；本人常從讀者角度評論資訊優先度、輸出精煉與作品節奏。
+- Prototype art direction：不是以名字字面造型為核心，而是「正在整理讀者會看到什麼」的編輯／閱讀者形象；使用清楚的前後景、重新排列的紙頁與視線導引。
+- 構圖：portrait 偏安靜閱讀與標記；compact 用橫向紙頁流動構圖，不由 portrait 裁切。
+- Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。
