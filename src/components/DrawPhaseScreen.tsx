@@ -281,6 +281,29 @@ function DrawCard({
               <StatChip icon={<SubjectIcon />} label="Text" value={character.stats.text} />
               <StatChip icon={<LayersIcon />} label="AA" value={character.stats.aa} />
             </Stack>
+            {!!character.tags?.length && (
+              <Box>
+                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .55 }}>Tags</Typography>
+                <Stack direction="row" spacing={.55} flexWrap="wrap" useFlexGap>
+                  {character.tags.map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        bgcolor: '#fff7fa',
+                        border: '1px solid #f2bfd0',
+                        color: '#8b3f58',
+                        fontSize: 10.5,
+                        fontWeight: 850,
+                        '& .MuiChip-label': { px: .8 },
+                      }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            )}
             <Box>
               <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .65 }}>技能</Typography>
               <Stack spacing={.75}>
