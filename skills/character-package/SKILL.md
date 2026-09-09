@@ -43,8 +43,9 @@ description: "Complete or modify a game character as one atomic package: source-
 
 - 先分析該角色 source，整理足夠有區分度的發言、語氣、行為與他人描述。
 - 將角色獨立 visual brief、source-backed 視覺推導、runtime art constraints 與必要的 prototype art direction 寫入 repository 文件。
-- 先 commit 文件。
-- commit 完成後才可呼叫 Image Generation。
+- 文件修改必須先存在於 working tree，但**不得先單獨 commit**。
+- 文件內容固定後才可呼叫 Image Generation。
+- 最後把 docs 與完整角色 package 一起 atomic commit。
 
 禁止把 prompt 當作唯一規格來源，也禁止先生成再補文件。若順序違反，生成物只能視為 candidate，不能直接宣稱為 production asset。
 
@@ -54,13 +55,19 @@ description: "Complete or modify a game character as one atomic package: source-
 
 角色 package 必須同一 commit 包含：
 
-- data
-- text
-- runtime effect
+- source analysis / sourceNotes
+- character design / visual brief / docs
+- character data / metadata
+- skill text
+- 所有 implemented skill 的 runtime effect
 - tests
-- portrait
+- production portrait
+- compact portrait（如需要）
+- normalize / validate / integration 所需調整
 
-只要其中一項缺失，就不要宣稱角色已 complete，也不要先 push partial character commit。
+只要其中一項必要內容缺失，就不要宣稱角色已 complete，也不要先 push partial character commit。
+
+不得接受「本次只做其中一部分」的角色完成方式。圖片生成、角色設計、技能實現、測試與文件修改是同一個 character package；若任一項尚未完成，整個 package 都保持未提交狀態。
 
 ### Source grounding
 
@@ -78,21 +85,24 @@ description: "Complete or modify a game character as one atomic package: source-
 3. 決定技能哪些是 implemented / partial / planned。
 4. 用既有 generic effect vocabulary 實作。
 5. 只有必要時增加 reusable mechanic。
-6. 先將 visual brief 與本批規格寫入 repository 文件並 commit。
-7. 依已 commit 的美術規範生成正式 3:4 portrait。
-8. 執行 `npm run art:normalize`。
-9. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
-10. 寫 tests。
-11. 一次建立 atomic Git commit。
-12. validation branch 跑 CI。
-13. 成功後 fast-forward 同一 commit 到 main。
+6. 先將 visual brief 與角色規格寫入 repository working tree；此時不可單獨 commit。
+7. 依已寫入文件的規格生成正式 3:4 portrait / 必要 compact asset。
+8. 完成所有角色技能 implementation；不能只留下本次應完成的 mechanic 為 planned。
+9. 執行 `npm run art:normalize`。
+10. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
+11. 寫並完成 tests。
+12. 確認 docs + design + data + skill runtime + tests + production art 全部齊備。
+13. 一次建立唯一的 atomic character commit。
+14. validation branch 跑 CI。
+15. 成功後 fast-forward 同一 commit 到 main。
 
 ## Failure handling
 
-如果 Image Generation / test / effect implementation 尚未完成：
+如果 Image Generation / character design / docs / test / effect implementation 任一尚未完成：
 
-- 停在未提交狀態。
-- 不把 CharacterDefinition 先送 main。
+- 整個 character package 停在未提交狀態。
+- 不把 CharacterDefinition、SkillDefinition、docs 或圖片其中任何一部分先送 main。
+- 不建立 partial character commit。
 - 不說「已完成」。
 
 如果已建立但未進 main 的 Git object / commit，只能描述為 staged / candidate，不得稱為已 commit 到 main。

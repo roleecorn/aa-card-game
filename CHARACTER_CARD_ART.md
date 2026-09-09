@@ -16,24 +16,53 @@
 
 ## 1.1 Image Generation 前置文件 Gate
 
-**任何新的角色圖在開始 Image Generation 前，必須先把該批次的規格與角色 visual brief 寫入 repository 文件並 commit。**
+**任何新的角色圖在開始 Image Generation 前，必須先把該角色的規格與 visual brief 寫入 repository 工作樹中的文件；但不得先單獨 commit 文件。**
 
 這是硬性順序，不可倒置：
 
 1. 先確認 source / 人設依據。
 2. 在 `CHARACTER_CARD_ART.md` 或該角色專屬文件寫入固定 visual brief、構圖限制與 runtime asset 規格。
-3. 將文件變更 commit 到目前開發 branch。
-4. 文件 commit 完成後，才可開始 Image Generation。
-5. 生成完成後再做 normalize、validate、runtime integration 與 UI verification。
+3. 文件內容必須先存在於 working tree，成為後續 Image Generation 的正式依據。
+4. 之後完成角色設計、Image Generation、runtime skill implementation、tests、asset normalize / validate 與 integration。
+5. **最後把文件、角色資料、技能、測試與正式圖片一起放進同一個 atomic character commit。**
+
+前置文件 Gate 約束的是「先寫規格、再生成」的工作順序，不代表允許先建立 docs-only commit。
 
 禁止：
 
 - 先生成圖片，再回頭補文件。
+- 先把文件單獨 commit，再把角色實作拆成後續 commits。
 - 只在聊天訊息或 prompt 中定義規格，卻沒有寫入 repository。
 - 未固定 visual brief 就反覆生成，導致同一角色外觀漂移。
 - 為了配合已生成圖片而反過來修改 UI UX 或角色卡版面規格。
 
 若使用者在同一任務中同時要求「新增角色」與「繪製角色圖」，也必須先完成上述文件 Gate。
+
+## 1.2 Atomic character package
+
+角色設計與角色圖不能作為獨立交付項拆開提交。對新增／完成角色而言，以下內容視為同一個不可分割的 package：
+
+- source analysis / sourceNotes
+- 角色設計與 visual brief 文件
+- CharacterDefinition / stats / metadata
+- SkillDefinition
+- 所有宣稱 implemented 的 runtime skill effect
+- tests
+- 正式 portrait / compact asset（如該 UI 需要）
+- asset normalize / validate 所需調整
+- runtime integration 與必要文件更新
+
+**上述 package 必須在同一個 atomic commit 中完成。**
+
+若任何必要部分尚未完成：
+
+- 不得提交 partial character commit。
+- 不得只提交圖片。
+- 不得只提交角色資料或技能文字。
+- 不得只提交文件。
+- 不得宣稱角色已完成或已可進 production。
+
+候選圖片、未完成程式碼與草稿文件可以存在於 working tree / local candidate 狀態，但不能拆開推進 Git history。
 
 ## 2. Runtime asset 規格
 

@@ -6,15 +6,19 @@
 
 **一個角色必須以一個 atomic commit 完成。**
 
-同一個角色 commit 應同時包含適用的：
+同一個角色 commit 必須同時包含該角色完成所需的全部內容：
 
+- source analysis / `sourceNotes`
+- 角色設計與 visual brief 文件修改
 - CharacterDefinition
 - stats / Stress / affinities / tags / resource
 - SkillDefinition
-- 真正 runtime effect
+- 所有宣稱 implemented 的真正 runtime effect
 - tests
-- `sourceNotes`
 - 正式 portrait asset
+- compact portrait（若目前 UI 對該角色需要）
+- asset normalize / validate 所需調整
+- runtime integration 與其他必要文件修改
 
 禁止：
 
@@ -30,7 +34,9 @@ commit C: 補圖片
 commit X: complete <character> character package
 ```
 
-若圖片或 mechanic 尚未完成，就不要把該角色宣稱為 complete。
+若圖片、角色設計、skill implementation、tests 或必要文件任一尚未完成，就不要 commit 該角色，也不要把該角色宣稱為 complete。
+
+**禁止只實現 package 的一部分。** 例如「先加角色資料，圖片之後再補」、「先畫圖，技能之後再做」、「先寫文件，implementation 另開 commit」都屬於不合格的 partial delivery。
 
 ## 1. 先做來源判定
 
@@ -138,10 +144,11 @@ runtime 存入 `CharacterState.resources`。
 1. 先從原始對話整理該角色具區分度的發言、語氣、行為與他人描述。
 2. 將 source-backed 視覺推導、prototype art direction 與構圖限制寫入 `CHARACTER_CARD_ART.md` 或角色專屬文件。
 3. 確認 visual brief 與其他角色有足夠區分度，且不是同一模板換色。
-4. 確認內容已 commit。
+4. 確認這些文件修改已存在於 working tree，但**尚未單獨 commit**。
 5. 才能生成候選圖。
+6. 最後與角色 data / skill implementation / tests / production asset 一起 atomic commit。
 
-聊天中的臨時描述不能取代 repository 文件。若先生成後補文件，視為流程違規；該圖片只能視為未採用 candidate，不可直接進 runtime。
+聊天中的臨時描述不能取代 repository 文件。若先生成後補文件，視為流程違規；該圖片只能視為未採用 candidate，不可直接進 runtime。反過來，文件也不得提前單獨 commit；文件必須和完整角色 package 一起進同一個 commit。
 
 角色視覺不要求與同批角色共用畫風。共通的是 runtime asset 技術規格；角色設計本身必須由各自 source 驅動。
 
@@ -186,4 +193,5 @@ npm run build
 - [ ] portrait 實際存在於 Git tree
 - [ ] `npm run art:validate` 已確認 WebP container 未被截斷
 - [ ] CharacterDefinition path 與檔名一致
-- [ ] atomic commit 同時包含 code + tests + image
+- [ ] atomic commit 同時包含 sourceNotes + visual brief/docs + character data + skill implementation + tests + production image
+- [ ] 沒有任何「之後再補圖片／技能／文件／測試」的 partial delivery
