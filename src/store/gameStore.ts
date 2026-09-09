@@ -5,10 +5,10 @@ import type { ActionChoice, GameState, SkillActivationTarget } from '../game/typ
 import type { TeamId } from '../game/schema';
 
 interface GameStore {
-  game: GameState;
+  game: GameState | null;
   actionChoices: Record<string, ActionChoice>;
   reset: () => void;
-  resetWithRosters: (playerMemberIds: string[], enemyMemberIds: string[]) => void;
+  startGame: (playerMemberIds: string[], enemyMemberIds: string[]) => void;
   setActionChoice: (memberId: string, action: ActionChoice) => void;
   performPlayerActions: () => void;
   placeDie: (dieId: string, workId: string, slotIndex: number) => boolean;
@@ -21,17 +21,15 @@ function defaultChoices(game: GameState): Record<string, ActionChoice> {
   return Object.fromEntries(game.player.members.map((member) => [member.defId, 'work'])) as Record<string, ActionChoice>;
 }
 
-const firstGame = createInitialGame();
-
 export const useGameStore = create<GameStore>()(
   immer((set) => ({
-    game: firstGame,
-    actionChoices: defaultChoices(firstGame),
+    game: null,
+    actionChoices: {},
     reset: () => set((state) => {
-      state.game = createInitialGame();
-      state.actionChoices = defaultChoices(state.game);
+      state.game = null;
+      state.actionChoices = {};
     }),
-    resetWithRosters: (playerMemberIds, enemyMemberIds) => set((state) => {
+    startGame: (playerMemberIds, enemyMemberIds) => set((state) => {
       state.game = createInitialGame(Math.random, undefined, { playerMemberIds, enemyMemberIds });
       state.actionChoices = defaultChoices(state.game);
     }),
@@ -39,30 +37,31 @@ export const useGameStore = create<GameStore>()(
       state.actionChoices[memberId] = action;
     }),
     performPlayerActions: () => set((state) => {
-      new EngineSession(state.game).performPlayerActions(state.actionChoices);
+      if (state.game) new EngineSession(state.game).performPlayerActions(state.actionChoices);
     }),
     placeDie: (dieId, workId, slotIndex) => {
       let result = false;
       set((state) => {
-        result = new EngineSession(state.game).placeDie('player', dieId, workId, slotIndex);
+        if (state.game) result = new EngineSession(state.game).placeDie('player', dieId, workId, slotIndex);
       });
       return result;
     },
     finishPlayerAssignment: () => set((state) => {
+      if (!state.game) return;
       new EngineSession(state.game).finishPlayerAssignment();
       state.actionChoices = defaultChoices(state.game);
     }),
     playCard: (teamId, instanceId, target) => {
       let result = false;
       set((state) => {
-        result = new EngineSession(state.game).playCard(teamId, instanceId, target);
+        if (state.game) result = new EngineSession(state.game).playCard(teamId, instanceId, target);
       });
       return result;
     },
     activateSkill: (teamId, memberId, skillId, target = {}) => {
       let result = false;
       set((state) => {
-        result = new EngineSession(state.game).activateSkill(teamId, memberId, skillId, target);
+        if (state.game) result = new EngineSession(state.game).activateSkill(teamId, memberId, skillId, target);
       });
       return result;
     },
