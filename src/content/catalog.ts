@@ -4,6 +4,7 @@ import { cardList } from './cards';
 import { characterList } from './characters';
 import { skillList } from './skills';
 import { viceLeaderPowerSkill } from './viceLeaderSkill';
+import { weakzhiCharacter, weakzhiSkills } from './weakzhi';
 export { BASE_DECK, DEFAULT_MATCH } from './match';
 import { BASE_DECK } from './match';
 
@@ -11,8 +12,11 @@ function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
 }
 
-export const SKILLS: Record<string, SkillDefinition> = toRecord([...skillList, viceLeaderPowerSkill]);
-export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(characterList);
+const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills];
+const allCharacters = [...characterList, weakzhiCharacter];
+
+export const SKILLS: Record<string, SkillDefinition> = toRecord(allSkills);
+export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(allCharacters);
 export const CARDS: Record<string, CardDefinition> = toRecord(cardList);
 
 export const WORK_TYPES: WorkType[] = ['燃', '謀', '笑', '情', '色', '怪'];
@@ -24,7 +28,7 @@ export const DEFAULT_CONTENT: GameContent = {
 };
 
 export function validateCatalog(): void {
-  for (const character of characterList) {
+  for (const character of allCharacters) {
     for (const skillId of character.skillIds) {
       if (!SKILLS[skillId]) throw new Error(`Character ${character.id} references missing skill ${skillId}`);
     }

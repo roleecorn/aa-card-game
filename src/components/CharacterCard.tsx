@@ -48,6 +48,7 @@ export function CharacterCard({
     : definition.portraitPosition
     ? `${definition.portraitPosition.x}% ${definition.portraitPosition.y}%`
     : 'center 22%';
+  const actionsDisabled = definition.tags?.includes('cannot-act') ?? false;
 
   return (
     <Card sx={{ overflow: 'hidden', bgcolor: '#fff', borderWidth: 1.5 }}>
@@ -130,7 +131,11 @@ export function CharacterCard({
           </Box>
 
           {!compact && <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} />}
-          {showActions && (
+          {showActions && (actionsDisabled ? (
+            <Typography sx={{ mt: .4, py: .55, textAlign: 'center', fontSize: 11, fontWeight: 850, color: 'text.secondary' }}>
+              此角色不能行動
+            </Typography>
+          ) : (
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -142,7 +147,7 @@ export function CharacterCard({
               <ToggleButton data-tutorial={`action-${definition.id}-work`} value="work">創作</ToggleButton>
               <ToggleButton data-tutorial={`action-${definition.id}-slack`} value="slack"><CoffeeIcon sx={{ mr: .35, fontSize: 15 }} />摸魚</ToggleButton>
             </ToggleButtonGroup>
-          )}
+          ))}
         </Stack>
       </Box>
       {compact && definition.skillIds.length > 0 && (

@@ -433,6 +433,10 @@ export class EngineSession {
     for (const member of team.members) {
       try {
         const definition = this.getDefinition(member.defId);
+        if (definition.tags?.includes('cannot-act')) {
+          this.log(`${definition.name} 不能行動，本回合不進行創作或摸魚。`);
+          continue;
+        }
         const mustSlack = definition.maxStress !== null && member.stress >= definition.maxStress;
         const action = mustSlack ? 'slack' : actions[member.defId] ?? 'work';
         if (action === 'slack') {
@@ -474,7 +478,12 @@ export class EngineSession {
     const instance = team.hand[index];
     if (!instance) return false;
     const card = this.content.cards[instance.cardId];
-    if (!card || !this.validateCardTarget(teamId, card, target)) return false;
+    if (!card) return false;
+    if (card.kind === 'coordination' && team.leaderId && this.getDefinition(team.leaderId).tags?.includes('coordination-disabled-as-leader')) {
+      this.log(`${this.getDefinition(team.leaderId).name} 擔任組長時不能使用統籌卡。`);
+      return false;
+    }
+    if (!this.validateCardTarget(teamId, card, target)) return false;
 
     let success = false;
     if (card.effects?.length) {
@@ -627,6 +636,7 @@ export class EngineSession {
       if (!target.memberId) return false;
       const targetTeam = this.findMemberTeam(target.memberId);
       if (!targetTeam) return false;
+      if (card.kind === 'coordination' && this.getDefinition(target.memberId).tags?.includes('coordination-untargetable')) return false;
       if (card.target.skillPicker && !target.skill) return false;
       return card.target.relation === 'ally' ? targetTeam === teamId : targetTeam !== teamId;
     }

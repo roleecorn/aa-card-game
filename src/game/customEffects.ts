@@ -46,3 +46,20 @@ registerCustomSkillEffect('changeOwnerResource', (effect, context, engine) => {
   if (typeof resource !== 'string' || typeof amount !== 'number') return false;
   return engine.adjustResource(context.ownerTeamId, context.ownerId, resource, amount);
 });
+
+registerCustomSkillEffect('fillOwnerWorkRemainingRandom', (_effect, context, engine) => {
+  const work = engine.getTeam(context.ownerTeamId).works.find((candidate) => candidate.ownerId === context.ownerId);
+  if (!work) return false;
+
+  let filled = 0;
+  for (const slot of work.slots) {
+    for (const skill of ['design', 'text', 'aa'] as const) {
+      if (slot[skill] !== undefined) continue;
+      slot[skill] = engine.randomDie();
+      filled += 1;
+    }
+  }
+
+  if (filled > 0) engine.log(`${context.definition.name}：以 ${filled} 次獨立 1d6 填滿剩餘進度。`);
+  return filled > 0;
+});

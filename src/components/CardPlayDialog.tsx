@@ -66,6 +66,9 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
     let candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
+    if (card.kind === 'coordination') {
+      candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('coordination-untargetable'));
+    }
     if (card.id === 'guide') {
       candidates = candidates.filter((member) => guideEligibleStats(member).length > 0);
     }
