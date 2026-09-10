@@ -82,8 +82,12 @@ npm run build
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。
 - **角色內容採 atomic commit**：新增或完成一名角色時，其數值、角色/技能文本、實際 runtime 效果、測試與正式 portrait asset 必須在同一個 commit 內完成；不得先提交其中一部分再於後續 commit 補齊。
+- **角色 package 一輪只處理一名角色。** 除非使用者明確要求同一輪處理多名角色，否則不得把多名新角色的 source analysis、圖片生成、runtime implementation 或測試混在同一 execution batch。
+- **角色 package 必須使用真正的 Git working tree 作為 staging area。** `docs / code / tests / binary assets` 必須先共同存在於未提交的 working tree，通過本機驗證後再一次 commit。
+- **不得使用 GitHub Contents API 的逐檔 `create/update/delete` commit 作為 character package 的主要組裝流程。** 該 API 每次寫檔都產生 commit，會破壞 documentation gate 與 single atomic commit；它只可用於非角色 package 的小型文字修改，或作為 scratch/candidate 階段，最終仍必須重建為單一乾淨 commit。
+- 若執行環境只有 Git object API，允許先建立 candidate blobs/tree，最後以「`main`（或目標 base）為唯一 parent + 完整 candidate tree」建立一個乾淨 commit，再從該 commit 建立 branch；不要 force-push 或重寫既有 branch。
+- Binary portrait / compact WebP 必須作為真正 Git blob 寫入同一 commit；不得以 base64 文字檔、外部暫存連結或「之後再補」替代。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
-
 
 ## Figma
 
@@ -93,7 +97,6 @@ npm run build
 - Figma 只處理概念、流程與 layout；**不要把 runtime raster asset 上傳／同步到 Figma 作為發布流程的一部分**。
 - 圖片與文字/UI layer 必須分離。
 - 工作流細節見 `FIGMA.md`。
-
 
 ## Repository-local skills
 
