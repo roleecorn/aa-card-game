@@ -16,6 +16,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import type { CharacterDefinition } from '../game/schema';
 import { SKILLS } from '../content/catalog';
 import { getCharacterTagName } from '../content/characterTags';
+import { setSelectedLeaderId } from '../game/leaderSelection';
 
 export type DrawPhase =
   | 'intro'
@@ -25,6 +26,7 @@ export type DrawPhase =
   | 'revealing-3'
   | 'selection'
   | 'rerolling'
+  | 'leader-selection'
   | 'confirmed';
 
 interface Props {
@@ -66,7 +68,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     ? 1
     : phase === 'revealing-2'
     ? 2
-    : ['revealing-3', 'selection', 'confirmed'].includes(phase)
+    : ['revealing-3', 'selection', 'leader-selection', 'confirmed'].includes(phase)
     ? 3
     : 0;
 
@@ -76,6 +78,8 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     ? '抽出三名創作夥伴'
     : phase === 'rerolling'
     ? '重新抽取中…'
+    : phase === 'leader-selection'
+    ? '選擇組長'
     : phase === 'confirmed'
     ? '隊伍確認'
     : '你的初始隊伍';
@@ -90,8 +94,17 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     setPhase('selection');
   };
 
-  const handleConfirm = () => {
+  const handleConfirmTeam = () => {
     if (phase !== 'selection') return;
+    setSelectedIndex(undefined);
+    setPhase('leader-selection');
+  };
+
+  const handleConfirmLeader = () => {
+    if (phase !== 'leader-selection' || selectedIndex === undefined) return;
+    const leader = characters[selectedIndex];
+    if (!leader) return;
+    setSelectedLeaderId(leader.id);
     setPhase('confirmed');
     onConfirm();
   };
@@ -116,7 +129,9 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontWeight: 700 }}>
             {phase === 'selection'
-              ? (rerollUsed ? '已使用本局重抽。技能資訊會直接顯示在角色卡上。' : '點擊角色卡即可選擇；每張卡會直接顯示技能效果。')
+              ? (rerollUsed ? '已使用本局重抽。可直接確認隊伍，或先查看角色技能。' : '點擊角色卡可指定本局唯一一次重抽；確認隊伍後再選擇組長。')
+              : phase === 'leader-selection'
+              ? '點擊一名隊員擔任組長；組長本局壓力上限 +2。'
               : phase === 'confirmed'
               ? '準備進入創作對局'
               : '角色卡將依序揭曉'}
@@ -126,25 +141,27 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
         <Box sx={{ width: 'min(1280px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0,1fr))' }, gap: { xs: 1.4, md: 2.2 } }}>
           {characters.map((character, index) => {
             const isRerolling = phase === 'rerolling' && rerollIndex === index;
-            const revealed = phase === 'selection' || phase === 'confirmed' || index < revealCount;
+            const revealed = phase === 'selection' || phase === 'leader-selection' || phase === 'confirmed' || index < revealCount;
             const selected = selectedIndex === index;
+            const interactive = phase === 'selection' || phase === 'leader-selection';
             return (
               <DrawCard
-                key={index}
+                key={character.id}
                 character={character}
                 index={index}
                 revealed={revealed && !isRerolling}
                 selected={selected}
-                interactive={phase === 'selection'}
+                selectedLabel={phase === 'leader-selection' ? '組長' : '已選取'}
+                interactive={interactive}
                 isRerolling={isRerolling}
-                onClick={() => phase === 'selection' && setSelectedIndex((current) => current === index ? undefined : index)}
+                onClick={() => interactive && setSelectedIndex((current) => current === index ? undefined : index)}
               />
             );
           })}
         </Box>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-          {!['selection', 'confirmed'].includes(phase) && (
+          {!['selection', 'leader-selection', 'confirmed'].includes(phase) && (
             <Button
               variant="text"
               onClick={() => setPhase('selection')}
@@ -153,24 +170,38 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
               跳過抽卡動畫
             </Button>
           )}
-          <Button
-            variant="outlined"
-            startIcon={<ReplayRoundedIcon />}
-            disabled={phase !== 'selection' || rerollUsed || selectedIndex === undefined}
-            onClick={handleReroll}
-            sx={{ minWidth: 170, fontWeight: 900 }}
-          >
-            {rerollUsed ? '已重抽' : '重新抽取'}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<CheckCircleRoundedIcon />}
-            disabled={phase !== 'selection'}
-            onClick={handleConfirm}
-            sx={{ minWidth: 170, fontWeight: 950 }}
-          >
-            確認隊伍
-          </Button>
+          {phase === 'selection' && (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<ReplayRoundedIcon />}
+                disabled={rerollUsed || selectedIndex === undefined}
+                onClick={handleReroll}
+                sx={{ minWidth: 170, fontWeight: 900 }}
+              >
+                {rerollUsed ? '已重抽' : '重新抽取'}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<CheckCircleRoundedIcon />}
+                onClick={handleConfirmTeam}
+                sx={{ minWidth: 170, fontWeight: 950 }}
+              >
+                確認隊伍
+              </Button>
+            </>
+          )}
+          {phase === 'leader-selection' && (
+            <Button
+              variant="contained"
+              startIcon={<CheckCircleRoundedIcon />}
+              disabled={selectedIndex === undefined}
+              onClick={handleConfirmLeader}
+              sx={{ minWidth: 190, fontWeight: 950 }}
+            >
+              確認組長並開始
+            </Button>
+          )}
         </Stack>
       </Stack>
     </Box>
@@ -182,6 +213,7 @@ function DrawCard({
   index,
   revealed,
   selected,
+  selectedLabel,
   interactive,
   isRerolling,
   onClick,
@@ -190,6 +222,7 @@ function DrawCard({
   index: number;
   revealed: boolean;
   selected: boolean;
+  selectedLabel: string;
   interactive: boolean;
   isRerolling: boolean;
   onClick: () => void;
@@ -345,7 +378,7 @@ function DrawCard({
                   boxShadow: '0 4px 12px rgba(229,79,122,.28)',
                 }}
               >
-                已選取
+                {selectedLabel}
               </Box>
             )}
           </Stack>
