@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
-import type { DieToken } from '../game/types';
+import type { DieToken, DieValue } from '../game/types';
 
 const ROSTER = {
   playerMemberIds: ['lanyu', 'pintbox', 'mashiro'],
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
-function designDie(ownerId: string, value: number): DieToken {
+function designDie(ownerId: string, value: DieValue): DieToken {
   return { id: `die-${ownerId}-${value}`, ownerId, skill: 'design', value, round: 1, origin: '工作' };
 }
 
