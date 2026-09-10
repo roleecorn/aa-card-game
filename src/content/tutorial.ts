@@ -1,3 +1,5 @@
+import type { SkillStat } from '../game/schema';
+
 export const TUTORIAL_PLAYER_ROSTER = ['mashiro', 'grimm', 'triangle'] as const;
 export const TUTORIAL_ENEMY_ROSTER = ['yashiro', 'pintbox', 'happy'] as const;
 
@@ -39,6 +41,32 @@ export const TUTORIAL_DIE_RESULTS = [
   3, 4, 5, 2, 6,
   5, 4, 3, 6, 2,
 ] as const;
+
+export interface TutorialDieTarget {
+  ownerId: string;
+  skill: SkillStat;
+  index?: number;
+}
+
+export const TUTORIAL_CARD_TARGETS = {
+  guide: {
+    memberId: 'mashiro',
+    skill: 'design' as SkillStat,
+  },
+} as const;
+
+export const TUTORIAL_SKILL_TARGETS = {
+  grimmBurningFrame: {
+    targetDie: { ownerId: 'grimm', skill: 'aa', index: 0 } satisfies TutorialDieTarget,
+  },
+  mashiroSynthesis: {
+    sourceDie: { ownerId: 'grimm', skill: 'text', index: 0 } satisfies TutorialDieTarget,
+    targetDie: { ownerId: 'mashiro', skill: 'aa', index: 0 } satisfies TutorialDieTarget,
+  },
+  triangleRecovery: {
+    memberId: 'yashiro',
+  },
+} as const;
 
 export function tutorialRandomValue(index: number): number {
   const die = TUTORIAL_DIE_RESULTS[index % TUTORIAL_DIE_RESULTS.length] ?? 3;
