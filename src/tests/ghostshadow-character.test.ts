@@ -8,8 +8,8 @@ const ROSTER = {
 };
 
 describe('鬼影 complete character package', () => {
-  it('keeps PintBox Text/Stress values and explicit prototype fields', () => {
-    expect(CHARACTERS.ghostshadow?.stats).toEqual({ design: 0, text: 2, aa: 1 });
+  it('keeps PintBox Text/Stress values and calibrated AA', () => {
+    expect(CHARACTERS.ghostshadow?.stats).toEqual({ design: 0, text: 2, aa: 0 });
     expect(CHARACTERS.ghostshadow?.maxStress).toBe(2);
     expect(CHARACTERS.ghostshadow?.affinities).toEqual(['笑']);
     expect(CHARACTERS.ghostshadow?.portrait).toBe('/assets/characters/portrait/ghostshadow.webp');
