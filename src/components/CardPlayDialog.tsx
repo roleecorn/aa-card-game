@@ -14,8 +14,10 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CARDS, CHARACTERS } from '../content/catalog';
+import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
 import type { CardInstance, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
   open: boolean;
@@ -26,23 +28,30 @@ interface Props {
 }
 
 export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }: Props) {
+  const mode = useGameStore((state) => state.mode);
   const card = cardInstance ? CARDS[cardInstance.cardId] : undefined;
   const [memberId, setMemberId] = useState('');
   const [workId, setWorkId] = useState('');
   const [skill, setSkill] = useState<SkillStat>('design');
   const [voiceMode, setVoiceMode] = useState<'relief' | 'design' | 'text'>('relief');
 
+  const tutorialTarget = mode === 'tutorial' && cardInstance?.cardId === 'guide'
+    ? TUTORIAL_CARD_TARGETS.guide
+    : undefined;
+
   useEffect(() => {
     setMemberId('');
     setWorkId('');
-    setSkill('design');
+    setSkill(tutorialTarget?.skill ?? 'design');
     setVoiceMode('relief');
-  }, [cardInstance?.instanceId]);
+  }, [cardInstance?.instanceId, tutorialTarget?.skill]);
 
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
-    return card.target.relation === 'ally' ? game.player.members : game.enemy.members;
-  }, [card, game]);
+    const candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
+    if (!tutorialTarget) return candidates;
+    return candidates.filter((member) => member.defId === tutorialTarget.memberId);
+  }, [card, game, tutorialTarget]);
   const works = useMemo(() => {
     if (!card || card.target.kind !== 'work') return [];
     return card.target.relation === 'ally' ? game.player.works : game.enemy.works;
@@ -87,6 +96,11 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
             />
           )}
           <Typography color="text.secondary">{card.description}</Typography>
+          {tutorialTarget && (
+            <Typography variant="body2" sx={{ fontWeight: 800, color: 'warning.dark' }}>
+              教學指定目標：真白／Design。此步驟只能選擇教學指定對象。
+            </Typography>
+          )}
           {card.target.kind === 'member' && (
             <FormControl fullWidth>
               <InputLabel>目標角色</InputLabel>
@@ -99,9 +113,9 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
             <FormControl fullWidth>
               <InputLabel>能力</InputLabel>
               <Select value={skill} label="能力" onChange={(event) => setSkill(event.target.value as SkillStat)}>
-                <MenuItem value="design">Design</MenuItem>
-                <MenuItem value="text">Text</MenuItem>
-                <MenuItem value="aa">AA</MenuItem>
+                {(tutorialTarget ? [tutorialTarget.skill] : ['design', 'text', 'aa'] as SkillStat[]).map((stat) => (
+                  <MenuItem key={stat} value={stat}>{stat === 'design' ? 'Design' : stat === 'text' ? 'Text' : 'AA'}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           )}
