@@ -172,3 +172,16 @@ registerCustomSkillEffect('grantOwnerDesignIfActorLeaderDesignAtLeast', (effect,
   engine.log(`${context.definition.name}：Leader 的 Design 骰達標，額外取得 1 顆 Design 骰。`);
   return true;
 });
+
+registerCustomSkillEffect('tradeSelectedOwnerTextForDesign', (_effect, context, engine) => {
+  const dieId = context.activationTarget?.targetDieId;
+  if (!dieId) return false;
+  const team = engine.getTeam(context.ownerTeamId);
+  const die = team.pendingDice.find((candidate) => candidate.id === dieId);
+  if (!die || die.ownerId !== context.ownerId || die.skill !== 'text') return false;
+
+  team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== dieId);
+  engine.grantDice(context.ownerTeamId, context.ownerId, 'design', 1, context.definition.name, true);
+  engine.log(`${context.definition.name}：消耗 1 顆 Text 骰，換取 1 顆額外 Design 骰。`);
+  return true;
+});
