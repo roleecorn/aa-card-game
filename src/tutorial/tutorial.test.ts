@@ -6,6 +6,7 @@ import {
   TUTORIAL_PLAYER_DECK,
   TUTORIAL_PLAYER_ROSTER,
 } from '../content/tutorial';
+import { CHARACTERS } from '../content/catalog';
 import { useGameStore } from '../store/gameStore';
 
 afterEach(() => {
@@ -31,8 +32,12 @@ describe('tutorial match', () => {
     useGameStore.getState().startTutorial();
     useGameStore.getState().performPlayerActions();
     const first = useGameStore.getState().game!.player.pendingDice.map((die) => die.value);
+    const expectedDiceCount = TUTORIAL_PLAYER_ROSTER.reduce((total, memberId) => {
+      const stats = CHARACTERS[memberId]?.stats;
+      return total + (stats ? stats.design + stats.text + stats.aa : 0);
+    }, 0);
 
-    expect(first).toEqual(TUTORIAL_DIE_RESULTS.slice(0, 15));
+    expect(first).toEqual(TUTORIAL_DIE_RESULTS.slice(0, expectedDiceCount));
 
     useGameStore.getState().reset();
     useGameStore.getState().startTutorial();

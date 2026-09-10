@@ -8,9 +8,10 @@ const ROSTER = {
 };
 
 describe('格林 complete character package', () => {
-  it('keeps source/prototype metadata and production assets together', () => {
-    expect(CHARACTERS.grimm?.stats).toEqual({ design: 1, text: 2, aa: 2 });
-    expect(CHARACTERS.grimm?.maxStress).toBe(3);
+  it('keeps calibrated values and production assets together', () => {
+    expect(CHARACTERS.grimm?.stats).toEqual({ design: 1, text: 2, aa: 3 });
+    expect(CHARACTERS.grimm?.maxStress).toBe(4);
+    expect(CHARACTERS.grimm?.affinities).toEqual(['情', '燃', '笑']);
     expect(CHARACTERS.grimm?.tags).toEqual(expect.arrayContaining(['leader', 'visual-storyteller']));
     expect(CHARACTERS.grimm?.portrait).toBe('/assets/characters/portrait/grimm.webp');
     expect(CHARACTERS.grimm?.compactPortrait).toBe('/assets/characters/compact/grimm.webp');

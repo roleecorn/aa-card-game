@@ -8,8 +8,8 @@ const ROSTER = {
 };
 
 describe('嘆息 complete character package', () => {
-  it('keeps PintBox values and explicit prototype defaults', () => {
-    expect(CHARACTERS.tanxi?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+  it('keeps calibrated stats and production assets', () => {
+    expect(CHARACTERS.tanxi?.stats).toEqual({ design: 1, text: 0, aa: 0 });
     expect(CHARACTERS.tanxi?.maxStress).toBe(3);
     expect(CHARACTERS.tanxi?.portrait).toBe('/assets/characters/portrait/tanxi.webp');
     expect(CHARACTERS.tanxi?.compactPortrait).toBe('/assets/characters/compact/tanxi.webp');

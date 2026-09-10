@@ -3,6 +3,7 @@ import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } f
 import { cardList } from './cards';
 import { characterList } from './characters';
 import { skillList } from './skills';
+import { viceLeaderPowerSkill } from './viceLeaderSkill';
 export { BASE_DECK, DEFAULT_MATCH } from './match';
 import { BASE_DECK } from './match';
 
@@ -10,7 +11,7 @@ function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
 }
 
-export const SKILLS: Record<string, SkillDefinition> = toRecord(skillList);
+export const SKILLS: Record<string, SkillDefinition> = toRecord([...skillList, viceLeaderPowerSkill]);
 export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(characterList);
 export const CARDS: Record<string, CardDefinition> = toRecord(cardList);
 

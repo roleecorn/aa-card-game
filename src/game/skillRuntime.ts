@@ -244,10 +244,13 @@ export class SkillRuntime {
 
   getCoordinationStressBearer(teamId: 'player' | 'enemy'): string | undefined {
     const team = this.engine.getTeam(teamId);
-    const eligible = team.members.filter((member) =>
-      this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer'),
-    );
-    return eligible.find((member) => member.defId !== team.leaderId)?.defId ?? eligible[0]?.defId;
+    const leader = this.engine.getCharacter(teamId, team.leaderId);
+    if (!leader) return undefined;
+
+    return team.members.find((member) => {
+      if (member.defId === team.leaderId || member.stress >= leader.stress) return false;
+      return this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer');
+    })?.defId;
   }
 
   private passives(memberId: string): SkillPassive[] {
