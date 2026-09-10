@@ -72,7 +72,7 @@ export const useGameStore = create<GameStore>()(
       session(state.game as GameState, state.mode).finishPlayerAssignment();
       state.actionChoices = defaultChoices(state.game as GameState);
     }),
-    playCard: (teamId, instanceId, target) => {
+    playCard: (teamId, instanceId, target = {}) => {
       let result = false;
       set((state) => {
         if (state.game) result = session(state.game as GameState, state.mode).playCard(teamId, instanceId, target);
