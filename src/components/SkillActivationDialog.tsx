@@ -13,7 +13,9 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CHARACTERS, SKILLS } from '../content/catalog';
-import type { GameState, SkillActivationTarget } from '../game/types';
+import { TUTORIAL_SKILL_TARGETS, type TutorialDieTarget } from '../content/tutorial';
+import type { Die, GameState, SkillActivationTarget } from '../game/types';
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
   open: boolean;
@@ -24,12 +26,30 @@ interface Props {
   onConfirm: (target: SkillActivationTarget) => void;
 }
 
+function fixedDieOption(dice: Die[], target?: TutorialDieTarget): Die[] {
+  if (!target) return dice;
+  const matches = dice.filter((die) => die.ownerId === target.ownerId && die.skill === target.skill);
+  const fixed = matches[target.index ?? 0];
+  return fixed ? [fixed] : [];
+}
+
 export function SkillActivationDialog({ open, memberId, skillId, game, onClose, onConfirm }: Props) {
+  const mode = useGameStore((state) => state.mode);
   const skill = skillId ? SKILLS[skillId] : undefined;
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [selectedWorkId, setSelectedWorkId] = useState('');
   const [sourceDieId, setSourceDieId] = useState('');
   const [targetDieId, setTargetDieId] = useState('');
+
+  const tutorialTarget = mode !== 'tutorial'
+    ? undefined
+    : skillId === 'grimmBurningFrame'
+      ? TUTORIAL_SKILL_TARGETS.grimmBurningFrame
+      : skillId === 'mashiroSynthesis'
+        ? TUTORIAL_SKILL_TARGETS.mashiroSynthesis
+        : skillId === 'triangleRecovery'
+          ? TUTORIAL_SKILL_TARGETS.triangleRecovery
+          : undefined;
 
   useEffect(() => {
     setSelectedMemberId('');
@@ -42,17 +62,24 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
 
   const memberOptions = useMemo(() => {
     if (!memberId) return [];
+    let candidates;
     if (spec.kind === 'taggedMember') {
-      return [...game.player.members, ...game.enemy.members].filter((member) => {
+      candidates = [...game.player.members, ...game.enemy.members].filter((member) => {
         if (spec.excludeSelf && member.defId === memberId) return false;
         return CHARACTERS[member.defId]?.tags?.includes(spec.tag) ?? false;
       });
+    } else if (spec.kind === 'member') {
+      if (spec.relation === 'enemy') candidates = game.enemy.members;
+      else if (spec.relation === 'otherAlly') candidates = game.player.members.filter((member) => member.defId !== memberId);
+      else candidates = game.player.members;
+    } else {
+      return [];
     }
-    if (spec.kind !== 'member') return [];
-    if (spec.relation === 'enemy') return game.enemy.members;
-    if (spec.relation === 'otherAlly') return game.player.members.filter((member) => member.defId !== memberId);
-    return game.player.members;
-  }, [game, memberId, spec]);
+    if (skillId === 'triangleRecovery' && mode === 'tutorial') {
+      return candidates.filter((member) => member.defId === TUTORIAL_SKILL_TARGETS.triangleRecovery.memberId);
+    }
+    return candidates;
+  }, [game, memberId, mode, skillId, spec]);
 
   const workOptions = useMemo(() => {
     if (!memberId || spec.kind !== 'work') return [];
@@ -61,23 +88,34 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
     return game.player.works;
   }, [game, memberId, spec]);
 
-  const sourceDice = useMemo(
-    () => game.player.pendingDice.filter((die) => memberId && die.ownerId !== memberId),
-    [game, memberId],
-  );
+  const sourceDice = useMemo(() => {
+    const candidates = game.player.pendingDice.filter((die) => memberId && die.ownerId !== memberId);
+    if (mode === 'tutorial' && skillId === 'mashiroSynthesis') {
+      return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.mashiroSynthesis.sourceDie);
+    }
+    return candidates;
+  }, [game, memberId, mode, skillId]);
 
-  const copyTargetDice = useMemo(
-    () => game.player.pendingDice.filter((die) => die.ownerId === memberId),
-    [game, memberId],
-  );
+  const copyTargetDice = useMemo(() => {
+    const candidates = game.player.pendingDice.filter((die) => die.ownerId === memberId);
+    if (mode === 'tutorial' && skillId === 'mashiroSynthesis') {
+      return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.mashiroSynthesis.targetDie);
+    }
+    return candidates;
+  }, [game, memberId, mode, skillId]);
 
   const pendingDieOptions = useMemo(() => {
     if (!memberId || spec.kind !== 'pendingDie') return [];
-    if (spec.relation === 'enemy') return game.enemy.pendingDice;
-    if (spec.relation === 'self') return game.player.pendingDice.filter((die) => die.ownerId === memberId);
-    if (spec.relation === 'otherAlly') return game.player.pendingDice.filter((die) => die.ownerId !== memberId);
-    return game.player.pendingDice;
-  }, [game, memberId, spec]);
+    let candidates;
+    if (spec.relation === 'enemy') candidates = game.enemy.pendingDice;
+    else if (spec.relation === 'self') candidates = game.player.pendingDice.filter((die) => die.ownerId === memberId);
+    else if (spec.relation === 'otherAlly') candidates = game.player.pendingDice.filter((die) => die.ownerId !== memberId);
+    else candidates = game.player.pendingDice;
+    if (mode === 'tutorial' && skillId === 'grimmBurningFrame') {
+      return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.grimmBurningFrame.targetDie);
+    }
+    return candidates;
+  }, [game, memberId, mode, skillId, spec]);
 
   if (!skill || !memberId) return null;
 
@@ -94,6 +132,16 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
     || (spec.kind === 'copyPendingDie' && !!sourceDieId && !!targetDieId)
     || (spec.kind === 'pendingDie' && !!targetDieId);
 
+  const tutorialTargetLabel = mode === 'tutorial'
+    ? skillId === 'grimmBurningFrame'
+      ? '格林的第一顆 AA 骰'
+      : skillId === 'mashiroSynthesis'
+        ? '來源：格林的第一顆 Text 骰／目標：真白的第一顆 AA 骰'
+        : skillId === 'triangleRecovery'
+          ? '八代'
+          : undefined
+    : undefined;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{CHARACTERS[memberId]?.name ?? memberId}｜{skill.name}</DialogTitle>
@@ -101,6 +149,11 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Typography color="text.secondary">{skill.description}</Typography>
           {skill.activeHint && <Typography variant="body2">{skill.activeHint}</Typography>}
+          {tutorialTarget && tutorialTargetLabel && (
+            <Typography variant="body2" sx={{ fontWeight: 800, color: 'warning.dark' }}>
+              教學指定目標：{tutorialTargetLabel}。此步驟只能選擇教學指定對象。
+            </Typography>
+          )}
 
           {(spec.kind === 'member' || spec.kind === 'taggedMember') && (
             <FormControl fullWidth>
