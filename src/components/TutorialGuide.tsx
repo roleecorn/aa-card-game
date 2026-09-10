@@ -8,6 +8,9 @@ interface StepDefinition {
   selector?: string;
 }
 
+const DIALOG_SELECTOR = '[role="dialog"]';
+const DIALOG_PORTAL_INTERACTIVE_SELECTOR = '[role="listbox"], [role="option"], [role="menu"], [role="menuitem"]';
+
 const STEPS: Record<TutorialStepId, StepDefinition> = {
   'grimm-slack': {
     title: '1. 選擇角色行動',
@@ -32,7 +35,7 @@ const STEPS: Record<TutorialStepId, StepDefinition> = {
   'grimm-target': {
     title: '5. 在技能視窗選目標',
     body: '在視窗中選擇格林自己的 AA 骰並確認。視窗外的點擊暫時會被阻擋。',
-    selector: '[role="dialog"]',
+    selector: DIALOG_SELECTOR,
   },
   'dice-select': {
     title: '6. 選擇要放置的骰',
@@ -52,7 +55,7 @@ const STEPS: Record<TutorialStepId, StepDefinition> = {
   'card-target': {
     title: '9. 指定卡牌目標',
     body: '在卡牌視窗中選擇一名我方角色與能力後確認，體驗帶目標選擇的支援卡。',
-    selector: '[role="dialog"]',
+    selector: DIALOG_SELECTOR,
   },
   'mashiro-skill': {
     title: '10. 操作兩顆骰',
@@ -62,7 +65,7 @@ const STEPS: Record<TutorialStepId, StepDefinition> = {
   'mashiro-target': {
     title: '11. 選擇來源與目標骰',
     body: '在技能視窗完成兩顆骰的指定並確認。',
-    selector: '[role="dialog"]',
+    selector: DIALOG_SELECTOR,
   },
   'triangle-skill': {
     title: '12. 跨隊伍指定角色',
@@ -72,7 +75,7 @@ const STEPS: Record<TutorialStepId, StepDefinition> = {
   'triangle-target': {
     title: '13. 選擇 Tag 目標',
     body: '在技能視窗選擇八代並確認。這示範依角色 Tag 篩選合法目標。',
-    selector: '[role="dialog"]',
+    selector: DIALOG_SELECTOR,
   },
   'end-turn': {
     title: '14. 結束回合',
@@ -96,7 +99,7 @@ export function TutorialGuide({ step, onDismiss }: { step: TutorialStepId; onDis
     }
 
     const element = document.querySelector<HTMLElement>(definition.selector);
-    if (element && definition.selector !== '[role="dialog"]') {
+    if (element && definition.selector !== DIALOG_SELECTOR) {
       element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
     }
     const update = () => {
@@ -121,6 +124,10 @@ export function TutorialGuide({ step, onDismiss }: { step: TutorialStepId; onDis
       if (!(target instanceof Element)) return;
       if (target.closest('[data-tutorial-guide]')) return;
       if (target.closest(definition.selector!)) return;
+      // MUI Select/Menu content is rendered through a Portal, so it is not a
+      // descendant of the dialog even though it logically belongs to it.
+      // Allow only interactive popup roles while a tutorial dialog is active.
+      if (definition.selector === DIALOG_SELECTOR && target.closest(DIALOG_PORTAL_INTERACTIVE_SELECTOR)) return;
       event.preventDefault();
       event.stopPropagation();
       if ('stopImmediatePropagation' in event) event.stopImmediatePropagation();
