@@ -68,6 +68,10 @@ npm run test
 npm run build
 ```
 
+- **凡涉及遊戲系統或能力機制的改動，都必須把教學關卡列為 regression check。** 包含但不限於角色技能、卡牌效果、effect / condition / target vocabulary、骰子產生與分配、作品進度、壓力／資源、回合 phase、抽牌／牌庫順序、AI 行動與相關互動 UI。
+- 必須確認教學使用的固定 roster、固定抽牌順序、deterministic RNG、引導步驟、允許點擊範圍與 target dialog 仍能依既定順序完成；若改動刻意改變了教學所示範的能力或流程，應在同一修改中同步更新 tutorial content、step 定義與測試，不得留下過期教學。
+- 與教學流程相關的 deterministic tests 應視為系統／能力改動的基本回歸測試；若改動影響實際互動或 selector / dialog anchor，還需要做 runtime UI 驗證，不能只看 unit test。
+
 若環境無法下載 dependency，必須明確記錄限制，不得把未執行的驗證寫成已通過。可使用 repo 內既有的 source-level / runtime smoke 方法補充驗證，但不能冒充正式 build。
 
 ## Git / GitHub

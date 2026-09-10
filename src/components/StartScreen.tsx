@@ -1,13 +1,15 @@
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 
 interface Props {
   onStart: () => void;
+  onStartTutorial: () => void;
   onOpenRoster: () => void;
 }
 
-export function StartScreen({ onStart, onOpenRoster }: Props) {
+export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
   return (
     <Box
       sx={{
@@ -59,6 +61,16 @@ export function StartScreen({ onStart, onOpenRoster }: Props) {
               sx={{ py: 1.15, fontSize: 16, fontWeight: 950, borderRadius: 2 }}
             >
               開始遊戲
+            </Button>
+            <Button
+              size="large"
+              color="secondary"
+              variant="contained"
+              startIcon={<SchoolRoundedIcon />}
+              onClick={onStartTutorial}
+              sx={{ py: 1, fontSize: 15, fontWeight: 950, borderRadius: 2 }}
+            >
+              教學關卡
             </Button>
             <Button variant="outlined" onClick={onOpenRoster} sx={{ py: .85, fontWeight: 850, borderRadius: 2 }}>
               角色卡

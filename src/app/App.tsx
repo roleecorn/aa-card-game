@@ -17,8 +17,9 @@ import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import { CARDS, SKILLS } from '../content/catalog';
 import { characterList } from '../content/characters';
+import type { TutorialStepId } from '../content/tutorial';
 import { EngineSession } from '../game/engine';
-import type { CardInstance, SkillActivationTarget } from '../game/types';
+import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { GameHeader } from '../components/GameHeader';
 import { TeamColumn } from '../components/TeamColumn';
@@ -32,6 +33,7 @@ import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { StartScreen } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
 import { HandLimitDialog } from '../components/HandLimitDialog';
+import { TutorialGuide } from '../components/TutorialGuide';
 
 type AppStage = 'start' | 'draw' | 'battle';
 
@@ -44,9 +46,11 @@ const panelSx = {
 
 export default function App() {
   const game = useGameStore((state) => state.game);
+  const mode = useGameStore((state) => state.mode);
   const actionChoices = useGameStore((state) => state.actionChoices);
   const reset = useGameStore((state) => state.reset);
   const startGame = useGameStore((state) => state.startGame);
+  const startTutorial = useGameStore((state) => state.startTutorial);
   const setActionChoice = useGameStore((state) => state.setActionChoice);
   const performPlayerActions = useGameStore((state) => state.performPlayerActions);
   const placeDie = useGameStore((state) => state.placeDie);
@@ -63,6 +67,7 @@ export default function App() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
   const [draftRoster, setDraftRoster] = useState<{ player: string[]; enemy: string[] }>();
+  const [tutorialStep, setTutorialStep] = useState<TutorialStepId>();
 
   const selectedDie = game?.player.pendingDice.find((die) => die.id === selectedDieId);
   const playerScore = engine?.scoreTeam('player') ?? 0;
@@ -82,15 +87,28 @@ export default function App() {
     return ids;
   }, [playableIds]);
 
-  const handleStart = () => {
-    reset();
-    const six = shuffledPlayableIds().slice(0, 6);
-    setDraftRoster({ player: six.slice(0, 3), enemy: six.slice(3, 6) });
+  const clearTransientUi = () => {
     setSelectedDieId(undefined);
     setCardInstance(undefined);
     setSkillDialog(undefined);
     setMessage(undefined);
+  };
+
+  const handleStart = () => {
+    reset();
+    const six = shuffledPlayableIds().slice(0, 6);
+    setDraftRoster({ player: six.slice(0, 3), enemy: six.slice(3, 6) });
+    clearTransientUi();
+    setTutorialStep(undefined);
     setAppStage('draw');
+  };
+
+  const handleStartTutorial = () => {
+    startTutorial();
+    setDraftRoster(undefined);
+    clearTransientUi();
+    setTutorialStep('grimm-slack');
+    setAppStage('battle');
   };
 
   const handleReroll = useCallback((index: number) => {
@@ -115,24 +133,57 @@ export default function App() {
   const handleRestart = () => {
     reset();
     setDraftRoster(undefined);
-    setSelectedDieId(undefined);
-    setCardInstance(undefined);
-    setSkillDialog(undefined);
-    setMessage(undefined);
+    clearTransientUi();
+    setTutorialStep(undefined);
     setAppStage('start');
+  };
+
+  const handleActionChange = (memberId: string, action: ActionChoice) => {
+    setActionChoice(memberId, action);
+    if (mode !== 'tutorial') return;
+    if (tutorialStep === 'grimm-slack' && memberId === 'grimm' && action === 'slack') setTutorialStep('grimm-work');
+    else if (tutorialStep === 'grimm-work' && memberId === 'grimm' && action === 'work') setTutorialStep('perform-work');
+  };
+
+  const handlePerformPlayerActions = () => {
+    performPlayerActions();
+    setSelectedDieId(undefined);
+    if (mode === 'tutorial' && tutorialStep === 'perform-work') setTutorialStep('grimm-skill');
+  };
+
+  const handleDieSelect = (dieId: string) => {
+    const die = game?.player.pendingDice.find((candidate) => candidate.id === dieId);
+    setSelectedDieId((current) => current === dieId ? undefined : dieId);
+    if (mode === 'tutorial' && tutorialStep === 'dice-select' && die?.ownerId === 'mashiro' && die.skill === 'design') {
+      setTutorialStep('work-slot');
+    }
   };
 
   const handleSlotClick = (workId: string, slotIndex: number) => {
     if (!selectedDie) return;
     const ok = placeDie(selectedDie.id, workId, slotIndex);
-    if (ok) setSelectedDieId(undefined);
-    else setMessage('這顆骰不能放在該位置：請檢查 Design → Text → AA 順序、作品適性與既有骰值。');
+    if (ok) {
+      setSelectedDieId(undefined);
+      if (mode === 'tutorial' && tutorialStep === 'work-slot') setTutorialStep('card-guide');
+    } else {
+      setMessage('這顆骰不能放在該位置：請檢查 Design → Text → AA 順序、作品適性與既有骰值。');
+    }
+  };
+
+  const handleOpenCard = (instance: CardInstance) => {
+    if (game?.phase === 'finished') return;
+    setCardInstance(instance);
+    if (mode === 'tutorial' && tutorialStep === 'card-guide' && instance.cardId === 'guide') {
+      setTutorialStep('card-target');
+    }
   };
 
   const handleCardConfirm = (target: SkillActivationTarget) => {
     if (!cardInstance) return;
     const card = CARDS[cardInstance.cardId];
+    const usedTutorialGuide = mode === 'tutorial' && tutorialStep === 'card-target' && cardInstance.cardId === 'guide';
     const ok = playCard('player', cardInstance.instanceId, target);
+    if (usedTutorialGuide) setTutorialStep(ok ? 'mashiro-skill' : 'card-guide');
     setCardInstance(undefined);
     setMessage(ok ? `已使用「${card?.name ?? cardInstance.cardId}」。` : '目前條件不允許使用這張牌。');
   };
@@ -142,6 +193,11 @@ export default function App() {
     if (!skill) return;
     if (skill.activeTarget?.kind && skill.activeTarget.kind !== 'none') {
       setSkillDialog({ memberId, skillId });
+      if (mode === 'tutorial') {
+        if (tutorialStep === 'grimm-skill' && memberId === 'grimm' && skillId === 'grimmBurningFrame') setTutorialStep('grimm-target');
+        else if (tutorialStep === 'mashiro-skill' && memberId === 'mashiro' && skillId === 'mashiroSynthesis') setTutorialStep('mashiro-target');
+        else if (tutorialStep === 'triangle-skill' && memberId === 'triangle' && skillId === 'triangleRecovery') setTutorialStep('triangle-target');
+      }
       return;
     }
     const ok = activateSkill('player', memberId, skillId, {});
@@ -151,15 +207,40 @@ export default function App() {
   const handleSkillConfirm = (target: SkillActivationTarget) => {
     if (!skillDialog) return;
     const skill = SKILLS[skillDialog.skillId];
+    const stepBeforeConfirm = tutorialStep;
     const ok = activateSkill('player', skillDialog.memberId, skillDialog.skillId, target);
     setSkillDialog(undefined);
+    if (mode === 'tutorial') {
+      if (stepBeforeConfirm === 'grimm-target') setTutorialStep(ok ? 'dice-select' : 'grimm-skill');
+      else if (stepBeforeConfirm === 'mashiro-target') setTutorialStep(ok ? 'triangle-skill' : 'mashiro-skill');
+      else if (stepBeforeConfirm === 'triangle-target') setTutorialStep(ok ? 'end-turn' : 'triangle-skill');
+    }
     setMessage(ok ? `已發動「${skill?.name ?? skillDialog.skillId}」。` : '技能目前不能發動，請檢查目標與使用次數。');
+  };
+
+  const handleCardDialogClose = () => {
+    setCardInstance(undefined);
+    if (mode === 'tutorial' && tutorialStep === 'card-target') setTutorialStep('card-guide');
+  };
+
+  const handleSkillDialogClose = () => {
+    setSkillDialog(undefined);
+    if (mode !== 'tutorial') return;
+    if (tutorialStep === 'grimm-target') setTutorialStep('grimm-skill');
+    else if (tutorialStep === 'mashiro-target') setTutorialStep('mashiro-skill');
+    else if (tutorialStep === 'triangle-target') setTutorialStep('triangle-skill');
+  };
+
+  const handleFinishPlayerAssignment = () => {
+    finishPlayerAssignment();
+    setSelectedDieId(undefined);
+    if (mode === 'tutorial' && tutorialStep === 'end-turn') setTutorialStep('complete');
   };
 
   if (appStage === 'start') {
     return (
       <>
-        <StartScreen onStart={handleStart} onOpenRoster={() => setRosterOpen(true)} />
+        <StartScreen onStart={handleStart} onStartTutorial={handleStartTutorial} onOpenRoster={() => setRosterOpen(true)} />
         <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
       </>
     );
@@ -182,7 +263,7 @@ export default function App() {
   }
 
   if (!game || !engine) {
-    return <StartScreen onStart={handleStart} onOpenRoster={() => setRosterOpen(true)} />;
+    return <StartScreen onStart={handleStart} onStartTutorial={handleStartTutorial} onOpenRoster={() => setRosterOpen(true)} />;
   }
 
   return (
@@ -216,7 +297,7 @@ export default function App() {
             engine={engine}
             showActions={game.phase === 'player-plan'}
             actionChoices={actionChoices}
-            onActionChange={setActionChoice}
+            onActionChange={handleActionChange}
             onActivateSkill={handleActivate}
           />
 
@@ -233,12 +314,12 @@ export default function App() {
                   </Box>
                 </Stack>
                 {game.phase === 'player-plan' && (
-                  <Button color="secondary" variant="contained" startIcon={<CasinoIcon />} onClick={() => { performPlayerActions(); setSelectedDieId(undefined); }}>
+                  <Button data-tutorial="perform-work" color="secondary" variant="contained" startIcon={<CasinoIcon />} onClick={handlePerformPlayerActions}>
                     進行創作
                   </Button>
                 )}
                 {game.phase === 'player-assign' && (
-                  <Button color="warning" variant="contained" startIcon={<SkipNextIcon />} onClick={() => { finishPlayerAssignment(); setSelectedDieId(undefined); }}>
+                  <Button data-tutorial="end-turn" color="warning" variant="contained" startIcon={<SkipNextIcon />} onClick={handleFinishPlayerAssignment}>
                     結束回合
                   </Button>
                 )}
@@ -253,7 +334,7 @@ export default function App() {
                 <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
                 <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Dice</Typography>
               </Stack>
-              <DiceTray dice={game.player.pendingDice} selectedDieId={selectedDieId} onSelect={(id) => setSelectedDieId((current) => current === id ? undefined : id)} />
+              <DiceTray dice={game.player.pendingDice} selectedDieId={selectedDieId} onSelect={handleDieSelect} />
             </Paper>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
@@ -263,7 +344,7 @@ export default function App() {
                   <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>我的手牌</Typography>
                   <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Hand Cards · {game.player.hand.length}</Typography>
                 </Stack>
-                <CardHand hand={game.player.hand} onPlay={(instance) => game.phase !== 'finished' && setCardInstance(instance)} />
+                <CardHand hand={game.player.hand} onPlay={handleOpenCard} />
               </Paper>
 
               <Paper sx={{ ...panelSx, bgcolor: '#fffef9' }}>
@@ -284,9 +365,10 @@ export default function App() {
       </Container>
 
       <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardCards('player', instanceIds)} />
-      <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={() => setCardInstance(undefined)} onConfirm={handleCardConfirm} />
-      <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={() => setSkillDialog(undefined)} onConfirm={handleSkillConfirm} />
+      <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={handleCardDialogClose} onConfirm={handleCardConfirm} />
+      <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={handleSkillDialogClose} onConfirm={handleSkillConfirm} />
       <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
+      {mode === 'tutorial' && tutorialStep && <TutorialGuide step={tutorialStep} onDismiss={() => setTutorialStep(undefined)} />}
       <Snackbar open={!!message} autoHideDuration={3500} onClose={() => setMessage(undefined)}>
         <Alert severity="info" onClose={() => setMessage(undefined)}>{message}</Alert>
       </Snackbar>

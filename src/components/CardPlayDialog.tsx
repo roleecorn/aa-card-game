@@ -14,8 +14,10 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CARDS, CHARACTERS } from '../content/catalog';
-import type { CardInstance, GameState, SkillActivationTarget } from '../game/types';
+import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
+import type { CardInstance, CharacterState, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
   open: boolean;
@@ -25,24 +27,64 @@ interface Props {
   onConfirm: (target: SkillActivationTarget) => void;
 }
 
+const SKILL_STATS: SkillStat[] = ['design', 'text', 'aa'];
+
+function effectiveStat(member: CharacterState, stat: SkillStat): number {
+  return Math.max(
+    0,
+    member.permanentStats[stat]
+      + member.timedStatModifiers
+        .filter((modifier) => modifier.skill === stat)
+        .reduce((sum, modifier) => sum + modifier.amount, 0),
+  );
+}
+
+function guideEligibleStats(member?: CharacterState): SkillStat[] {
+  if (!member) return [];
+  return SKILL_STATS.filter((stat) => effectiveStat(member, stat) <= 1);
+}
+
 export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }: Props) {
+  const mode = useGameStore((state) => state.mode);
   const card = cardInstance ? CARDS[cardInstance.cardId] : undefined;
   const [memberId, setMemberId] = useState('');
   const [workId, setWorkId] = useState('');
   const [skill, setSkill] = useState<SkillStat>('design');
   const [voiceMode, setVoiceMode] = useState<'relief' | 'design' | 'text'>('relief');
 
+  const tutorialTarget = mode === 'tutorial' && cardInstance?.cardId === 'guide'
+    ? TUTORIAL_CARD_TARGETS.guide
+    : undefined;
+
   useEffect(() => {
     setMemberId('');
     setWorkId('');
-    setSkill('design');
+    setSkill(tutorialTarget?.skill ?? 'design');
     setVoiceMode('relief');
-  }, [cardInstance?.instanceId]);
+  }, [cardInstance?.instanceId, tutorialTarget?.skill]);
 
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
-    return card.target.relation === 'ally' ? game.player.members : game.enemy.members;
-  }, [card, game]);
+    let candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
+    if (card.id === 'guide') {
+      candidates = candidates.filter((member) => guideEligibleStats(member).length > 0);
+    }
+    if (!tutorialTarget) return candidates;
+    return candidates.filter((member) => member.defId === tutorialTarget.memberId);
+  }, [card, game, tutorialTarget]);
+
+  const selectedMember = useMemo(
+    () => [...game.player.members, ...game.enemy.members].find((member) => member.defId === memberId),
+    [game, memberId],
+  );
+
+  const skillOptions = useMemo(() => {
+    if (!card || card.target.kind !== 'member' || !card.target.skillPicker) return SKILL_STATS;
+    if (tutorialTarget) return [tutorialTarget.skill];
+    if (card.id === 'guide') return guideEligibleStats(selectedMember);
+    return SKILL_STATS;
+  }, [card, selectedMember, tutorialTarget]);
+
   const works = useMemo(() => {
     if (!card || card.target.kind !== 'work') return [];
     return card.target.relation === 'ally' ? game.player.works : game.enemy.works;
@@ -52,7 +94,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
 
   const targetReady = card.target.kind === 'none'
     || card.target.kind === 'voiceMode'
-    || (card.target.kind === 'member' && !!memberId)
+    || (card.target.kind === 'member' && !!memberId && (!card.target.skillPicker || skillOptions.includes(skill)))
     || (card.target.kind === 'work' && !!workId);
 
   const confirm = () => {
@@ -64,6 +106,14 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
     if (card.target.kind === 'work') target.workId = workId;
     if (card.target.kind === 'voiceMode') target.voiceMode = voiceMode;
     onConfirm(target);
+  };
+
+  const handleMemberChange = (nextMemberId: string) => {
+    setMemberId(nextMemberId);
+    if (card.target.kind !== 'member' || !card.target.skillPicker || tutorialTarget) return;
+    const nextMember = [...game.player.members, ...game.enemy.members].find((member) => member.defId === nextMemberId);
+    const nextOptions = card.id === 'guide' ? guideEligibleStats(nextMember) : SKILL_STATS;
+    setSkill(nextOptions[0] ?? 'design');
   };
 
   return (
@@ -87,21 +137,26 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
             />
           )}
           <Typography color="text.secondary">{card.description}</Typography>
+          {tutorialTarget && (
+            <Typography variant="body2" sx={{ fontWeight: 800, color: 'warning.dark' }}>
+              教學指定目標：真白／Text。此步驟只能選擇教學指定對象。
+            </Typography>
+          )}
           {card.target.kind === 'member' && (
             <FormControl fullWidth>
               <InputLabel>目標角色</InputLabel>
-              <Select value={memberId} label="目標角色" onChange={(event) => setMemberId(event.target.value)}>
+              <Select value={memberId} label="目標角色" onChange={(event) => handleMemberChange(event.target.value)}>
                 {members.map((member) => <MenuItem key={member.defId} value={member.defId}>{CHARACTERS[member.defId]?.name ?? member.defId}</MenuItem>)}
               </Select>
             </FormControl>
           )}
           {card.target.kind === 'member' && card.target.skillPicker && (
-            <FormControl fullWidth>
+            <FormControl fullWidth disabled={!memberId}>
               <InputLabel>能力</InputLabel>
-              <Select value={skill} label="能力" onChange={(event) => setSkill(event.target.value as SkillStat)}>
-                <MenuItem value="design">Design</MenuItem>
-                <MenuItem value="text">Text</MenuItem>
-                <MenuItem value="aa">AA</MenuItem>
+              <Select value={skillOptions.includes(skill) ? skill : ''} label="能力" onChange={(event) => setSkill(event.target.value as SkillStat)}>
+                {skillOptions.map((stat) => (
+                  <MenuItem key={stat} value={stat}>{stat === 'design' ? 'Design' : stat === 'text' ? 'Text' : 'AA'}</MenuItem>
+                ))}
               </Select>
             </FormControl>
           )}

@@ -33,6 +33,7 @@ export function SkillList({ character, onActivate, canActivate, compact }: Props
             </Tooltip>
             {active && onActivate && (
               <Button
+                data-tutorial={`skill-${skillId}`}
                 size="small"
                 variant="outlined"
                 startIcon={compact ? undefined : <BoltIcon />}

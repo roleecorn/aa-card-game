@@ -1,6 +1,6 @@
 # Validation
 
-最後更新：2026-09-09
+最後更新：2026-09-10
 
 ## Character art repair
 
@@ -57,3 +57,18 @@ npm run build
 `UI Screenshot` workflow 也會先執行 `art:validate`，再跑 typecheck、Vitest、Vite 與 Chrome runtime render。
 
 角色內容仍遵守 atomic package 規則；runtime UI 驗證必須使用真正 Vite/Chrome screenshot，不以 Figma 代替。
+
+## Tutorial regression checklist
+
+教學關卡同時是主要遊戲系統與能力機制的 regression fixture。只要改動會影響遊戲規則或玩家操作，就必須確認教學仍可依固定流程完成。
+
+至少檢查：
+
+- 固定我方／敵方 roster 仍合法，且教學能力的 target 條件仍有可選目標。
+- 固定起手牌與 deck order 沒有因卡牌 ID、抽牌規則或初始效果改動而失效。
+- deterministic RNG 仍可重現預期骰子結果與相關隨機效果。
+- 角色技能、卡牌、effect、condition、target、骰子、作品進度、壓力／resource、phase 或 AI 改動後，既有 tutorial steps 仍與實際 runtime 行為一致。
+- 每一步的 click restriction 與 highlight anchor 仍指向可操作元素；target dialog 的開啟、取消、選擇與完成不會造成教學卡死。
+- 若系統改動刻意改變教學所示範的流程或能力，必須同步更新 tutorial content、step 定義與 deterministic tests。
+
+教學相關 unit / deterministic tests 是基本要求；若 selector、dialog、layout 或實際點擊流程受到影響，還需要執行 runtime UI 驗證，不能只以 test pass 判定教學正常。

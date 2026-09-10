@@ -10,13 +10,14 @@ export function CardHand({ hand, onPlay }: { hand: CardInstance[]; onPlay: (inst
         const card = CARDS[instance.cardId];
         if (!card) return null;
         return (
-          <HandCard
-            key={instance.instanceId}
-            instance={instance}
-            card={card}
-            rotation={index % 2 ? 1 : -1}
-            onPlay={onPlay}
-          />
+          <Box key={instance.instanceId} data-tutorial={`card-${card.id}`} sx={{ flexShrink: 0 }}>
+            <HandCard
+              instance={instance}
+              card={card}
+              rotation={index % 2 ? 1 : -1}
+              onPlay={onPlay}
+            />
+          </Box>
         );
       })}
       {!hand.length && <Box><Typography color="text.secondary">手牌為空。</Typography></Box>}
