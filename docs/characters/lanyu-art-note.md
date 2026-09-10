@@ -1,0 +1,1 @@
+Asset implementation note: the runtime portrait is a text-free, programmatically rendered prototype matching the visual brief. It intentionally avoids generated signage, labels, UI, and card-frame text so the asset remains reusable in CharacterCard layouts.

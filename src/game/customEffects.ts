@@ -142,3 +142,33 @@ registerCustomSkillEffect('departOwnerIfWorkWouldReachStressCap', (_effect, cont
   if (amountToCap > 0) engine.adjustStress(context.ownerTeamId, context.ownerId, amountToCap, '工作');
   return departOwner(context, engine);
 });
+
+registerCustomSkillEffect('grantOwnerDesignIfActorLeaderDesignAtLeast', (effect, context, engine) => {
+  const minValue = effect.args?.minValue;
+  if (typeof minValue !== 'number') return false;
+  const team = engine.getTeam(context.ownerTeamId);
+  if (!context.event.actorId || context.event.actorId !== team.leaderId || context.ownerId === team.leaderId) return false;
+  if (!context.event.dice?.some((die) => die.skill === 'design' && die.value >= minValue)) return false;
+
+  const die = {
+    id: engine.uid('die'),
+    ownerId: context.ownerId,
+    skill: 'design' as const,
+    value: engine.rollDieFor(context.ownerId),
+    round: engine.state.round,
+    origin: context.definition.name,
+  };
+  team.pendingDice.push(die);
+  engine.skills.emit({
+    type: 'afterDiceGranted',
+    teamId: context.ownerTeamId,
+    targetId: context.ownerId,
+    skill: 'design',
+    amount: 1,
+    dice: [die],
+    sourceKind: 'skill-or-card',
+    metadata: { extra: true },
+  });
+  engine.log(`${context.definition.name}：Leader 的 Design 骰達標，額外取得 1 顆 Design 骰。`);
+  return true;
+});

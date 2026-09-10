@@ -3,6 +3,7 @@ import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } f
 import { akikageCharacter, akikageSkills } from './akikage';
 import { cardList } from './cards';
 import { characterList } from './characters';
+import { lanyuCharacter, lanyuSkills } from './lanyu';
 import { skillList } from './skills';
 import { viceLeaderPowerSkill } from './viceLeaderSkill';
 import { weakzhiCharacter, weakzhiSkills } from './weakzhi';
@@ -14,8 +15,8 @@ function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
 }
 
-const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills, ...akikageSkills, ...yamadaSkills];
-const allCharacters = [...characterList, weakzhiCharacter, akikageCharacter, yamadaCharacter];
+const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills, ...akikageSkills, ...yamadaSkills, ...lanyuSkills];
+const allCharacters = [...characterList, weakzhiCharacter, akikageCharacter, yamadaCharacter, lanyuCharacter];
 
 export const SKILLS: Record<string, SkillDefinition> = toRecord(allSkills);
 export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(allCharacters);
