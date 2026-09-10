@@ -1,5 +1,6 @@
 import type { GameContent } from '../game/contentRegistry';
 import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } from '../game/schema';
+import { akikageCharacter, akikageSkills } from './akikage';
 import { cardList } from './cards';
 import { characterList } from './characters';
 import { skillList } from './skills';
@@ -12,8 +13,8 @@ function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
 }
 
-const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills];
-const allCharacters = [...characterList, weakzhiCharacter];
+const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills, ...akikageSkills];
+const allCharacters = [...characterList, weakzhiCharacter, akikageCharacter];
 
 export const SKILLS: Record<string, SkillDefinition> = toRecord(allSkills);
 export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(allCharacters);

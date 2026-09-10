@@ -20,7 +20,6 @@ export function executeCustomSkillEffect(effect: CustomEffect, context: EffectCo
   return handler(effect, context, engine);
 }
 
-
 registerCustomSkillEffect('addRandomCardsByKind', (effect, context, engine) => {
   const cardKind = effect.args?.cardKind;
   const countArg = effect.args?.count;
@@ -38,7 +37,6 @@ registerCustomSkillEffect('addRandomCardsByKind', (effect, context, engine) => {
   engine.log(`${context.definition.name}：額外取得 ${count} 張${cardKind === 'coordination' ? '統籌' : '事件'}卡。`);
   return true;
 });
-
 
 registerCustomSkillEffect('changeOwnerResource', (effect, context, engine) => {
   const resource = effect.args?.resource;
@@ -62,4 +60,18 @@ registerCustomSkillEffect('fillOwnerWorkRemainingRandom', (_effect, context, eng
 
   if (filled > 0) engine.log(`${context.definition.name}：以 ${filled} 次獨立 1d6 填滿剩餘進度。`);
   return filled > 0;
+});
+
+registerCustomSkillEffect('removeEventDiceAtOrBelow', (effect, context, engine) => {
+  const maxValue = effect.args?.maxValue;
+  const dice = context.event.dice;
+  if (typeof maxValue !== 'number' || !dice?.length) return false;
+
+  const kept = dice.filter((die) => die.value > maxValue);
+  const removed = dice.length - kept.length;
+  if (removed <= 0) return false;
+
+  dice.splice(0, dice.length, ...kept);
+  engine.log(`${context.definition.name}：${removed} 顆點數 ${maxValue} 以下的骰無法使用。`);
+  return true;
 });
