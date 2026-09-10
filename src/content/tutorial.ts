@@ -51,7 +51,7 @@ export interface TutorialDieTarget {
 export const TUTORIAL_CARD_TARGETS = {
   guide: {
     memberId: 'mashiro',
-    skill: 'design' as SkillStat,
+    skill: 'text' as SkillStat,
   },
 } as const;
 
