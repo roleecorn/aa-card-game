@@ -48,10 +48,10 @@ function context(ownerId = 'pintbox'): EffectContext {
 }
 
 describe('data-driven skill runtime', () => {
-  it('79 gets two Voice Meeting cards at game start', () => {
-    const game = createFixedGame(fixedRng(0.5));
-    const voiceCount = game.player.hand.filter((card) => card.cardId === 'voice').length;
-    expect(voiceCount).toBeGreaterThanOrEqual(2);
+  it('79 uses the calibrated resonance and Text-die boost skills', () => {
+    expect(CHARACTERS.user79?.skillIds).toEqual(expect.arrayContaining(['resonance79', 'burningText79']));
+    expect(CHARACTERS.user79?.skillIds).not.toContain('virtualCircle79');
+    expect(SKILLS.burningText79?.status).toBe('implemented');
   });
 
   it('Pintbox AI reduces the first external stress gain each round', () => {
@@ -89,7 +89,6 @@ describe('data-driven skill runtime', () => {
     expect(engine.activateSkill('player', 'mashiro', 'mashiroSynthesis', { sourceDieId: source.id, targetDieId: target.id })).toBe(false);
   });
 
-
   it('accepts an injected content pack without changing EngineSession code', () => {
     const customContent: GameContent = {
       ...DEFAULT_CONTENT,
@@ -124,6 +123,7 @@ describe('data-driven skill runtime', () => {
     expect(engine.getCharacter('player', 'pintbox')!.stress).toBe(1);
     expect(game.player.pendingDice.some((die) => die.ownerId === 'pintbox' && die.skill === 'text')).toBe(true);
   });
+
   it('Bluewind active skill is composed from generic dice/work/stress effects', () => {
     const game = createFixedGame(fixedRng(0.5));
     const engine = new EngineSession(game, fixedRng(0.5));
@@ -139,7 +139,7 @@ describe('data-driven skill runtime', () => {
 });
 
 describe('additional discussion-ranked character cards', () => {
-  it('adds the six requested characters with source-grounded or explicit prototype values', () => {
+  it('adds the six requested characters with current calibrated values', () => {
     expect(Object.keys(CHARACTERS)).toEqual(expect.arrayContaining([
       'lemon',
       'meteor',
@@ -156,10 +156,12 @@ describe('additional discussion-ranked character cards', () => {
     expect(CHARACTERS.yashiro?.stats).toEqual({ design: 1, text: 1, aa: 3 });
     expect(CHARACTERS.yashiro?.maxStress).toBe(5);
 
-    for (const id of ['lemon', 'emotion', 'avocado', 'kitsu'] as const) {
+    for (const id of ['lemon', 'avocado', 'kitsu'] as const) {
       expect(CHARACTERS[id]?.stats).toEqual({ design: 1, text: 1, aa: 1 });
       expect(CHARACTERS[id]?.maxStress).toBe(5);
     }
+    expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 2 });
+    expect(CHARACTERS.emotion?.maxStress).toBe(5);
 
     expect(CHARACTERS.lemon?.portrait).toBe('/assets/characters/portrait/lemon.webp');
     expect(CHARACTERS.kitsu?.portrait).toBe('/assets/characters/portrait/kitsu.webp');
@@ -193,7 +195,7 @@ describe('流星 complete character package', () => {
     expect(CHARACTERS.meteor?.maxStress).toBe(4);
     expect(CHARACTERS.meteor?.portrait).toBe('/assets/characters/portrait/meteor.webp');
     expect(SKILLS.meteorTrack?.status).toBe('implemented');
-    expect(SKILLS.meteorCoordination?.status).toBe('implemented');
+    expect(CHARACTERS.meteor?.skillIds).toContain('viceLeaderPower');
   });
 
   it('軌 only works on a 燃 owner work and keeps the better of two rolls', () => {
@@ -213,16 +215,16 @@ describe('流星 complete character package', () => {
     expect(engine.activateSkill('player', 'meteor', 'meteorTrack')).toBe(false);
   });
 
-  it('副組長聖體 makes 流星 take coordination-card stress instead of the leader', () => {
+  it('副組長力 makes 流星 take coordination-card stress when below the leader', () => {
     const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    engine.getCharacter('player', 'mashiro')!.stress = 2;
+    engine.getCharacter('player', 'pintbox')!.stress = 2;
     engine.addCard('player', 'soothe', 1);
     const card = game.player.hand.find((item) => item.cardId === 'soothe')!;
 
     expect(engine.playCard('player', card.instanceId, { memberId: 'mashiro' })).toBe(true);
     expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
-    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(0);
+    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(2);
   });
 });
 
@@ -267,23 +269,26 @@ describe('檸檬 complete character package', () => {
     enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
   };
 
-  it('uses the prototype baseline and production portrait', () => {
+  it('uses the calibrated affinity and Fire Rescue skill', () => {
     expect(CHARACTERS.lemon?.stats).toEqual({ design: 1, text: 1, aa: 1 });
     expect(CHARACTERS.lemon?.maxStress).toBe(5);
+    expect(CHARACTERS.lemon?.affinities).toEqual(['謀']);
     expect(CHARACTERS.lemon?.portrait).toBe('/assets/characters/portrait/lemon.webp');
-    expect(SKILLS.lemonStrictLeader?.status).toBe('implemented');
+    expect(CHARACTERS.lemon?.skillIds).toContain('lemonFireRescue');
+    expect(SKILLS.lemonFireRescue?.status).toBe('implemented');
   });
 
-  it('嚴格的組長 rerolls the first low allied work die once per round', () => {
+  it('火場救援 adds one stress and grants three rescue dice once per round', () => {
     const game = createInitialGame(fixedRng(0.999), DEFAULT_CONTENT, LEMON_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.999));
-    const dieA = { id: 'low-a', ownerId: 'yashiro', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'yashiro', dice: [dieA], amount: 1, sourceKind: 'work' });
-    expect(dieA.value).toBe(6);
+    const before = game.player.pendingDice.length;
 
-    const dieB = { id: 'low-b', ownerId: 'meteor', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'meteor', dice: [dieB], amount: 1, sourceKind: 'work' });
-    expect(dieB.value).toBe(1);
+    expect(engine.activateSkill('player', 'lemon', 'lemonFireRescue')).toBe(true);
+    const granted = game.player.pendingDice.slice(before);
+    expect(granted).toHaveLength(3);
+    expect(granted.map((die) => die.skill)).toEqual(['design', 'text', 'aa']);
+    expect(engine.getCharacter('player', 'lemon')?.stress).toBe(1);
+    expect(engine.activateSkill('player', 'lemon', 'lemonFireRescue')).toBe(false);
   });
 });
 
@@ -293,8 +298,8 @@ describe('情緒 complete character package', () => {
     enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
   };
 
-  it('uses the prototype baseline and production portrait', () => {
-    expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+  it('uses the calibrated AA value and production portrait', () => {
+    expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 2 });
     expect(CHARACTERS.emotion?.maxStress).toBe(5);
     expect(CHARACTERS.emotion?.portrait).toBe('/assets/characters/portrait/emotion.webp');
     expect(SKILLS.emotionCraftAwareness?.status).toBe('implemented');
@@ -435,7 +440,6 @@ describe('generic conditions', () => {
   });
 });
 
-
 describe('discussion-backed character catalog', () => {
   it('includes every character card with explicit values in the discussion notes', () => {
     expect(Object.keys(CHARACTERS)).toEqual(expect.arrayContaining([
@@ -471,7 +475,6 @@ describe('discussion-backed character catalog', () => {
     expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
   });
 });
-
 
 describe('random standard roster selection', () => {
   it('draws three player characters, then three opponents from the remaining pool', () => {
@@ -524,7 +527,6 @@ describe('random standard roster selection', () => {
   });
 });
 
-
 describe('高興 complete character package', () => {
   it('uses the discussion-backed stats and unlimited stress', () => {
     expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 0 });
@@ -572,7 +574,6 @@ describe('高興 complete character package', () => {
   });
 });
 
-
 describe('三角希 complete character package', () => {
   it('keeps the discussion-backed stats and duo portrait', () => {
     expect(CHARACTERS.triangle?.name).toBe('三角希');
@@ -583,6 +584,7 @@ describe('三角希 complete character package', () => {
     expect(CHARACTERS.triangle?.portrait).toBe('/assets/characters/portrait/triangle.webp');
     expect(CHARACTERS.triangle?.compactPortrait).toBe('/assets/characters/compact/triangle.webp');
     expect(CHARACTERS.triangle?.portraitPosition).toEqual({ x: 50, y: 12 });
+    expect(CHARACTERS.triangle?.skillIds).toContain('viceLeaderPower');
   });
 
   it('滾滾三角生物 targets another triangle creature on either team once per round', () => {
@@ -604,14 +606,13 @@ describe('三角希 complete character package', () => {
     expect(engine.getEffectiveAffinity('triangle')).toBe('all');
   });
 
-  it('keeps coordination permission explicit until card actor identity exists', () => {
+  it('keeps the old coordination permission definition explicit for compatibility', () => {
     expect(SKILLS.triangleCoordination?.status).toBe('planned');
     expect(SKILLS.triangleCoordination?.passives).toEqual([
       { kind: 'card.permission', cardKind: 'coordination' },
     ]);
   });
 });
-
 
 describe('風揚 complete character package', () => {
   it('keeps the discussion-backed stats and portrait', () => {
@@ -634,7 +635,6 @@ describe('風揚 complete character package', () => {
     expect(dice.every((die) => die.value >= 3)).toBe(true);
   });
 });
-
 
 describe('卡奧斯 complete character package', () => {
   function chaosPlayableContent(): GameContent {
