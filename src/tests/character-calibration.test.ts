@@ -14,6 +14,7 @@ describe('2026-09-10 character card calibration', () => {
     expect(CHARACTERS.lemon?.affinities).toEqual(['謀']);
     expect(CHARACTERS.emotion?.affinities).toEqual(['情']);
     expect(CHARACTERS.emotion?.stats.aa).toBe(2);
+    expect(CHARACTERS.kitsu?.affinities).toEqual(['笑', '怪']);
     expect(CHARACTERS.grimm?.stats.aa).toBe(3);
     expect(CHARACTERS.grimm?.affinities).toEqual(['情', '燃', '笑']);
     expect(CHARACTERS.pigeon?.affinities).toEqual(['燃', '謀', '笑', '情', '怪']);
