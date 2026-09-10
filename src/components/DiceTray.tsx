@@ -1,4 +1,4 @@
-import { Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import type { DieToken as DieTokenModel } from '../game/types';
 import { DieToken } from './DieToken';
 
@@ -16,13 +16,14 @@ export function DiceTray({ dice, selectedDieId, onSelect }: Props) {
   return (
     <Stack direction="row" gap={.8} flexWrap="wrap">
       {dice.map((die, index) => (
-        <DieToken
-          key={die.id}
-          die={die}
-          selected={die.id === selectedDieId}
-          rotation={index % 2 ? 2 : -2}
-          onSelect={onSelect}
-        />
+        <Box key={die.id} data-tutorial={`die-${die.ownerId}-${die.skill}`}>
+          <DieToken
+            die={die}
+            selected={die.id === selectedDieId}
+            rotation={index % 2 ? 2 : -2}
+            onSelect={onSelect}
+          />
+        </Box>
       ))}
     </Stack>
   );

@@ -139,8 +139,8 @@ export function CharacterCard({
               onChange={(_, next: ActionChoice | null) => next && onActionChange?.(next)}
               sx={{ mt: .4, '& .MuiToggleButton-root': { py: .35, fontSize: 11, fontWeight: 850 } }}
             >
-              <ToggleButton value="work">創作</ToggleButton>
-              <ToggleButton value="slack"><CoffeeIcon sx={{ mr: .35, fontSize: 15 }} />摸魚</ToggleButton>
+              <ToggleButton data-tutorial={`action-${definition.id}-work`} value="work">創作</ToggleButton>
+              <ToggleButton data-tutorial={`action-${definition.id}-slack`} value="slack"><CoffeeIcon sx={{ mr: .35, fontSize: 15 }} />摸魚</ToggleButton>
             </ToggleButtonGroup>
           )}
         </Stack>
