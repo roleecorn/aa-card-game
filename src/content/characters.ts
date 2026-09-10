@@ -361,7 +361,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     maxStress: 4,
     affinities: ['謀'],
     skillIds: ['patrickConsistencyCheck'],
-    tags: ['systems-thinker', 'review', 'graph-selected'],
+    tags: ['systems-thinker', 'review'],
     portrait: '/assets/characters/portrait/patrick.webp',
     compactPortrait: '/assets/characters/compact/patrick.webp',
     portraitPosition: { x: 50, y: 12 },
