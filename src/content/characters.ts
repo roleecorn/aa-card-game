@@ -269,7 +269,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
     name: 'キツ',
     stats: { design: 1, text: 1, aa: 1 },
     maxStress: 5,
-    affinities: [],
+    affinities: ['笑', '怪'],
     skillIds: ['kitsuReplayThirty'],
     tags: ['qa', 'regression'],
     portrait: '/assets/characters/portrait/kitsu.webp',
@@ -282,6 +282,7 @@ const characterDefinitions = characterDefinitionSchema.array().parse([
       '基礎數值採 PintBox 2026-09-05 12:04:02 所述標準白板：Design / Text / AA 各 1、壓力上限 5，屬 Prototype assumption。',
       '「重播三十次」runtime：每回合第一次自己工作骰出 1 時，自動重擲最低的一顆；用反覆驗證抓掉最明顯 regression。',
       'dataset(1).zip 中「キツ」共 1086 則訊息。',
+      '2026-09-10 角色校正：橘對應此角色，作品適性定案為（笑）（怪）。',
     ],
   },
   {
