@@ -58,6 +58,8 @@
 
 Stress 的細節以 engine 為準；角色可有不同 `maxStress`。
 
+當角色 Stress 已達 `maxStress` 時，本回合行動預設為 **Slack**。若玩家在規劃期間仍選擇 Work、但按下「進行創作」時角色已達上限，該次行動會自動轉為 Slack。
+
 `maxStress: null` 表示沒有一般上限，例如高興。
 
 ### No-stress / special resource

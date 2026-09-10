@@ -48,8 +48,23 @@ function moveLeaderFirst(memberIds: string[], leaderId: string | undefined): str
   return [leaderId, ...memberIds.filter((memberId) => memberId !== leaderId)];
 }
 
+function isAtStressCap(memberId: string, stress: number): boolean {
+  const maxStress = CHARACTERS[memberId]?.maxStress;
+  return maxStress !== undefined && maxStress !== null && stress >= maxStress;
+}
+
+export function actionChoicesForCurrentStress(
+  game: GameState,
+  requestedChoices: Record<string, ActionChoice> = {},
+): Record<string, ActionChoice> {
+  return Object.fromEntries(game.player.members.map((member) => [
+    member.defId,
+    isAtStressCap(member.defId, member.stress) ? 'slack' : requestedChoices[member.defId] ?? 'work',
+  ])) as Record<string, ActionChoice>;
+}
+
 function defaultChoices(game: GameState): Record<string, ActionChoice> {
-  return Object.fromEntries(game.player.members.map((member) => [member.defId, 'work'])) as Record<string, ActionChoice>;
+  return actionChoicesForCurrentStress(game);
 }
 
 function session(game: GameState, mode: GameMode): EngineSession {
@@ -103,7 +118,9 @@ export const useGameStore = create<GameStore>()(
       state.actionChoices[memberId] = action;
     }),
     performPlayerActions: () => set((state) => {
-      if (state.game) session(state.game as GameState, state.mode).performPlayerActions(state.actionChoices);
+      if (!state.game) return;
+      state.actionChoices = actionChoicesForCurrentStress(state.game as GameState, state.actionChoices);
+      session(state.game as GameState, state.mode).performPlayerActions(state.actionChoices);
     }),
     placeDie: (dieId, workId, slotIndex) => {
       let result = false;
