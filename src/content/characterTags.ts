@@ -18,7 +18,6 @@ export const CHARACTER_TAG_NAMES: Record<string, string> = {
   'stress-driven': '壓力驅動',
   'gag-writer': '段子作者',
   'systems-thinker': '系統思考',
-  'graph-selected': '發言樹選出',
 };
 
 export function getCharacterTagName(tag: string): string {
