@@ -15,6 +15,7 @@ import SubjectIcon from '@mui/icons-material/Subject';
 import LayersIcon from '@mui/icons-material/Layers';
 import type { CharacterDefinition } from '../game/schema';
 import { SKILLS } from '../content/catalog';
+import { getCharacterTagName } from '../content/characterTags';
 
 export type DrawPhase =
   | 'intro'
@@ -283,12 +284,12 @@ function DrawCard({
             </Stack>
             {!!character.tags?.length && (
               <Box>
-                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .55 }}>Tags</Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .55 }}>標籤</Typography>
                 <Stack direction="row" spacing={.55} flexWrap="wrap" useFlexGap>
                   {character.tags.map((tag) => (
                     <Chip
                       key={tag}
-                      label={tag}
+                      label={getCharacterTagName(tag)}
                       size="small"
                       sx={{
                         height: 22,
