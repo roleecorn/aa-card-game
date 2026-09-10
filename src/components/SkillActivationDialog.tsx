@@ -14,7 +14,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { CHARACTERS, SKILLS } from '../content/catalog';
 import { TUTORIAL_SKILL_TARGETS, type TutorialDieTarget } from '../content/tutorial';
-import type { Die, GameState, SkillActivationTarget } from '../game/types';
+import type { DieToken, GameState, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 
 interface Props {
@@ -26,7 +26,7 @@ interface Props {
   onConfirm: (target: SkillActivationTarget) => void;
 }
 
-function fixedDieOption(dice: Die[], target?: TutorialDieTarget): Die[] {
+function fixedDieOption(dice: DieToken[], target?: TutorialDieTarget): DieToken[] {
   if (!target) return dice;
   const matches = dice.filter((die) => die.ownerId === target.ownerId && die.skill === target.skill);
   const fixed = matches[target.index ?? 0];
