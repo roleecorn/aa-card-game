@@ -64,13 +64,17 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
                     />
                   )}
                   <CardContent sx={{ p: 1.2, '&:last-child': { pb: 1.2 }, minWidth: 0 }}>
-                    <Stack direction="row" spacing={.6} alignItems="center" flexWrap="wrap" useFlexGap>
-                      <Typography sx={{ fontSize: 18, fontWeight: 950 }}>{character.name}</Typography>
-                      {boss && <Chip size="small" label="Boss" color="warning" variant="outlined" />}
-                      {visibleTags.map((label) => (
-                        <Chip key={label} size="small" label={label} variant="outlined" />
-                      ))}
-                    </Stack>
+                    <Typography sx={{ fontSize: 18, fontWeight: 950, lineHeight: 1.2 }}>
+                      {character.name}
+                    </Typography>
+                    {(boss || visibleTags.length > 0) && (
+                      <Stack direction="row" spacing={.6} sx={{ mt: .55 }} flexWrap="wrap" useFlexGap>
+                        {boss && <Chip size="small" label="Boss" color="warning" variant="outlined" />}
+                        {visibleTags.map((label) => (
+                          <Chip key={label} size="small" label={label} variant="outlined" />
+                        ))}
+                      </Stack>
+                    )}
 
                     <Stack direction="row" spacing={1.2} sx={{ mt: .8 }} flexWrap="wrap" useFlexGap>
                       <Stat label="Design" value={character.stats.design} tone="#ff6f98" />
