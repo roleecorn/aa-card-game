@@ -6,6 +6,7 @@ import { characterList } from './characters';
 import { skillList } from './skills';
 import { viceLeaderPowerSkill } from './viceLeaderSkill';
 import { weakzhiCharacter, weakzhiSkills } from './weakzhi';
+import { yamadaCharacter, yamadaSkills } from './yamada';
 export { BASE_DECK, DEFAULT_MATCH } from './match';
 import { BASE_DECK } from './match';
 
@@ -13,8 +14,8 @@ function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
 }
 
-const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills, ...akikageSkills];
-const allCharacters = [...characterList, weakzhiCharacter, akikageCharacter];
+const allSkills = [...skillList, viceLeaderPowerSkill, ...weakzhiSkills, ...akikageSkills, ...yamadaSkills];
+const allCharacters = [...characterList, weakzhiCharacter, akikageCharacter, yamadaCharacter];
 
 export const SKILLS: Record<string, SkillDefinition> = toRecord(allSkills);
 export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(allCharacters);
