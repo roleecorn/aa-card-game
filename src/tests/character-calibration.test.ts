@@ -13,14 +13,15 @@ describe('2026-09-10 character card calibration', () => {
     expect(CHARACTERS.yashiro?.affinities).toEqual(['情']);
     expect(CHARACTERS.lemon?.affinities).toEqual(['謀']);
     expect(CHARACTERS.emotion?.affinities).toEqual(['情']);
-    expect(CHARACTERS.emotion?.stats.aa).toBe(2);
     expect(CHARACTERS.kitsu?.affinities).toEqual(['笑', '怪']);
+    expect(CHARACTERS.emotion?.stats.aa).toBe(2);
     expect(CHARACTERS.grimm?.stats.aa).toBe(3);
+    expect(CHARACTERS.grimm?.maxStress).toBe(4);
     expect(CHARACTERS.grimm?.affinities).toEqual(['情', '燃', '笑']);
     expect(CHARACTERS.pigeon?.affinities).toEqual(['燃', '謀', '笑', '情', '怪']);
     expect(CHARACTERS.tanxi?.stats).toEqual({ design: 1, text: 0, aa: 0 });
     expect(CHARACTERS.ghostshadow?.stats.aa).toBe(0);
-    expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 0 });
+    expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(3);
     expect(CHARACTERS.patrick?.affinities).toEqual([]);
     expect(CHARACTERS.patrick?.skillIds).toEqual([]);
@@ -31,6 +32,32 @@ describe('2026-09-10 character card calibration', () => {
     expect(CHARACTERS.user79?.skillIds).toContain('burningText79');
     expect(CHARACTERS.bluewind?.skillIds).toContain('virtualCircle');
     expect(SKILLS.virtualCircle?.name).toBe('虛之會圈');
+  });
+
+  it('uses one shared 副組長力 skill for 三角希 and 流星', () => {
+    expect(CHARACTERS.triangle?.skillIds).toContain('viceLeaderPower');
+    expect(CHARACTERS.meteor?.skillIds).toContain('viceLeaderPower');
+    expect(SKILLS.viceLeaderPower?.name).toBe('副組長力');
+  });
+
+  it('副組長力 only transfers coordination stress when the vice leader is below the leader', () => {
+    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, {
+      playerMemberIds: ['pintbox', 'triangle', 'mashiro'],
+      enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+    });
+    const engine = new EngineSession(game, () => 0.5);
+    const leader = engine.getCharacter('player', 'pintbox')!;
+    const viceLeader = engine.getCharacter('player', 'triangle')!;
+
+    leader.stress = 2;
+    viceLeader.stress = 1;
+    expect(engine.skills.getCoordinationStressBearer('player')).toBe('triangle');
+
+    viceLeader.stress = 2;
+    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();
+
+    viceLeader.stress = 3;
+    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();
   });
 
   it('79 spends one stress to add two to a selected Text die', () => {
