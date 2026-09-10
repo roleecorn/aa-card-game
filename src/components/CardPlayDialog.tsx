@@ -79,7 +79,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   );
 
   const skillOptions = useMemo(() => {
-    if (!card?.target.skillPicker) return SKILL_STATS;
+    if (!card || card.target.kind !== 'member' || !card.target.skillPicker) return SKILL_STATS;
     if (tutorialTarget) return [tutorialTarget.skill];
     if (card.id === 'guide') return guideEligibleStats(selectedMember);
     return SKILL_STATS;
@@ -110,7 +110,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
 
   const handleMemberChange = (nextMemberId: string) => {
     setMemberId(nextMemberId);
-    if (!card.target.skillPicker || tutorialTarget) return;
+    if (card.target.kind !== 'member' || !card.target.skillPicker || tutorialTarget) return;
     const nextMember = [...game.player.members, ...game.enemy.members].find((member) => member.defId === nextMemberId);
     const nextOptions = card.id === 'guide' ? guideEligibleStats(nextMember) : SKILL_STATS;
     setSkill(nextOptions[0] ?? 'design');
