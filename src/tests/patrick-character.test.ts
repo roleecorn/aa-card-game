@@ -8,10 +8,11 @@ const ROSTER = {
 };
 
 describe('派大星 complete character package', () => {
-  it('is explicitly graph-selected and uses prototype stats/assets', () => {
+  it('uses prototype stats/assets and only gameplay/content tags', () => {
     expect(CHARACTERS.patrick?.stats).toEqual({ design: 2, text: 2, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(4);
-    expect(CHARACTERS.patrick?.tags).toEqual(expect.arrayContaining(['systems-thinker', 'review', 'graph-selected']));
+    expect(CHARACTERS.patrick?.tags).toEqual(expect.arrayContaining(['systems-thinker', 'review']));
+    expect(CHARACTERS.patrick?.tags).not.toContain('graph-selected');
     expect(CHARACTERS.patrick?.portrait).toBe('/assets/characters/portrait/patrick.webp');
     expect(CHARACTERS.patrick?.compactPortrait).toBe('/assets/characters/compact/patrick.webp');
     expect(SKILLS.patrickConsistencyCheck?.status).toBe('implemented');
