@@ -15,14 +15,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { CHARACTERS, SKILLS } from '../content/catalog';
-
-const CHARACTER_TAG_LABELS: Record<string, string> = {
-  'duo-card': '雙人角色',
-  'triangle-creature': '三角生物',
-  'commercial-author': '商業作者',
-  'not-standard-playable': '非標準對局',
-  'no-stress': '無壓力',
-};
+import { getCharacterTagName } from '../content/characterTags';
 
 export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const characters = Object.values(CHARACTERS);
@@ -58,8 +51,7 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
               : 'center 20%';
             const visibleTags = (character.tags ?? [])
               .filter((tag) => tag !== 'boss')
-              .map((tag) => CHARACTER_TAG_LABELS[tag])
-              .filter((label): label is string => Boolean(label));
+              .map((tag) => getCharacterTagName(tag));
             return (
               <Card key={character.id} sx={{ overflow: 'hidden', borderColor: boss ? '#d2a84a' : '#dfe8f4' }}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: character.portrait ? '126px minmax(0,1fr)' : '1fr', minHeight: 176 }}>
