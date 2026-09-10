@@ -1,6 +1,7 @@
 import {
   Box,
   Card,
+  Chip,
   LinearProgress,
   Stack,
   ToggleButton,
@@ -13,6 +14,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import type { ActionChoice, CharacterState } from '../game/types';
 import type { CharacterDefinition } from '../game/schema';
+import { getCharacterTagName } from '../content/characterTags';
 import { SkillList } from './SkillList';
 
 interface Props {
@@ -75,6 +77,27 @@ export function CharacterCard({
           <Stat icon={<EditNoteIcon />} label="Design" value={stats.design} tone="#ff6f98" compact={compact} />
           <Stat icon={<SubjectIcon />} label="Text" value={stats.text} tone="#4f8fe6" compact={compact} />
           <Stat icon={<LayersIcon />} label="AA" value={stats.aa} tone="#3bb8a5" compact={compact} />
+
+          {!!definition.tags?.length && (
+            <Stack direction="row" spacing={.45} flexWrap="wrap" useFlexGap>
+              {definition.tags.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={getCharacterTagName(tag)}
+                  size="small"
+                  sx={{
+                    height: compact ? 19 : 21,
+                    bgcolor: '#fff7fa',
+                    border: '1px solid #f2bfd0',
+                    color: '#8b3f58',
+                    fontSize: compact ? 9.5 : 10.5,
+                    fontWeight: 850,
+                    '& .MuiChip-label': { px: compact ? .65 : .8 },
+                  }}
+                />
+              ))}
+            </Stack>
+          )}
 
           <Box sx={{ pt: .2 }}>
             {definition.resource ? (
