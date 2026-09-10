@@ -3,7 +3,7 @@ import { CHARACTERS } from '../content/catalog';
 
 describe('派大星 complete character package', () => {
   it('uses the calibrated blank-card gameplay values', () => {
-    expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 0 });
+    expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(3);
     expect(CHARACTERS.patrick?.affinities).toEqual([]);
     expect(CHARACTERS.patrick?.skillIds).toEqual([]);
