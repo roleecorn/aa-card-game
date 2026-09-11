@@ -1,0 +1,81 @@
+name: Deploy Release to GitHub Pages
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          python -m pip install --disable-pip-version-check fonttools brotli
+
+      - name: Verify vendored UI font
+        run: |
+          bash scripts/vendor-ui-font.sh
+          if ! git diff --exit-code -- public/fonts/; then
+            echo "Vendored UI font is stale. Regenerate with: bash scripts/vendor-ui-font.sh"
+            exit 1
+          fi
+
+      - name: Validate character art
+        run: npm run art:validate
+
+      - name: Test
+        run: npm test
+
+      - name: Record release time
+        run: echo "VITE_RELEASED_AT_TW=$(TZ=Asia/Taipei date '+%Y/%m/%d %H:%M:%S')" >> "$GITHUB_ENV"
+
+      - name: Build release
+        run: npm run build -- --base=/aa-card-game/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    environment:
+      name: release-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

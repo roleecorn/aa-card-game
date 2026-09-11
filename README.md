@@ -47,6 +47,14 @@ npm run storybook
 
 這個 Web app **不假設部署在網站根目錄 `/`**。正式 release 目前由 GitHub Pages 掛在 repository 子路徑，因此 Vite build 會使用類似 `/aa-card-game/` 的 `base`。
 
+### Branch / release policy
+
+- `main` 是 application source、deployment workflow 與 release-only UI behavior 的唯一 source-of-truth。
+- `release` 只代表「目前部署中的版本」，不應直接維護任何只存在於 `release` 的 source code、workflow 或 UI 差異。
+- GitHub Pages workflow 可以存在於 `main`，但只在 `release` branch push 時觸發部署。
+- 發布時應從 `main` 建立臨時 release branch，再透過 PR 更新 `release`；不要直接在 `release` 上開發功能。
+- 若 `release` 與 `main` 因歷史原因產生功能性差異，應先把必要差異移回 `main`，再同步 `release`，而不是長期維護兩套 source tree。
+
 Repository 自帶的 `public/` 資源必須以 repository-relative reference 表示，例如：
 
 ```text
