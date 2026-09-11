@@ -7,7 +7,6 @@ export const shennauCharacter = characterDefinitionSchema.parse({
   maxStress: 2,
   affinities: [],
   skillIds: ['shennauSettingManiac', 'shennauDoItMyself'],
-  tags: ['external-effect-immune'],
   portrait: '/assets/characters/portrait/shennau.webp',
   compactPortrait: '/assets/characters/compact/shennau.webp',
   sourceNotes: [

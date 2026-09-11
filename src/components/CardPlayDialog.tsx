@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CARDS, CHARACTERS } from '../content/catalog';
+import { hasCharacterMechanic } from '../content/characterMechanics';
 import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
 import type { CardInstance, CharacterState, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
@@ -66,7 +67,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
     let candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
-    candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('external-effect-immune'));
+    candidates = candidates.filter((member) => !hasCharacterMechanic(member.defId, 'externalEffectImmune'));
     if (card.kind === 'coordination') {
       candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('coordination-untargetable'));
     }
