@@ -7,8 +7,8 @@ export const lanyuCharacter = characterDefinitionSchema.parse({
   maxStress: 3,
   affinities: [],
   skillIds: ['lanyuCommunication', 'lanyuTechnicalReserve'],
-  portrait: '/assets/characters/portrait/lanyu.webp',
-  compactPortrait: '/assets/characters/compact/lanyu.webp',
+  portrait: 'assets/characters/portrait/lanyu.webp',
+  compactPortrait: 'assets/characters/compact/lanyu.webp',
   sourceNotes: [
     '2026-09-10：卡奧斯提出嵐羽卡；PintBox 明確表示另外兩個這樣就挺好，認可嵐羽原案。',
     '好溝通：作為組員時，若 Leader 至少擲出一顆 >=4 的 Design 骰，自己額外擲 1 顆 Design 骰。',
