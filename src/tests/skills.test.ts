@@ -467,8 +467,8 @@ describe('discussion-backed character catalog', () => {
     expect(SKILLS.commercialAuthor?.description).toContain('3 以下');
   });
 
-  it('keeps discussion-defined but unsupported mechanics explicit instead of inventing behavior', () => {
-    expect(SKILLS.triangleCoordination?.status).toBe('planned');
+  it('keeps genuinely unsupported mechanics explicit without preserving obsolete permissions', () => {
+    expect(SKILLS.triangleCoordination).toBeUndefined();
     expect(SKILLS.chaosVitality?.status).toBe('implemented');
     expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
   });
@@ -604,11 +604,9 @@ describe('三角希 complete character package', () => {
     expect(engine.getEffectiveAffinity('triangle')).toBe('all');
   });
 
-  it('keeps the old coordination permission definition explicit for compatibility', () => {
-    expect(SKILLS.triangleCoordination?.status).toBe('planned');
-    expect(SKILLS.triangleCoordination?.passives).toEqual([
-      { kind: 'card.permission', cardKind: 'coordination' },
-    ]);
+  it('uses viceLeaderPower without a separate coordination-card permission', () => {
+    expect(CHARACTERS.triangle?.skillIds).toContain('viceLeaderPower');
+    expect(SKILLS.triangleCoordination).toBeUndefined();
   });
 });
 

@@ -127,16 +127,8 @@ registerCustomSkillEffect('rollOwnerDiceAndKeepAtLeast', (effect, context, engin
 });
 
 function departOwner(context: EffectContext, engine: EngineSession): boolean {
-  const team = engine.getTeam(context.ownerTeamId);
-  const index = team.members.findIndex((member) => member.defId === context.ownerId);
-  if (index < 0) return false;
-
   context.event.dice?.splice(0);
-  team.pendingDice = team.pendingDice.filter((die) => die.ownerId !== context.ownerId);
-  team.members.splice(index, 1);
-  if (team.leaderId === context.ownerId) team.leaderId = team.members[0]?.defId ?? '';
-  engine.log(`${engine.getDefinition(context.ownerId).name} 因「神隱」離場，之後不再參與本局。`);
-  return true;
+  return engine.departCharacter(context.ownerTeamId, context.ownerId, context.definition.name);
 }
 
 registerCustomSkillEffect('departOwner', (_effect, context, engine) => departOwner(context, engine));
