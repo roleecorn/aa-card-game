@@ -1,6 +1,6 @@
 ---
 name: character-package
-description: "Complete or modify a game character as one atomic package: source-grounded data, skill text, runtime effects, tests, and production portrait asset in the same commit."
+description: "Complete or modify one game character with source-grounded data, runtime effects, tests, docs, and a valid image reference. Final artwork is optional; placeholder art is acceptable."
 ---
 
 # Character Package Skill
@@ -12,7 +12,7 @@ description: "Complete or modify a game character as one atomic package: source-
 - 新增角色
 - 完成角色
 - 修改角色數值或技能
-- 補角色圖片
+- 補角色圖片 reference
 - 把角色從 planned 改成 implemented
 
 ## Required reading
@@ -30,59 +30,73 @@ description: "Complete or modify a game character as one atomic package: source-
 ### One character per execution
 
 - 預設**一輪只處理一名角色**。
-- 除非使用者明確要求 multi-character batch，否則不能同時把多名角色帶進 source analysis、visual brief、Image Generation、runtime implementation、tests 或 commit。
-- 若使用者給出角色清單，先完成第一名角色的完整 package，再進下一輪。
+- 除非使用者明確要求 multi-character batch，否則不要把多名角色的 source analysis、runtime implementation、tests 或文件混在同一 execution batch。
+- 若使用者給出角色清單，先完成第一名角色的完整邏輯，再進下一輪。
 
-### Real working tree required
+### Character completeness
 
-- `docs / character data / runtime code / tests / binary assets` 必須共同存在於真正的 Git working tree，且在最終提交前保持未 commit。
-- 不得把 GitHub Contents API 的逐檔 `create/update/delete` 當主要 staging 流程；每次寫檔都會產生 commit，會破壞 documentation gate 與 atomic package。
-- 若執行環境只有 Git object API，允許先建立 candidate blobs/tree，再以目標 base commit 為唯一 parent 建立一個乾淨 commit；正式 branch 從該 clean commit 建立，不 force-push scratch history。
-- Binary WebP 必須直接存在於最終 Git tree，不能以 base64 文字檔或外部 URL 替代。
+角色程式碼要完整，但**正式角色圖不再是提交 blocker**。
 
-### Production asset, not mockup
+角色提交至少應具備：
 
-使用者要求的是 runtime 美術素材時：
+- source analysis / sourceNotes
+- character data / metadata
+- skill text
+- 所有宣稱 implemented 的 runtime effect
+- tests
+- 必要 docs / integration
+- 可解析的 portrait reference
+- UI 需要時，可解析的 compactPortrait reference
 
-- 不生成 UI 示意圖。
-- 不生成完整卡框。
-- 不生成多人 card sheet / concept board。
-- 不把文字、數值、技能烘焙到 image。
-- portrait 與 React/MUI layer 永遠分離。
-- 若生成結果包含多角色、卡框、角色名稱、能力值、技能文字或其他 UI，直接視為不合格 candidate，不得靠裁切轉為 production asset。
+若正式圖片尚未提供，**使用 placeholder / 代用圖即可**。不能留下 broken image path，但不需要等待 production art 才提交角色。
+
+### Image upload boundary
+
+**Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。**
+
+不得使用以下方式繞過：
+
+- GitHub `create_blob` / `create_tree` / low-level Git object API
+- Base64 staging file
+- GitHub Contents API 傳 binary
+- GitHub Actions decode binary 後 commit / push
+- 為圖片傳輸建立 scratch / temporary branch
+- 其他將 binary 經文字或 API payload 間接上傳的方式
+
+Chat / AI agent 可以：
+
+- 產生或整理候選圖片（若使用者要求）
+- resize / crop / convert / validate
+- 整理 portrait / compact 目錄
+- 產生 ZIP、manifest、checksum
+- 告知使用者正確 repo target path
+
+圖片 binary 由使用者手動上傳。使用者完成上傳後，agent 可以繼續更新文字／程式 reference、驗證與處理 CI。
+
+### Production asset rules
+
+正式 runtime 美術若由使用者提供或已手動上傳，仍需符合：
+
+- 不使用 UI mockup / 完整卡框當 portrait
+- 不使用多人 card sheet / concept board 裁切成 production asset
+- 不把角色名稱、數值、技能或 UI 烘焙到 image
+- portrait 與 React/MUI layer 分離
+- 標準 portrait 為 768×1024 WebP
+- compact 為 384×320 WebP
+
+placeholder / 代用圖只要求能正常顯示並符合 slot 行為，不要求符合最終角色 visual brief。
 
 ### Documentation gate before Image Generation
 
-在 workflow 的 Image Generation 步驟前，必須先完成：
+只有在使用者要求生成正式候選圖時才使用此 gate：
 
-- 先分析**當前這一名角色**的 source，整理足夠有區分度的發言、語氣、行為與他人描述。
-- 將角色獨立 visual brief、source-backed 視覺推導、runtime art constraints 與必要的 prototype art direction 寫入 repository working tree 中的文件。
-- 文件修改必須先存在於 working tree，但**不得先單獨 commit**。
-- 文件內容固定後才可呼叫 Image Generation。
-- Image Generation 只處理當前角色，不帶入其他待辦角色的完整卡面資訊。
-- 最後把 docs 與完整角色 package 一起 atomic commit。
+- 先分析當前角色 source。
+- 將 visual brief、source-backed 視覺推導與 prototype art direction 寫入 repository 文件。
+- 文件內容固定後才生成候選圖。
+- 生成只處理當前角色，不混入其他角色。
+- 完成後將檔案整理成 ZIP / 目錄交給使用者手動上傳。
 
-禁止把 prompt 當作唯一規格來源，也禁止先生成再補文件。若順序違反，生成物只能視為 candidate，不能直接宣稱為 production asset。
-
-不得要求同批角色使用一致畫風。若多個角色看起來像同一模板換色，必須回到 source 分析重做 visual brief。
-
-### Atomic character commit
-
-角色 package 必須同一 commit 包含：
-
-- source analysis / sourceNotes
-- character design / visual brief / docs
-- character data / metadata
-- skill text
-- 所有 implemented skill 的 runtime effect
-- tests
-- production portrait
-- compact portrait（如需要）
-- normalize / validate / integration 所需調整
-
-只要其中一項必要內容缺失，就不要宣稱角色已 complete，也不要先 push partial character commit。
-
-不得接受「本次只做其中一部分」的角色完成方式。圖片生成、角色設計、技能實現、測試與文件修改是同一個 character package；若任一項尚未完成，整個 package 都保持未提交狀態。
+Image Generation 與正式圖片上傳都**不是角色程式碼 commit 的必要條件**；已有 placeholder 即可完成角色實作。
 
 ### Source grounding
 
@@ -95,44 +109,40 @@ description: "Complete or modify a game character as one atomic package: source-
 
 ## Workflow
 
-1. 鎖定**單一角色**作為本輪唯一 scope。
+1. 鎖定單一角色作為本輪 scope。
 2. 搜尋 source。
 3. 決定 canonical character data。
 4. 決定技能哪些是 implemented / partial / planned。
 5. 用既有 generic effect vocabulary 實作；只有必要時增加 reusable mechanic。
-6. 先將 visual brief 與角色規格寫入 local / cloud Git working tree；此時不可單獨 commit。
-7. 完成 CharacterDefinition、SkillDefinition、runtime mechanic 與 tests，但仍保持 working tree 未 commit。
-8. 依已寫入文件的規格，只生成當前角色的正式 3:4 portrait / 必要 compact asset。
-9. 將 binary asset 放到正確 repository path。
-10. 執行 `npm run art:normalize`。
-11. 執行 `npm run art:validate`；必須通過尺寸、單幀與 RIFF 完整性檢查。
-12. 執行 `npm run typecheck`、`npm run test`、`npm run build`。
-13. gameplay / mechanic 變更必須同時執行 tutorial regression；若影響 selector/dialog/interaction，補 runtime UI 驗證。
-14. `git diff` 確認 working tree 只包含當前角色 package 與其必要 reusable mechanic。
-15. 一次建立唯一的 atomic character commit。
-16. 由該 commit 建立／更新正式 feature branch 並跑 CI。
-17. CI 失敗時回到 working tree 修正並重建候選 clean commit；不要在正式 branch 疊加 partial/fix commits。
-18. 驗證成功後開 PR 或依 repository 流程整合。
+6. 完成 CharacterDefinition、SkillDefinition、runtime mechanic、tests 與必要 docs。
+7. 確認角色已有可解析圖片 reference；正式圖未提供時使用 placeholder / 代用圖。
+8. 執行 `npm run typecheck`、`npm run test`、`npm run build`。
+9. gameplay / mechanic 變更必須同時執行 tutorial regression；若影響 selector/dialog/interaction，補 runtime UI 驗證。
+10. commit / push 角色程式碼與文字變更。
+11. 若使用者另外要求正式圖片，生成／整理／驗證後輸出 ZIP 或圖片檔並標示目標 repo path。
+12. 使用者手動上傳圖片後，再執行 `npm run art:normalize` / `npm run art:validate` 與必要 CI。
 
 ## Failure handling
 
-如果 Image Generation / character design / docs / test / effect implementation 任一尚未完成：
+若角色資料、runtime skill implementation、tests 或必要 docs 尚未完成：
 
-- 整個 character package 停在未提交 working tree / candidate 狀態。
-- 不把 CharacterDefinition、SkillDefinition、docs 或圖片其中任何一部分先送 main。
-- 不建立 partial character commit。
-- 不說「已完成」。
+- 不宣稱 character implementation complete。
+- 繼續完成程式邏輯或明確標示 remaining work。
 
-如果 Image Generation 輸出 card sheet、多人拼圖或含 UI/text 的圖：
+若只有正式美術尚未完成：
 
-- 不裁切沿用。
-- 不修改 UI 來遷就錯誤圖片比例或構圖。
-- 回到當前角色 visual brief，以單角色 portrait scope 重做。
+- 不阻擋 character implementation。
+- 使用 placeholder / 代用圖即可。
+- 不把 placeholder 說成 final production art。
 
-如果工具只能逐檔修改 GitHub：
+若 Image Generation 輸出 card sheet、多人拼圖或含 UI/text 的圖：
 
-- 只能在 scratch branch 建 candidate。
-- 最後必須從 base + 完整 tree 重建一個 clean atomic commit。
-- 正式 branch 不保留 scratch partial history。
+- 不將其當作正式 runtime asset。
+- 重新整理候選圖或交付其他候選給使用者。
+- 不自行上傳到 GitHub。
 
-如果已建立但未進 main 的 Git object / commit，只能描述為 staged / candidate，不得稱為已 commit 到 main。
+如果工具只能用 GitHub API 傳 binary：
+
+- **不要傳。**
+- 不建立 blob/tree/base64 staging/Actions decode workaround。
+- 將圖片整理成可下載的 ZIP 或檔案，交由使用者手動處理。

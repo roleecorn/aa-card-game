@@ -11,60 +11,45 @@
 
 因此 portrait asset 不得烘焙任何卡片 UI。
 
-**Runtime asset 必須是獨立生成的完整角色素材，不得由 concept board、角色卡 mockup、拼圖或其他多物件展示圖裁切取得。**
+**正式 Runtime asset 必須是獨立生成的完整角色素材，不得由 concept board、角色卡 mockup、拼圖或其他多物件展示圖裁切取得。**
 
+角色實作本身只要求有可解析的圖片 reference。若正式美術尚未完成或尚未由使用者上傳，**placeholder / 代用圖即可**，不阻擋角色 data、skill、runtime、tests 與 docs 的提交。
 
 ## 1.1 Image Generation 前置文件 Gate
 
-**任何新的角色圖在開始 Image Generation 前，必須先把該角色的規格與 visual brief 寫入 repository 工作樹中的文件；但不得先單獨 commit 文件。**
-
-這是硬性順序，不可倒置：
+只有在使用者要求生成正式候選角色圖時，才套用以下順序：
 
 1. 先確認 source / 人設依據。
 2. 在 `CHARACTER_CARD_ART.md` 或該角色專屬文件寫入固定 visual brief、構圖限制與 runtime asset 規格。
-3. 文件內容必須先存在於 working tree，成為後續 Image Generation 的正式依據。
-4. 之後完成角色設計、Image Generation、runtime skill implementation、tests、asset normalize / validate 與 integration。
-5. **最後把文件、角色資料、技能、測試與正式圖片一起放進同一個 atomic character commit。**
+3. 文件內容先固定，再開始 Image Generation。
+4. 只針對當前角色生成候選圖，不把其他待辦角色混入同一次生成。
+5. 完成後可在本地 resize / crop / convert / validate，整理成 portrait / compact 與 ZIP。
+6. **圖片 binary 由使用者手動上傳到 GitHub / repository。Chat / AI agent 不執行圖片上傳。**
 
-前置文件 Gate 約束的是「先寫規格、再生成」的工作順序，不代表允許先建立 docs-only commit。
+前置文件 Gate 約束的是「先寫規格、再生成」的工作順序，不代表正式圖片必須和角色程式碼在同一 commit，也不代表沒有正式圖就不能完成角色實作。
 
 禁止：
 
-- 先生成圖片，再回頭補文件。
-- 先把文件單獨 commit，再把角色實作拆成後續 commits。
-- 只在聊天訊息或 prompt 中定義規格，卻沒有寫入 repository。
+- 先生成正式候選圖，再回頭補 visual brief。
+- 只在聊天訊息或 prompt 中定義正式美術規格，卻沒有寫入 repository。
 - 未固定 visual brief 就反覆生成，導致同一角色外觀漂移。
 - 為了配合已生成圖片而反過來修改 UI UX 或角色卡版面規格。
 
-若使用者在同一任務中同時要求「新增角色」與「繪製角色圖」，也必須先完成上述文件 Gate。
+## 1.2 Placeholder 與圖片上傳邊界
 
-## 1.2 Atomic character package
+角色提交時：
 
-角色設計與角色圖不能作為獨立交付項拆開提交。對新增／完成角色而言，以下內容視為同一個不可分割的 package：
+- `portrait` 必須能解析到實際存在的圖片或專案既有 fallback。
+- UI 需要 `compactPortrait` 時，也必須能解析到實際存在的圖片或 fallback。
+- 正式 production art **不是角色提交的必要條件**。
+- placeholder / 代用圖可以先滿足 runtime 完整性；正式圖之後由使用者獨立上傳／替換。
+- placeholder 不需要符合最終角色 visual brief，但不能被文件宣稱為 final production art。
 
-- source analysis / sourceNotes
-- 角色設計與 visual brief 文件
-- CharacterDefinition / stats / metadata
-- SkillDefinition
-- 所有宣稱 implemented 的 runtime skill effect
-- tests
-- 正式 portrait / compact asset（如該 UI 需要）
-- asset normalize / validate 所需調整
-- runtime integration 與必要文件更新
-
-**上述 package 必須在同一個 atomic commit 中完成。**
-
-若任何必要部分尚未完成：
-
-- 不得提交 partial character commit。
-- 不得只提交圖片。
-- 不得只提交角色資料或技能文字。
-- 不得只提交文件。
-- 不得宣稱角色已完成或已可進 production。
-
-候選圖片、未完成程式碼與草稿文件可以存在於 working tree / local candidate 狀態，但不能拆開推進 Git history。
+**Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。** 禁止以 GitHub `create_blob` / `create_tree`、Base64 staging、Contents API、GitHub Actions decode、temporary branch 或其他間接方式繞過。Agent 可以準備圖片、驗證、產生 ZIP / manifest / checksum，並告知使用者正確目標路徑。
 
 ## 2. Runtime asset 規格
+
+以下規格適用於正式 runtime art；placeholder 只需要能正常顯示且不破壞 slot / layout。
 
 | 項目 | 規格 |
 | --- | --- |
@@ -81,9 +66,9 @@
 | 檔名 | `character-id.webp` |
 | 位置 | `public/assets/characters/` |
 
-所有角色 runtime asset 必須具有完全相同的 pixel dimensions。**壓縮後 byte size 不要求相同**；WebP 檔案大小會隨畫面細節、透明區域與色彩複雜度改變。不得為了追求相同 KB 數而降低或填充圖片。
+所有正式角色 runtime asset 必須具有完全相同的 pixel dimensions。**壓縮後 byte size 不要求相同**；WebP 檔案大小會隨畫面細節、透明區域與色彩複雜度改變。不得為了追求相同 KB 數而降低或填充圖片。
 
-`compactPortrait` 是為主畫面橫向 slot 重新構圖的獨立素材，不得由 3:4 portrait 機械裁切或補邊。角色資料頁仍使用標準 `portrait`，compact 卡片優先使用 `compactPortrait`。
+`compactPortrait` 是為主畫面橫向 slot 重新構圖的獨立正式素材，不得由 3:4 portrait 機械裁切或補邊。角色資料頁仍使用標準 `portrait`，compact 卡片優先使用 `compactPortrait`。
 
 不得用 blurred padding、letterbox、延伸背景或重複像素把錯誤比例硬補成 3:4。
 
@@ -137,20 +122,24 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 }
 ```
 
+若正式圖片還沒由使用者上傳，請先引用 repo 已存在的 placeholder / fallback；不要建立不存在的未來圖片 path。
+
 若少數角色需要調整 focus，可增加資料化 metadata，例如 `portraitPosition`；不要在 `CharacterCard.tsx` 依角色 ID 特判 CSS。
 
 ## 7. 生成與採用流程
 
 1. 先讀本文件與 `AGENTS.md`。
 2. 決定角色固定 visual brief 與辨識元素。
-3. 直接生成獨立 3:4 portrait；禁止先做 UI mockup 再裁切。
+3. 需要正式美術時，生成獨立 3:4 portrait；禁止先做 UI mockup 再裁切。
 4. 檢查人物 safe area、文字污染、鄰近物件與 alpha 邊緣。
-5. 確認來源本身是 3:4；不要由轉檔工具裁切成 3:4。
-6. 放入 `public/assets/characters/` 後執行 `npm run art:normalize`，統一成 768×1024 / sRGB / WebP canonical encoding。
-7. 執行 `npm run art:validate`，確認尺寸、單幀與 RIFF 完整性。
-8. 在 `src/content/characters.ts` 引用。
-9. 實際用 `CharacterCard` desktop / narrow layout 驗證。
-10. 採用後 commit 到 GitHub；候選稿不可宣稱已進 runtime。
+5. 本地整理成 768×1024 portrait / 384×320 compact WebP。
+6. 本地完整 decode 並確認尺寸、單幀與 RIFF/container 完整性。
+7. 將 portrait / compact、manifest/checksum 整理成 ZIP 或檔案交給使用者。
+8. 告知使用者應上傳到 `public/assets/characters/portrait/` / `public/assets/characters/compact/` 的確切檔名。
+9. **由使用者手動上傳圖片。** Chat / AI agent 不做 binary GitHub upload。
+10. 使用者上傳後再執行 `npm run art:normalize` / `npm run art:validate`、確認 `CharacterDefinition` reference，並以 `CharacterCard` desktop / narrow layout 驗證。
+
+在正式圖片尚未上傳前，角色可以使用 placeholder / 代用圖完成 runtime implementation 與提交。
 
 ## 8. 目前 roster 與完成狀態
 
@@ -174,7 +163,6 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 | `kitsu.webp` | 768×1024 | Valid WebP | canonical，source-driven キツ portrait |
 
 所有 runtime 檔案都已通過 `npm run art:validate`。
-
 
 ## 8.1 2026-09-09 新增角色批次 visual brief
 
@@ -203,9 +191,7 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 - 若 source 沒有明確外觀設定，visual brief 只能作為 prototype art direction，不得在 `sourceNotes` 宣稱為原始 Discord 定案。
 - compact asset 若需要，應依 compact UX 重新構圖，不可只把 portrait 機械裁成橫圖。
 
-
 「normalized derivative」只表示 runtime format 已統一；若來源本身解析度較低，轉成 768×1024 不會憑空增加美術細節，也不得稱為新的高解析母版。
-
 
 ### 流星（METEOR）source-driven visual brief
 
@@ -283,13 +269,11 @@ visual brief 必須回答：
 
 完整 implementation status 見 `PROJECT_STATUS.md`。
 
-
 ### 格林 source-driven visual brief
 - Source-backed：PintBox 將格林描述為「長板突出但有召喚代價」；2026-09-05 明確把燃燒型技能設計成自身壓力 +1、使一顆 AA 骰 +2。對話另反覆提到格林投入漫畫分鏡、閉關製作、童話作家氣質，以及規劃／統籌不是主要長處。
 - Prototype art direction：視覺重點放在高投入的畫面創作、童話／分鏡與燃燒式輸出；可使用層疊畫框、手稿與強烈舞台光，但不把角色名稱或技能文字畫進圖。
 - 構圖：portrait 採半身創作姿態；compact 重新設計成橫向工作台構圖，不由 portrait 裁切。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。外觀細節未由 source 定義，均屬 Prototype art direction。
-
 
 ### 鴿子的化身 source-driven visual brief
 - Source-backed：PintBox 直接估為 Text 2 / Design 1 / AA 1，Stress 後續由 4 修正為 3；本人常從讀者角度評論資訊優先度、輸出精煉與作品節奏。
@@ -297,20 +281,17 @@ visual brief 必須回答：
 - 構圖：portrait 偏安靜閱讀與標記；compact 用橫向紙頁流動構圖，不由 portrait 裁切。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無 UI 文字。
 
-
 ### 嘆息 source-driven visual brief
 - Source-backed：PintBox 明確給出 Design 1、Stress 3，並表示目前想到的技能偏負面；本人自述常見「硬憋的作品反而分高」。
 - Prototype art direction：角色核心是高壓下勉強推出成果、但不擅長協作。畫面可採收束、封閉的工作空間與壓迫感，避免把「嘆息」只畫成悲傷表情。
 - 構圖：portrait 以獨自趕稿、收緊肩線的姿態表現壓力；compact 以橫向狹窄桌面與聚焦稿件重新構圖。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；無角色名、數值、技能文字或 UI。
 
-
 ### 鬼影 source-driven visual brief
 - Source-backed：PintBox 明確給出 Text 2 / Stress 2，描述其接到任務後會自己鑽回去產出，主要寫「鬆散但很好笑」的段子，且與他人配合較困難。
 - Prototype art direction：視覺核心是離群、突然拿出奇怪但有效笑點的創作者；可採偏離中心的構圖、散落片段與強烈留白，不以鬼怪字面造型取代人格線索。
 - 構圖：portrait 以單人、略偏側的寫作姿態；compact 採多個散落小稿件形成橫向節奏，兩張圖各自重新構圖。
 - Runtime：portrait 768×1024 WebP、compact 384×320 WebP；圖片本身不含文字、卡框、Logo 或 UI。
-
 
 ### 派大星 source-driven visual brief
 - Selection source：此角色不是 PintBox 已有卡面；依 reply graph fallback 選入。其對話互動度高，且發言反覆處理資訊揭露、段落分配、一致性、整合與排程。

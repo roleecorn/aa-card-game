@@ -4,61 +4,65 @@
 
 ## Execution model
 
-角色 package 預設採 **一輪一角色**。除非使用者明確要求同一輪處理多名角色，否則每次執行只允許一名角色進入 source analysis、visual brief、runtime implementation、test、Image Generation、asset validation 與 commit 流程。
+角色 package 預設採 **一輪一角色**。除非使用者明確要求同一輪處理多名角色，否則每次執行只處理一名角色的 source analysis、runtime implementation、tests、文件與必要的 image reference。
 
-角色 package 必須以**真正的 Git working tree**作為 staging area：
+角色程式碼應以真正的 Git working tree 作為 staging area：
 
 ```text
 source / discussion grounding
-  -> docs / visual brief 寫入 working tree（未 commit）
-  -> character data / runtime / tests 寫入同一 working tree
-  -> 生成或準備單一角色的 portrait / compact asset
-  -> art normalize / validate
+  -> character data / runtime / tests / docs
+  -> 確認角色有可解析的 portrait / compactPortrait reference
+  -> 若正式圖片尚未提供，使用 placeholder / 代用圖
   -> typecheck / test / build / tutorial regression
-  -> git diff 確認只含該角色 package
-  -> 一次 atomic commit
-  -> push branch / PR
+  -> commit / push branch / PR
 ```
 
-不得把 GitHub Contents API 的逐檔 `create/update/delete` 當成角色 package 的主要 staging 流程，因為每次寫檔都會立即產生 commit，會破壞 documentation gate 與 single atomic commit。若工具限制只能先用逐檔 API 建 candidate，這些 commits 只能存在於 scratch branch；最後必須以 base commit 為 parent，使用完整 candidate tree 重建一個單一乾淨 commit，再由該 commit 建立正式 branch。不得 force-push 既有使用者 branch。
+角色是否可提交，不再取決於正式美術是否完成。只要 runtime 不會出現 broken image path，即可使用 placeholder / 代用圖完成角色實作。
 
-Binary WebP 必須直接存在於最終 Git tree，不能用 base64 文字檔、外部暫存 URL 或後補方式替代。
+## Character delivery requirement
 
-## Atomic package
-
-**一個角色必須以一個 atomic commit 完成。**
-
-同一個角色 commit 必須同時包含該角色完成所需的全部內容：
+新增／完成角色時，以下內容應保持一致並可驗證：
 
 - source analysis / `sourceNotes`
-- 角色設計與 visual brief 文件修改
 - CharacterDefinition
 - stats / Stress / affinities / tags / resource
 - SkillDefinition
 - 所有宣稱 implemented 的真正 runtime effect
 - tests
-- 正式 portrait asset
-- compact portrait（若目前 UI 對該角色需要）
-- asset normalize / validate 所需調整
-- runtime integration 與其他必要文件修改
+- 必要文件與 runtime integration
+- 可解析的角色圖片 reference
 
-禁止：
+### 圖片要求
 
-```text
-commit A: 先加角色數值
-commit B: 補技能文字
-commit C: 補圖片
-```
+- 每個角色必須有對應圖片 reference；不能留下不存在的 `portrait` / `compactPortrait` path。
+- **不要求正式 production art 才能提交角色。placeholder / 代用圖即可。**
+- placeholder 可以是專屬代用圖或既有共用 placeholder，只要 UI 能正常顯示且不會造成 broken asset。
+- 正式 portrait / compact 可在角色程式碼提交之後，由使用者手動上傳與替換。
+- 圖片是否為 placeholder 應在文件或 source note 中清楚標示，避免被誤認為最終美術。
+- 正式圖片尚未上傳，不代表 character data / skill implementation / tests incomplete。
 
-應採：
+### Chat / AI agent 圖片上傳限制
 
-```text
-commit X: complete <character> character package
-```
+**Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。**
 
-若圖片、角色設計、skill implementation、tests 或必要文件任一尚未完成，就不要 commit 該角色，也不要把該角色宣稱為 complete。
+禁止使用以下方式繞過此限制：
 
-**禁止只實現 package 的一部分。** 例如「先加角色資料，圖片之後再補」、「先畫圖，技能之後再做」、「先寫文件，implementation 另開 commit」都屬於不合格的 partial delivery。
+- GitHub `create_blob` / `create_tree` / low-level Git object API
+- Base64 staging file
+- GitHub Contents API 傳 binary
+- GitHub Actions 將 Base64 decode 後 commit / push
+- 為圖片傳輸建立 scratch / temporary branch
+- 其他將 binary 經文字或 API payload 間接塞入 GitHub 的方式
+
+Chat / AI agent 可以：
+
+- 生成或整理候選圖片（若使用者要求）
+- resize / crop / convert / validate
+- 整理 portrait / compact 目錄
+- 產生 ZIP、manifest、checksum
+- 告知使用者每個檔案應上傳到哪個 repo path
+
+圖片 binary 由使用者手動上傳。使用者完成上傳後，agent 可以繼續修改文字／程式 reference、執行驗證與處理 CI。
 
 ## 1. 先做來源判定
 
@@ -94,10 +98,12 @@ commit X: complete <character> character package
   maxStress: 5,
   affinities: ['謀'],
   skillIds: ['exampleSkill'],
-  portrait: '/assets/characters/example.webp',
+  portrait: '/assets/characters/portrait/example.webp',
   sourceNotes: [],
 }
 ```
+
+若正式圖片還沒上傳，`portrait` 必須先指向 repo 中已存在的 placeholder / 代用圖，或使用專案既有 fallback 機制；不能先寫一個不存在的未來路徑。
 
 ### Special tags / resource
 
@@ -136,75 +142,75 @@ runtime 存入 `CharacterState.resources`。
 
 ## 4. Portrait
 
-必須先讀 `CHARACTER_CARD_ART.md`。
+正式美術規格見 `CHARACTER_CARD_ART.md`。
 
-角色美術是**正式 runtime asset**，不是：
+角色提交時只要求**有可顯示的圖片**；正式 runtime art 可以後補。placeholder / 代用圖不需要符合角色最終 visual brief，只需要：
 
-- UI mockup
-- 完整卡牌截圖
-- 角色圖鑑
-- concept sheet
-- card frame
+- 檔案存在且可被 runtime 解析
+- 不造成 broken image
+- 尺寸／slot 行為不破壞 UI
+- 不被文件誤標為 final production art
 
-目標：
+正式 portrait 的目標仍為：
 
 - WebP
 - 3:4
 - 768×1024
 - 無名稱 / 數值 / 技能 / Logo / UI
 - 圖與文字分層
-- 採用後執行 `npm run art:normalize`
-- commit 前執行 `npm run art:validate`
 
-雙人角色必須是同一張自然構圖的 portrait，不是兩張卡拼接。
+若 UI 使用 compact portrait，正式 compact 目標為 `384×320 WebP`。
 
 ### Image Generation documentation gate
 
-新增或補角色圖片時，**在任何 Image Generation 發生前**必須：
+只有在使用者要求生成正式候選美術時，才需要先完成 source-backed visual brief。這個 gate 約束的是「生成正式美術」的順序，**不是角色程式碼提交的 blocker**。
 
-1. 先從原始對話整理該角色具區分度的發言、語氣、行為與他人描述。
-2. 將 source-backed 視覺推導、prototype art direction 與構圖限制寫入 `CHARACTER_CARD_ART.md` 或角色專屬文件。
-3. 確認 visual brief 與其他角色有足夠區分度，且不是同一模板換色。
-4. 確認這些文件修改已存在於 working tree，但**尚未單獨 commit**。
-5. 只針對**當前這一名角色**生成候選圖；不要把其他待辦角色一起送入同一次生成。
-6. 最後與角色 data / skill implementation / tests / production asset 一起 atomic commit。
+若需要生成圖片：
 
-聊天中的臨時描述不能取代 repository 文件。若先生成後補文件，視為流程違規；該圖片只能視為未採用 candidate，不可直接進 runtime。反過來，文件也不得提前單獨 commit；文件必須和完整角色 package 一起進同一個 commit。
+1. 先整理該角色 source。
+2. 將 visual brief / prototype art direction 寫入文件。
+3. 生成候選圖。
+4. 本地整理成符合規格的 portrait / compact。
+5. 交付 ZIP 或檔案給使用者。
+6. **由使用者手動上傳到 GitHub。**
+
+Chat / AI agent 不執行第 6 步。
 
 角色視覺不要求與同批角色共用畫風。共通的是 runtime asset 技術規格；角色設計本身必須由各自 source 驅動。
-
-如果 Image Generation 產生 card sheet、多人拼圖、完整卡框、含角色名稱／技能／數值的圖片，直接判定為不合格 candidate，不得靠裁切進 production；重新以單角色 portrait scope 生成。
 
 ## 5. Tests
 
 至少測：
 
 - stats / metadata
-- portrait path
+- portrait reference 可解析／fallback 規則正確
 - 每個 implemented skill 的成功效果
 - 必要的失敗 / 限制條件
 - random mechanic 使用 deterministic RNG
 - special resource / tag 行為
 
+測試不應要求「一定是正式角色美術」；placeholder 是合法狀態。
+
 如果角色技能仍是 `planned`，測試應確認它仍明確標為 planned，不要假裝有 runtime behavior。
 
 ## 6. Validation
 
-在 atomic commit 前，working tree 至少執行：
+角色程式碼修改至少執行：
 
 ```bash
-npm run art:normalize   # 有新增／替換角色圖時
-npm run art:validate    # 有新增／替換角色圖時
 npm run typecheck
 npm run test
 npm run build
 ```
 
+若使用者已手動新增／替換圖片，再額外執行：
+
+```bash
+npm run art:normalize
+npm run art:validate
+```
+
 任何涉及遊戲系統或能力機制的改動都必須包含 tutorial regression。若環境無法執行其中一項，必須明確標記為未驗證，不得把它寫成通過。
-
-建議在完整 atomic commit 建立後，再用 temporary validation branch 指向**同一個 commit**跑 CI；CI 修正若會改變 package，應回到 working tree 修正並重新建立單一候選 commit，而不是在正式角色 branch 上連續補「fix test」commit。
-
-驗證成功後再開 PR 或依 repository 流程整合；不要為了通過 CI 把角色 package 拆成多個正式 commits。
 
 ## 7. Commit checklist
 
@@ -213,15 +219,13 @@ npm run build
 - [ ] 本輪只處理一名角色，或使用者已明確要求 multi-character batch
 - [ ] 角色資料來源已標明
 - [ ] 缺失資料沒有被偽裝成 source-backed
-- [ ] visual brief 在 Image Generation 前已存在於 working tree
-- [ ] Image Generation 僅針對當前角色，不是多人 card sheet / mockup
 - [ ] 所有 implemented 技能有 runtime effect
 - [ ] 所有 implemented 技能有 test
-- [ ] portrait 是正式 runtime asset
-- [ ] portrait 實際存在於 Git tree
-- [ ] `npm run art:validate` 已確認 WebP container 未被截斷
-- [ ] CharacterDefinition path 與檔名一致
+- [ ] `portrait` reference 可解析，不是 broken path
+- [ ] UI 需要 `compactPortrait` 時，其 reference 也可解析
+- [ ] 正式美術未完成時已使用 placeholder / 代用圖，不阻擋角色提交
+- [ ] placeholder 沒有被誤標成 final production art
+- [ ] CharacterDefinition path 與實際 asset / fallback 規則一致
 - [ ] tutorial regression 已驗證（若改動涉及 gameplay）
-- [ ] atomic commit 同時包含 sourceNotes + visual brief/docs + character data + skill implementation + tests + production image
-- [ ] 正式 branch 沒有逐檔 Contents API 造成的 partial character commits
-- [ ] 沒有任何「之後再補圖片／技能／文件／測試」的 partial delivery
+- [ ] Chat / AI agent 沒有自行上傳或替換任何圖片 binary
+- [ ] 若有正式新圖片，已整理為 ZIP / 檔案並交由使用者手動上傳
