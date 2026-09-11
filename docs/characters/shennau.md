@@ -18,6 +18,7 @@
 - member-target Event / Coordination Card 不能選神惱。
 - 外部 Stress 修正取消；其他角色對神惱 pending die 的修改取消。
 - 神惱自己的技能仍可改變自己的狀態與骰子。
+- `自己做` 的免疫是 internal character mechanic，不屬於玩家可見的 character tags；UI 不應顯示 `external-effect-immune` 之類 implementation metadata。
 
 ## Visual brief
 
