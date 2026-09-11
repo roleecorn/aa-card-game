@@ -7,8 +7,8 @@ export const yamadaCharacter = characterDefinitionSchema.parse({
   maxStress: 2,
   affinities: [],
   skillIds: ['yamadaSignalJump', 'yamadaVanish'],
-  portrait: '/assets/characters/portrait/yamada.webp',
-  compactPortrait: '/assets/characters/compact/yamada.webp',
+  portrait: 'assets/characters/portrait/yamada.webp',
+  compactPortrait: 'assets/characters/compact/yamada.webp',
   sourceNotes: [
     '2026-09-10：卡奧斯提出山田卡；PintBox 明確修訂為 Text 0 / Design 0 / AA 2、Stress 2。',
     'PintBox 確認「電波跳躍」：第一回合各擲 3 顆 Text / Design 骰，只有 5、6 可以保留。',

@@ -7,8 +7,8 @@ export const shennauCharacter = characterDefinitionSchema.parse({
   maxStress: 2,
   affinities: [],
   skillIds: ['shennauSettingManiac', 'shennauDoItMyself'],
-  portrait: '/assets/characters/portrait/shennau.webp',
-  compactPortrait: '/assets/characters/compact/shennau.webp',
+  portrait: 'assets/characters/portrait/shennau.webp',
+  compactPortrait: 'assets/characters/compact/shennau.webp',
   sourceNotes: [
     '2026-09-10：卡奧斯提出神惱卡；PintBox 明確認可原案。',
     '設定狂：每回合一次，可以少 1 顆 Text 骰換取額外 1 顆 Design 骰。',

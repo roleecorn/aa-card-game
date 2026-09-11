@@ -43,6 +43,28 @@ npm run test:image-tools
 npm run storybook
 ```
 
+## 部署與資源路徑
+
+這個 Web app **不假設部署在網站根目錄 `/`**。正式 release 目前由 GitHub Pages 掛在 repository 子路徑，因此 Vite build 會使用類似 `/aa-card-game/` 的 `base`。
+
+Repository 自帶的 `public/` 資源必須以 repository-relative reference 表示，例如：
+
+```text
+assets/characters/portrait/example.webp
+assets/cards/guide.svg
+```
+
+不要在 content 或 component 中把 `/assets/...` 當成正式路徑。`/assets/...` 會指向 domain root，當應用部署在 `/aa-card-game/`、preview subpath、reverse proxy prefix 等環境時會請求到錯誤位置。
+
+Browser runtime URL 應經由 Vite `import.meta.env.BASE_URL` 或專案共用 resolver 產生。例如 deployment base 為 `/aa-card-game/` 時：
+
+```text
+assets/characters/portrait/example.webp
+-> /aa-card-game/assets/characters/portrait/example.webp
+```
+
+涉及 public asset path 的修改應包含 non-root base regression test，不能只在 Vite dev server 的 `/` 環境驗證。
+
 ## 圖片工具
 
 Repository 內建通用圖片工具，避免手動轉檔後才在 runtime 發現尺寸或 WebP 損壞：

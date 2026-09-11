@@ -41,6 +41,39 @@ source / discussion grounding
 - 圖片是否為 placeholder 應在文件或 source note 中清楚標示，避免被誤認為最終美術。
 - 正式圖片尚未上傳，不代表 character data / skill implementation / tests incomplete。
 
+### Public asset path 規則
+
+角色圖片位於 `public/assets/characters/`，但 `CharacterDefinition` 中的 reference **不得使用網站 root absolute path**。
+
+正確：
+
+```ts
+portrait: 'assets/characters/portrait/example.webp',
+compactPortrait: 'assets/characters/compact/example.webp',
+```
+
+錯誤：
+
+```ts
+portrait: '/assets/characters/portrait/example.webp',
+```
+
+本專案不假設 app 執行於 domain root。GitHub Pages、preview、reverse proxy 等環境都可能有 deployment base path，因此 browser URL 必須透過 Vite `import.meta.env.BASE_URL` 或 `resolvePublicAssetPath` 產生。
+
+例如 deployment base 為 `/aa-card-game/` 時，canonical reference：
+
+```text
+assets/characters/portrait/example.webp
+```
+
+runtime 應解析成：
+
+```text
+/aa-card-game/assets/characters/portrait/example.webp
+```
+
+新增或修改 portrait reference 時，測試至少要覆蓋一個 non-root base；只在 localhost `/` 能顯示不算完成。
+
 ### Chat / AI agent 圖片上傳限制
 
 **Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。**
@@ -98,12 +131,13 @@ Chat / AI agent 可以：
   maxStress: 5,
   affinities: ['謀'],
   skillIds: ['exampleSkill'],
-  portrait: '/assets/characters/portrait/example.webp',
+  portrait: 'assets/characters/portrait/example.webp',
+  compactPortrait: 'assets/characters/compact/example.webp',
   sourceNotes: [],
 }
 ```
 
-若正式圖片還沒上傳，`portrait` 必須先指向 repo 中已存在的 placeholder / 代用圖，或使用專案既有 fallback 機制；不能先寫一個不存在的未來路徑。
+若正式圖片還沒上傳，`portrait` 必須先指向 repo 中已存在的 placeholder / 代用圖，或使用專案既有 fallback 機制；不能先寫一個不存在的未來路徑。reference 必須保持 repository-relative，不得以 `/` 開頭。
 
 ### Special tags / resource
 
@@ -184,6 +218,7 @@ Chat / AI agent 不執行第 6 步。
 
 - stats / metadata
 - portrait reference 可解析／fallback 規則正確
+- public asset reference 為 repository-relative，且 non-root `BASE_URL` 可正確解析
 - 每個 implemented skill 的成功效果
 - 必要的失敗 / 限制條件
 - random mechanic 使用 deterministic RNG
@@ -223,6 +258,8 @@ npm run art:validate
 - [ ] 所有 implemented 技能有 test
 - [ ] `portrait` reference 可解析，不是 broken path
 - [ ] UI 需要 `compactPortrait` 時，其 reference 也可解析
+- [ ] `portrait` / `compactPortrait` 使用 repository-relative path，不以 `/` 開頭
+- [ ] non-root deployment base 下圖片 URL 仍可正確解析
 - [ ] 正式美術未完成時已使用 placeholder / 代用圖，不阻擋角色提交
 - [ ] placeholder 沒有被誤標成 final production art
 - [ ] CharacterDefinition path 與實際 asset / fallback 規則一致
