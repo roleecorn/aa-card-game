@@ -1,7 +1,8 @@
-import type { SkillEffect } from './schema';
+import type { MemberSelector, SkillEffect, WorkSelector } from './schema';
 import type { EffectContext } from './types';
 import type { EngineSession } from './engine';
 import { executeCustomSkillEffect } from './customEffects';
+import { isExternalEffectBlocked } from './externalImmunity';
 
 type EffectKind = SkillEffect['kind'];
 type EffectByKind<K extends EffectKind> = Extract<SkillEffect, { kind: K }>;
@@ -31,21 +32,33 @@ function numberValue(value: number | { fromEvent: 'amount' | 'diceCount' }, cont
   return value.fromEvent === 'diceCount' ? context.event.dice?.length ?? 0 : context.event.amount ?? 0;
 }
 
+function resolveEffectMembers(selector: MemberSelector, context: EffectContext, engine: EngineSession) {
+  const selected = engine.resolveMembers(selector, context);
+  const applicable = selected.filter(({ member }) => !isExternalEffectBlocked(engine, context, member.defId));
+  return { selected, applicable, blocked: applicable.length < selected.length };
+}
+
+function resolveEffectWorks(selector: WorkSelector, context: EffectContext, engine: EngineSession) {
+  const selected = engine.resolveWorks(selector, context);
+  const applicable = selected.filter((work) => !isExternalEffectBlocked(engine, context, work.ownerId));
+  return { selected, applicable, blocked: applicable.length < selected.length };
+}
+
 export const builtInEffects = new EffectRegistry()
   .register('stress.change', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     const amount = numberValue(effect.amount, context);
     for (const { teamId, member } of targets) {
       engine.adjustStress(teamId, member.defId, amount, effect.source ?? context.definition.name, effect.external ?? false, context.ownerId);
     }
-    return targets.length > 0;
+    return selectedMembers.length > 0;
   })
   .register('stress.set', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     for (const { teamId, member } of targets) {
       engine.adjustStress(teamId, member.defId, effect.value - member.stress, effect.source ?? context.definition.name);
     }
-    return targets.length > 0;
+    return selectedMembers.length > 0;
   })
   .register('event.amount', (effect, context) => {
     if (context.event.amount === undefined) return false;
@@ -60,19 +73,20 @@ export const builtInEffects = new EffectRegistry()
     return true;
   })
   .register('dice.grant', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     const count = Math.max(0, Math.floor(numberValue(effect.count, context)));
     for (const { teamId, member } of targets) {
       engine.grantDice(teamId, member.defId, effect.skill, count, effect.origin ?? context.definition.name, effect.extra ?? true, effect.minRoll);
     }
-    return targets.length > 0 && count > 0;
+    return selectedMembers.length > 0 && count > 0;
   })
   .register('dice.grantBestOf', (effect, context, engine) => {
     if (effect.requireOwnerWorkType) {
       const ownerWork = engine.getTeam(context.ownerTeamId).works.find((work) => work.ownerId === context.ownerId);
       if (ownerWork?.type !== effect.requireOwnerWorkType) return false;
     }
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets, blocked } = resolveEffectMembers(effect.target, context, engine);
+    if (!targets.length) return selectedMembers.length > 0;
     const rolls = Array.from({ length: effect.rolls }, () => engine.rollDieFor(context.ownerId));
     const best = Math.max(...rolls);
     let grantedCount = 0;
@@ -82,7 +96,7 @@ export const builtInEffects = new EffectRegistry()
       grantedCount += granted.length;
     }
     if (grantedCount > 0) engine.log(`${context.definition.name}：擲出 ${rolls.join('、')}，保留 ${best}。`);
-    return grantedCount > 0;
+    return grantedCount > 0 || blocked;
   })
   .register('dice.rerollBatch', (effect, context, engine) => {
     let dice = context.event.dice ?? [];
@@ -94,15 +108,22 @@ export const builtInEffects = new EffectRegistry()
     });
     if (effect.lowestFirst !== false) dice = [...dice].sort((a, b) => a.value - b.value);
     const targets = dice.slice(0, effect.count);
+    let changed = 0;
+    let blocked = 0;
     for (const die of targets) {
+      if (isExternalEffectBlocked(engine, context, die.ownerId)) {
+        blocked += 1;
+        continue;
+      }
       const before = die.value;
       die.value = engine.rollDieFor(die.ownerId);
+      changed += 1;
       engine.log(`${context.definition.name}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
     }
-    return targets.length > 0;
+    return changed > 0 || blocked > 0;
   })
   .register('dice.modifyPending', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets, blocked } = resolveEffectMembers(effect.target, context, engine);
     let changed = 0;
     for (const { teamId, member } of targets) {
       let dice = engine.getTeam(teamId).pendingDice.filter((die) => die.ownerId === member.defId);
@@ -121,7 +142,7 @@ export const builtInEffects = new EffectRegistry()
         engine.skills.emit({ ...event, type: 'afterDieModified' });
       }
     }
-    return changed > 0;
+    return changed > 0 || (blocked && selectedMembers.length > 0);
   })
   .register('dice.copySelectedValue', (_effect, context, engine) => {
     const sourceId = context.activationTarget?.sourceDieId;
@@ -148,6 +169,7 @@ export const builtInEffects = new EffectRegistry()
     for (const teamId of teams) {
       const die = engine.getTeam(teamId).pendingDice.find((candidate) => candidate.id === dieId);
       if (!die) continue;
+      if (isExternalEffectBlocked(engine, context, die.ownerId)) return true;
       const event = engine.skills.emit({
         type: 'beforeDieModified', teamId, actorId: context.ownerId, targetId: die.ownerId,
         dieId: die.id, skill: die.skill, amount: effect.add ?? 0, metadata: { reason: context.definition.id },
@@ -165,6 +187,8 @@ export const builtInEffects = new EffectRegistry()
     if (!dieId) return false;
     for (const teamId of [context.ownerTeamId, engine.opponentId(context.ownerTeamId)] as const) {
       const team = engine.getTeam(teamId);
+      const targetDie = team.pendingDice.find((die) => die.id === dieId);
+      if (targetDie && isExternalEffectBlocked(engine, context, targetDie.ownerId)) return true;
       const before = team.pendingDice.length;
       team.pendingDice = team.pendingDice.filter((die) => die.id !== dieId);
       if (team.pendingDice.length !== before) return true;
@@ -172,7 +196,7 @@ export const builtInEffects = new EffectRegistry()
     return false;
   })
   .register('dice.removePending', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets, blocked } = resolveEffectMembers(effect.target, context, engine);
     let removed = 0;
     for (const { teamId, member } of targets) {
       const team = engine.getTeam(teamId);
@@ -188,10 +212,10 @@ export const builtInEffects = new EffectRegistry()
       team.pendingDice = team.pendingDice.filter((die) => !ids.has(die.id));
       removed += ids.size;
     }
-    return removed > 0;
+    return removed > 0 || (blocked && selectedMembers.length > 0);
   })
   .register('dice.convertPending', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets, blocked } = resolveEffectMembers(effect.target, context, engine);
     let changed = 0;
     for (const { teamId, member } of targets) {
       let dice = engine.getTeam(teamId).pendingDice.filter((die) => die.ownerId === member.defId);
@@ -202,10 +226,10 @@ export const builtInEffects = new EffectRegistry()
         changed += 1;
       }
     }
-    return changed > 0;
+    return changed > 0 || (blocked && selectedMembers.length > 0);
   })
   .register('stat.change', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     for (const { member } of targets) {
       if (effect.duration === 'round') {
         member.timedStatModifiers.push({
@@ -215,20 +239,20 @@ export const builtInEffects = new EffectRegistry()
         member.permanentStats[effect.skill] = Math.max(0, member.permanentStats[effect.skill] + effect.amount);
       }
     }
-    return targets.length > 0;
+    return selectedMembers.length > 0;
   })
   .register('work.length', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works } = resolveEffectWorks(effect.target, context, engine);
     for (const work of works) engine.resizeWork(work, effect.amount, effect.min ?? 1);
-    return works.length > 0;
+    return selectedWorks.length > 0;
   })
   .register('work.type', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works } = resolveEffectWorks(effect.target, context, engine);
     for (const work of works) work.type = effect.workType;
-    return works.length > 0;
+    return selectedWorks.length > 0;
   })
   .register('work.progress.add', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works, blocked } = resolveEffectWorks(effect.target, context, engine);
     let changed = 0;
     for (const work of works) {
       const index = typeof effect.slot === 'number'
@@ -239,10 +263,10 @@ export const builtInEffects = new EffectRegistry()
       slot[effect.skill] = engine.asDieValue(effect.value);
       changed += 1;
     }
-    return changed > 0;
+    return changed > 0 || (blocked && selectedWorks.length > 0);
   })
   .register('work.progress.fill', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works } = resolveEffectWorks(effect.target, context, engine);
     for (const work of works) {
       for (const slot of work.slots) {
         if (slot.design === undefined) slot.design = engine.asDieValue(effect.value);
@@ -250,18 +274,18 @@ export const builtInEffects = new EffectRegistry()
         if (slot.aa === undefined) slot.aa = engine.asDieValue(effect.value);
       }
     }
-    return works.length > 0;
+    return selectedWorks.length > 0;
   })
   .register('work.progress.rerollLowest', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works, blocked } = resolveEffectWorks(effect.target, context, engine);
     const cells = works.flatMap((work) => work.slots.flatMap((slot) => (['design', 'text', 'aa'] as const)
       .flatMap((skill) => slot[skill] === undefined ? [] : [{ slot, skill, value: slot[skill]! }])));
     cells.sort((a, b) => a.value - b.value);
     for (const cell of cells.slice(0, effect.count)) cell.slot[cell.skill] = engine.randomDie();
-    return cells.length > 0;
+    return cells.length > 0 || (blocked && selectedWorks.length > 0);
   })
   .register('work.progress.clear', (effect, context, engine) => {
-    const works = engine.resolveWorks(effect.target, context);
+    const { selected: selectedWorks, applicable: works, blocked } = resolveEffectWorks(effect.target, context, engine);
     let cells = works.flatMap((work) => work.slots.flatMap((slot) => (['design', 'text', 'aa'] as const)
       .flatMap((skill) => {
         if (effect.skill && skill !== effect.skill) return [];
@@ -270,9 +294,9 @@ export const builtInEffects = new EffectRegistry()
     if (effect.order === 'lowest') cells = cells.sort((a, b) => a.value - b.value);
     else if (effect.order === 'highest') cells = cells.sort((a, b) => b.value - a.value);
     else if (effect.order === 'random') cells = engine.shuffle(cells);
-    const selected = cells.slice(0, effect.count ?? cells.length);
-    for (const cell of selected) delete cell.slot[cell.skill];
-    return selected.length > 0;
+    const chosen = cells.slice(0, effect.count ?? cells.length);
+    for (const cell of chosen) delete cell.slot[cell.skill];
+    return chosen.length > 0 || (blocked && selectedWorks.length > 0);
   })
   .register('cards.add', (effect, context, engine) => {
     const count = Math.max(0, Math.floor(numberValue(effect.count, context)));
@@ -297,7 +321,7 @@ export const builtInEffects = new EffectRegistry()
     return count > 0;
   })
   .register('status.change', (effect, context, engine) => {
-    const targets = engine.resolveMembers(effect.target, context);
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     for (const { member } of targets) {
       const current = member.statuses[effect.status]?.stacks ?? 0;
       const next = effect.stacking === 'replace'
@@ -311,7 +335,7 @@ export const builtInEffects = new EffectRegistry()
         expiresAfterRound: effect.durationRounds ? engine.state.round + effect.durationRounds - 1 : undefined,
       };
     }
-    return targets.length > 0;
+    return selectedMembers.length > 0;
   })
   .register('log', (effect, context, engine) => {
     engine.log(effect.text.replaceAll('{owner}', engine.getDefinition(context.ownerId).name));

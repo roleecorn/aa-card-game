@@ -29,7 +29,7 @@ describe('runtime lifecycle regressions', () => {
     expect(game.player.pendingDice.some((die) => die.ownerId === 'yamada')).toBe(false);
   });
 
-  it('Shennau external immunity excludes them from another character skill target selection', () => {
+  it('Shennau external immunity does not make an automatic selector retarget another character', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['yashiro', 'shennau', 'mashiro'],
       enemyMemberIds: STANDARD_ENEMY,
@@ -44,7 +44,7 @@ describe('runtime lifecycle regressions', () => {
     engine.skills.emit({ type: 'roundStart' });
 
     expect(shennau.stress).toBe(2);
-    expect(mashiro.stress).toBe(0);
+    expect(mashiro.stress).toBe(1);
   });
 
   it('Pintbox AI does not cancel the Stress cost of a coordination card played by Pintbox', () => {

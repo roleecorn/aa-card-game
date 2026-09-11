@@ -1,7 +1,6 @@
 import type { SkillEffect } from './schema';
 import type { EffectContext } from './types';
 import type { EngineSession } from './engine';
-import { hasExternalEffectImmunity, selectedExternalTargetMemberId } from './externalImmunity';
 
 export type CustomEffect = Extract<SkillEffect, { kind: 'custom' }>;
 export type CustomEffectHandler = (effect: CustomEffect, context: EffectContext, engine: EngineSession) => boolean;
@@ -20,13 +19,6 @@ export function executeCustomSkillEffect(effect: CustomEffect, context: EffectCo
   }
   return handler(effect, context, engine);
 }
-
-registerCustomSkillEffect('cancelIfSelectedTargetExternalImmune', (_effect, context, engine) => {
-  const targetId = selectedExternalTargetMemberId(engine, context);
-  if (!targetId || !hasExternalEffectImmunity(engine, targetId)) return false;
-  context.event.cancelled = true;
-  return false;
-});
 
 registerCustomSkillEffect('addRandomCardsByKind', (effect, context, engine) => {
   const cardKind = effect.args?.cardKind;

@@ -101,6 +101,19 @@ Tag 不得直接造成以下行為：
 
 這些都必須由 Skill / Effect / runtime status 或 match configuration 明確實作。
 
+## Effect immunity 與 targetability
+
+「效果無效」和「不能指定」是兩種不同規則，不得互相替代：
+
+- **效果無效**：角色／作品仍然可以被合法指定；Skill／Card 正常發動，使用次數、卡牌消耗與其他 effect 照常處理。只有作用在免疫對象上的該項 effect 不改變狀態。
+- **不能指定**：在 target validation 階段就不是合法目標，玩家不能選它完成這次指定；只有規則明確寫出 untargetable / cannot be targeted 時才使用這種語義。
+
+神惱「自己做」屬於第一種。神惱仍可被其他角色 Skill、事件卡與統籌卡指定，但這些來源造成在神惱身上的正面／負面修正無效。這不會使來源 Skill／Card 整體失敗，也不會要求 selector 改選下一個人。
+
+例如，若神惱具有 `triangle-creature` Tag，三角希可以合法指定神惱使用「滾滾三角生物」：三角希自己的 Stress -1 正常生效，神惱的 Stress -1 無效，技能仍消耗本回合使用次數。
+
+相對地，弱智的 `coordinationUntargetable` 是真正的「不能成為統籌卡目標」：這類 status 會直接在 target validation 階段排除。
+
 ## Dice
 
 骰值範圍為 1–6。

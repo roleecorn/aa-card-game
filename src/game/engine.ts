@@ -6,7 +6,6 @@ import type { GameContent } from './contentRegistry';
 import type { GameDefinition } from './gameDefinition';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
-import { hasExternalEffectImmunity } from './externalImmunity';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
 import type { CardDefinition, CharacterDefinition, MemberSelector, SkillEffect, SkillStat, TeamId, WorkSelector, WorkType } from './schema';
 import type {
@@ -320,25 +319,17 @@ export class EngineSession {
     work.length = next;
   }
 
-  private canReceiveSkillEffect(context: EffectContext, memberId: string): boolean {
-    if (memberId === context.ownerId) return true;
-    if (this.content.skills[context.definition.id] !== context.definition) return true;
-    return !hasExternalEffectImmunity(this, memberId);
-  }
-
   resolveMembers(selector: MemberSelector, context: EffectContext): Array<{ teamId: TeamId; member: CharacterState }> {
     const one = (id?: string): Array<{ teamId: TeamId; member: CharacterState }> => {
-      if (!id || !this.canReceiveSkillEffect(context, id)) return [];
+      if (!id) return [];
       const teamId = this.findMemberTeam(id);
       const member = teamId ? this.getCharacter(teamId, id) : undefined;
       return teamId && member ? [{ teamId, member }] : [];
     };
     const allies = this.getTeam(context.ownerTeamId).members
-      .filter((member) => this.canReceiveSkillEffect(context, member.defId))
       .map((member) => ({ teamId: context.ownerTeamId, member }));
     const enemiesId = this.opponentId(context.ownerTeamId);
     const enemies = this.getTeam(enemiesId).members
-      .filter((member) => this.canReceiveSkillEffect(context, member.defId))
       .map((member) => ({ teamId: enemiesId, member }));
     const pickRandom = <T,>(items: T[]): T[] => items.length ? [items[Math.floor(this.random() * items.length)]!] : [];
     const pickStress = (items: Array<{ teamId: TeamId; member: CharacterState }>, direction: 'highest' | 'lowest') => {
@@ -368,15 +359,14 @@ export class EngineSession {
   }
 
   resolveWorks(selector: WorkSelector, context: EffectContext): WorkState[] {
-    const eligible = (work: WorkState) => this.canReceiveSkillEffect(context, work.ownerId);
-    const allies = this.getTeam(context.ownerTeamId).works.filter(eligible);
-    const enemies = this.getTeam(this.opponentId(context.ownerTeamId)).works.filter(eligible);
+    const allies = this.getTeam(context.ownerTeamId).works;
+    const enemies = this.getTeam(this.opponentId(context.ownerTeamId)).works;
     const pickRandom = (items: WorkState[]): WorkState[] => items.length ? [items[Math.floor(this.random() * items.length)]!] : [];
     const pickScore = (items: WorkState[], direction: 'highest' | 'lowest'): WorkState[] => {
       if (!items.length) return [];
       return [[...items].sort((a, b) => direction === 'highest' ? this.scoreWork(b) - this.scoreWork(a) : this.scoreWork(a) - this.scoreWork(b))[0]!];
     };
-    const one = (work?: WorkState) => work && eligible(work) ? [work] : [];
+    const one = (work?: WorkState) => work ? [work] : [];
 
     switch (selector) {
       case 'ownerWork': return allies.filter((work) => work.ownerId === context.ownerId);

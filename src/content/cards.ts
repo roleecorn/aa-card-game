@@ -1,8 +1,6 @@
 import { cardDefinitionSchema } from '../game/schema';
 
 const cardArt = (fileName: string) => `${import.meta.env.BASE_URL}assets/cards/${fileName}`;
-const externalTargetGuard = { kind: 'custom', handler: 'cancelIfSelectedTargetExternalImmune' } as const;
-
 export const cardList = cardDefinitionSchema.array().parse([
   {
     id: 'soothe',
@@ -12,7 +10,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('soothe.svg'),
     target: { kind: 'member', relation: 'ally' },
     effects: [
-      externalTargetGuard,
       { kind: 'stress.change', target: 'selectedMember', amount: -2, source: '安撫' },
     ],
     ai: { autoUse: true, priority: 10, when: 'allyStressAtLeast2' },
@@ -34,7 +31,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('polish.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [
-      externalTargetGuard,
       { kind: 'work.progress.rerollLowest', target: 'selectedWork', count: 3 },
     ],
   },
@@ -46,7 +42,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('reconsider.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [
-      externalTargetGuard,
       { kind: 'work.length', target: 'selectedWork', amount: -2, min: 1 },
       { kind: 'stress.change', target: 'selectedWorkOwner', amount: 1, source: '重新考慮一下……' },
     ],
@@ -59,7 +54,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('rush.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [
-      externalTargetGuard,
       { kind: 'work.progress.fill', target: 'selectedWork', value: 1 },
     ],
   },
@@ -80,7 +74,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('overtime.svg'),
     target: { kind: 'member', relation: 'enemy' },
     effects: [
-      externalTargetGuard,
       { kind: 'stress.change', target: 'selectedMember', amount: 3, source: '突發加班', external: true },
     ],
     ai: { autoUse: true, priority: 20, when: 'enemyLowestHeadroom' },
@@ -93,7 +86,6 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('writer-block.svg'),
     target: { kind: 'member', relation: 'enemy' },
     effects: [
-      externalTargetGuard,
       { kind: 'status.change', target: 'selectedMember', status: 'writerBlock', stacks: 1, stacking: 'replace' },
     ],
   },
