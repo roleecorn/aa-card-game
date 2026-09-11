@@ -1,7 +1,9 @@
+import { castDraft } from 'immer';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, createInitialGame } from '../game/engine';
+import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId } from '../game/schema';
 import { createTutorialGame, createTutorialSession } from '../tutorial/runtime';
@@ -16,11 +18,17 @@ type GameMode = 'standard' | 'tutorial';
 
 interface GameStore {
   game: GameState | null;
+  gameDefinition: GameDefinition;
   mode: GameMode;
   tutorial: TutorialRuntimeState | null;
   actionChoices: Record<string, ActionChoice>;
   reset: () => void;
-  startGame: (playerMemberIds: string[], enemyMemberIds: string[], playerLeaderId?: string) => void;
+  startGame: (
+    playerMemberIds: string[],
+    enemyMemberIds: string[],
+    playerLeaderId?: string,
+    gameDefinition?: GameDefinition,
+  ) => void;
   startTutorial: () => void;
   tutorialEvent: (event: TutorialEvent) => void;
   dismissTutorial: () => void;
@@ -41,58 +49,69 @@ function moveLeaderFirst(memberIds: string[], leaderId: string | undefined): str
 export function actionChoicesForCurrentStress(
   game: GameState,
   requestedChoices: Record<string, ActionChoice> = {},
+  gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
 ): Record<string, ActionChoice> {
-  const engine = new EngineSession(game, Math.random, STANDARD_GAME_DEFINITION);
+  const engine = new EngineSession(game, Math.random, gameDefinition);
   return Object.fromEntries(game.player.members.map((member) => [
     member.defId,
     engine.isAtStressCap('player', member.defId) ? 'slack' : requestedChoices[member.defId] ?? 'work',
   ])) as Record<string, ActionChoice>;
 }
 
-function defaultChoices(game: GameState): Record<string, ActionChoice> {
-  return actionChoicesForCurrentStress(game);
+function defaultChoices(game: GameState, gameDefinition: GameDefinition): Record<string, ActionChoice> {
+  return actionChoicesForCurrentStress(game, {}, gameDefinition);
 }
 
-function session(game: GameState, mode: GameMode, tutorial: TutorialRuntimeState | null): EngineSession {
+function session(
+  game: GameState,
+  mode: GameMode,
+  tutorial: TutorialRuntimeState | null,
+  gameDefinition: GameDefinition,
+): EngineSession {
   if (mode === 'tutorial') {
     if (!tutorial) throw new Error('Tutorial mode requires tutorial runtime state.');
     return createTutorialSession(game, tutorial);
   }
-  return new EngineSession(game, Math.random, STANDARD_GAME_DEFINITION);
+  return new EngineSession(game, Math.random, gameDefinition);
 }
 
 export const useGameStore = create<GameStore>()(
   immer((set) => ({
     game: null,
+    gameDefinition: STANDARD_GAME_DEFINITION,
     mode: 'standard',
     tutorial: null,
     actionChoices: {},
     reset: () => set((state) => {
       state.game = null;
+      state.gameDefinition = castDraft(STANDARD_GAME_DEFINITION);
       state.mode = 'standard';
       state.tutorial = null;
       state.actionChoices = {};
     }),
-    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId) => set((state) => {
+    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId, requestedGameDefinition) => set((state) => {
+      const gameDefinition = requestedGameDefinition ?? state.gameDefinition ?? STANDARD_GAME_DEFINITION;
       const selectedLeaderId = requestedLeaderId && playerMemberIds.includes(requestedLeaderId)
         ? requestedLeaderId
         : playerMemberIds[0];
       const orderedPlayerMemberIds = moveLeaderFirst(playerMemberIds, selectedLeaderId);
 
+      state.gameDefinition = castDraft(gameDefinition);
       state.mode = 'standard';
       state.tutorial = null;
-      state.game = createInitialGame(Math.random, STANDARD_GAME_DEFINITION, {
+      state.game = createInitialGame(Math.random, gameDefinition, {
         playerMemberIds: orderedPlayerMemberIds,
         enemyMemberIds,
       });
-      state.actionChoices = defaultChoices(state.game as GameState);
+      state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
     }),
     startTutorial: () => set((state) => {
       const game = createTutorialGame();
+      state.gameDefinition = castDraft(STANDARD_GAME_DEFINITION);
       state.mode = 'tutorial';
       state.tutorial = createTutorialRuntimeState();
       state.game = game;
-      state.actionChoices = defaultChoices(game);
+      state.actionChoices = defaultChoices(game, STANDARD_GAME_DEFINITION);
     }),
     tutorialEvent: (event) => set((state) => {
       if (state.mode !== 'tutorial' || !state.tutorial) return;
@@ -107,30 +126,50 @@ export const useGameStore = create<GameStore>()(
     }),
     performPlayerActions: () => set((state) => {
       if (!state.game) return;
-      state.actionChoices = actionChoicesForCurrentStress(state.game as GameState, state.actionChoices);
-      session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null).performPlayerActions(state.actionChoices);
+      const gameDefinition = state.gameDefinition as GameDefinition;
+      state.actionChoices = actionChoicesForCurrentStress(state.game as GameState, state.actionChoices, gameDefinition);
+      session(
+        state.game as GameState,
+        state.mode,
+        state.tutorial as TutorialRuntimeState | null,
+        gameDefinition,
+      ).performPlayerActions(state.actionChoices);
     }),
     placeDie: (dieId, workId, slotIndex) => {
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null)
-            .placeDie('player', dieId, workId, slotIndex);
+          result = session(
+            state.game as GameState,
+            state.mode,
+            state.tutorial as TutorialRuntimeState | null,
+            state.gameDefinition as GameDefinition,
+          ).placeDie('player', dieId, workId, slotIndex);
         }
       });
       return result;
     },
     finishPlayerAssignment: () => set((state) => {
       if (!state.game) return;
-      session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null).finishPlayerAssignment();
-      state.actionChoices = defaultChoices(state.game as GameState);
+      const gameDefinition = state.gameDefinition as GameDefinition;
+      session(
+        state.game as GameState,
+        state.mode,
+        state.tutorial as TutorialRuntimeState | null,
+        gameDefinition,
+      ).finishPlayerAssignment();
+      state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
     }),
     playCard: (teamId, instanceId, target = {}) => {
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null)
-            .playCard(teamId, instanceId, target);
+          result = session(
+            state.game as GameState,
+            state.mode,
+            state.tutorial as TutorialRuntimeState | null,
+            state.gameDefinition as GameDefinition,
+          ).playCard(teamId, instanceId, target);
         }
       });
       return result;
@@ -139,8 +178,12 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null)
-            .discardCards(teamId, instanceIds);
+          result = session(
+            state.game as GameState,
+            state.mode,
+            state.tutorial as TutorialRuntimeState | null,
+            state.gameDefinition as GameDefinition,
+          ).discardCards(teamId, instanceIds);
         }
       });
       return result;
@@ -149,8 +192,12 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(state.game as GameState, state.mode, state.tutorial as TutorialRuntimeState | null)
-            .activateSkill(teamId, memberId, skillId, target);
+          result = session(
+            state.game as GameState,
+            state.mode,
+            state.tutorial as TutorialRuntimeState | null,
+            state.gameDefinition as GameDefinition,
+          ).activateSkill(teamId, memberId, skillId, target);
         }
       });
       return result;

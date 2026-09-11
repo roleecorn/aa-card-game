@@ -28,11 +28,12 @@ export type DrawPhase =
 
 interface Props {
   characters: CharacterDefinition[];
+  leaderStressBonus: number;
   onReroll: (index: number) => void;
   onConfirm: (leaderId: string) => void;
 }
 
-export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
+export function DrawPhaseScreen({ characters, leaderStressBonus, onReroll, onConfirm }: Props) {
   const [phase, setPhase] = useState<DrawPhase>('intro');
   const [revealCount, setRevealCount] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number>();
@@ -142,7 +143,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
             {phase === 'selection'
               ? (rerollUsed ? '已使用本局重抽。可直接確認隊伍，或先查看角色技能。' : '點擊角色卡可指定本局唯一一次重抽；確認隊伍後再選擇組長。')
               : phase === 'leader-selection'
-              ? '點擊一名隊員擔任組長；組長本局壓力上限 +2。'
+              ? `點擊一名隊員擔任組長；組長本局壓力上限 +${leaderStressBonus}。`
               : phase === 'confirmed'
               ? '準備進入創作對局'
               : '角色卡將依序揭曉'}
