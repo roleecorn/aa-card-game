@@ -21,9 +21,8 @@ src/
   components/               Reusable UI components
   content/
     catalog.ts              Aggregate + reference validation only
-    skills.ts               Shared Skill definitions
-    chaos.ts                Chaos-specific Skill definitions
-    characters.ts           Character definitions
+    <character-id>.ts       CharacterDefinition + character-specific Skills
+    viceLeaderSkill.ts      Shared cross-character Skill definition
     cards.ts                Card definitions
     match.ts                Standard match rules / deck / roster config
   game/
@@ -45,6 +44,21 @@ src/
   tests/                    Vitest rules tests
 public/assets/               Runtime art only
 ```
+
+## Character content ownership
+
+角色 authoring 採 **per-character package**：每個 `src/content/<character-id>.ts` 同時保存該角色的 `CharacterDefinition` 與角色專屬 `SkillDefinition`。角色的 stats、affinities、tags、source notes、Skill IDs 與 Skill 實作因此有單一 ownership boundary，不再分散在集中式 `characters.ts` / `skills.ts`。
+
+只有真正被多個角色共用的內容才獨立成 shared module，例如三角希與流星共用的 `viceLeaderPower` 保留在 `viceLeaderSkill.ts`；不得為了形式一致把 shared Skill 複製到兩個角色 package。
+
+`catalog.ts` 只負責：
+
+- import 各角色 package 與 shared content；
+- 聚合為 `CHARACTERS` / `SKILLS` / `CARDS`；
+- resolve runtime asset path；
+- 做 duplicate ID、missing Skill reference、forbidden gameplay Tag 等 validation。
+
+`catalog.ts` 不應重新定義角色內容，也不應偷偷補 Skill 或轉換角色行為。
 
 ## Runtime flow
 

@@ -32,6 +32,8 @@ source / discussion grounding
 - 必要文件與 runtime integration
 - 可解析的角色圖片 reference
 
+角色 authoring source 採 **per-character package**。每個角色使用一個 `src/content/<character-id>.ts`，同一檔案同時擁有角色定義與該角色專屬技能；不要重新建立集中式 `characters.ts` / `skills.ts`。
+
 ### 圖片要求
 
 - 每個角色必須有對應圖片 reference；不能留下不存在的 `portrait` / `compactPortrait` path。
@@ -119,12 +121,12 @@ Chat / AI agent 可以：
 
 位置：
 
-`src/content/characters.ts`
+`src/content/<character-id>.ts`
 
-常見欄位：
+角色 package 應直接 export 該角色 definition，例如：
 
 ```ts
-{
+export const exampleCharacter = characterDefinitionSchema.parse({
   id: 'example',
   name: 'Example',
   stats: { design: 2, text: 1, aa: 0 },
@@ -134,8 +136,10 @@ Chat / AI agent 可以：
   portrait: 'assets/characters/portrait/example.webp',
   compactPortrait: 'assets/characters/compact/example.webp',
   sourceNotes: [],
-}
+});
 ```
+
+`catalog.ts` 只負責 import / aggregate / validation，不在 catalog 內重新定義角色資料。不要新增或恢復集中式 `src/content/characters.ts`。
 
 若正式圖片還沒上傳，`portrait` 必須先指向 repo 中已存在的 placeholder / 代用圖，或使用專案既有 fallback 機制；不能先寫一個不存在的未來路徑。reference 必須保持 repository-relative，不得以 `/` 開頭。
 
@@ -177,9 +181,19 @@ runtime 存入 `CharacterState.resources`。resource 本身只保存數值；會
 
 ## 3. Skills
 
-位置：
+角色專屬 Skill 與 CharacterDefinition 放在同一個：
 
-`src/content/skills.ts` 或對應角色的 content module。
+`src/content/<character-id>.ts`
+
+例如同一 package 可 export：
+
+```ts
+export const exampleSkills = skillDefinitionSchema.array().parse([
+  // character-specific SkillDefinitions
+]);
+```
+
+只有真正被多個角色共同引用的 Skill 才放在獨立 shared module，例如 `viceLeaderSkill.ts`。不要為同一個 shared Skill 在多個角色 package 複製 definition，也不要恢復集中式 `src/content/skills.ts`。
 
 優先使用 declarative effect vocabulary。完整規則見 `SKILL_AUTHORING.md`。
 
@@ -271,6 +285,9 @@ npm run art:validate
 提交前確認：
 
 - [ ] 本輪只處理一名角色，或使用者已明確要求 multi-character batch
+- [ ] CharacterDefinition 與角色專屬 Skills 位於同一個 `src/content/<character-id>.ts`
+- [ ] 沒有新增集中式 `characters.ts` / `skills.ts`
+- [ ] 共享 Skill 只有一份 definition，由真正需要的角色共同引用
 - [ ] 角色資料來源已標明
 - [ ] 缺失資料沒有被偽裝成 source-backed
 - [ ] 所有 implemented 技能有 runtime effect
