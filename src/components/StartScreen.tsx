@@ -9,6 +9,8 @@ interface Props {
   onOpenRoster: () => void;
 }
 
+const releasedAtTaiwan = import.meta.env.VITE_RELEASED_AT_TW as string | undefined;
+
 export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
   return (
     <Box
@@ -76,6 +78,9 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
               角色卡
             </Button>
           </Stack>
+          <Typography sx={{ fontSize: 11.5, color: 'text.secondary', fontWeight: 700 }}>
+            最後更新：{releasedAtTaiwan ?? '本機開發版本'}{releasedAtTaiwan ? '（台灣時間）' : ''}
+          </Typography>
         </Stack>
       </Paper>
     </Box>
