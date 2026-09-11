@@ -40,16 +40,19 @@
 ## 角色美術
 
 - runtime 角色立繪使用 `public/assets/characters/*.webp`。
-- 立繪固定 **3:4**，標準輸出為 **768 x 1024**，同一批角色必須統一 pixel dimensions。
-- Runtime 角色圖必須直接生成為**獨立角色物件**；不得從 concept board、card mockup、拼圖或多人概念圖裁切。
+- 每個可用角色都必須有可解析的 `portrait`；若 UI 需要 `compactPortrait`，也必須有可解析的對應圖片。
+- **角色提交不要求正式美術完成；placeholder / 代用圖即可滿足圖片完整性要求。** 正式 portrait 可在後續由使用者手動替換。
+- 立繪固定 **3:4**，標準輸出為 **768 x 1024**；compact slot 為 **384 x 320**。
+- 正式 Runtime 角色圖不得從 concept board、card mockup、拼圖或多人概念圖裁切。
 - 不得用 blurred padding、letterbox、延伸背景等方式把錯誤比例偽裝成 3:4。
 - 圖片本身不要包含角色名稱、能力值、技能文字、卡框、badge 或其他 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area，避免 responsive UI 再次裁掉頭部。
-- 每次新增／替換 portrait 後必須執行 `npm run art:normalize` 與 `npm run art:validate`。
+- 每次使用者新增／替換正式 portrait 後，應執行 `npm run art:normalize` 與 `npm run art:validate`。
 - validator 必須檢查 WebP RIFF 宣告長度與實際 bytes 是否一致；檔案存在不代表 binary 完整。
 - WebP 壓縮後檔案大小不要求相同；只要求 canonical dimensions / encoding / container 完整性。
+- **Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。** 不得以 base64、Git blob/tree API、Contents API、GitHub Actions decode、臨時 branch 或其他繞路方式代替使用者上傳圖片。
+- Chat / AI agent 可以產生、裁切、轉檔、驗證圖片並整理成 ZIP，並提供明確的目標 repo path；binary 圖片由使用者手動上傳。
 - 詳細規格見 `CHARACTER_CARD_ART.md`。
-- 目前所有 runtime portrait 都規範化為 768×1024；其中六張由 legacy-quality source 轉成 runtime derivative，格式統一不代表原始細節被提升。實際狀態見 `PROJECT_STATUS.md`。
 
 ## 編碼與 shell
 
@@ -77,16 +80,15 @@ npm run build
 ## Git / GitHub
 
 - GitHub repository `roleecorn/aa-card-game` 是此專案的 authoritative source。
-- **只要對專案內容做了實際修改，就必須把對應修改提交到 GitHub；不可只修改暫存工作目錄或只提供 ZIP。**
-- 若產生候選素材但尚未決定採用，可留在暫存區；一旦宣稱已替換 runtime asset，就必須同步提交該 asset。
+- 只要對**文字、程式碼、測試或設定**做了實際修改，就必須把對應修改提交到 GitHub；不可只修改暫存工作目錄。
+- **圖片 binary 是例外：Chat / AI agent 不負責上傳圖片到 GitHub。** 需要新增或替換圖片時，將已準備好的圖片或 ZIP 交給使用者，並標示目標路徑，由使用者手動上傳。
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。
-- **角色內容採 atomic commit**：新增或完成一名角色時，其數值、角色/技能文本、實際 runtime 效果、測試與正式 portrait asset 必須在同一個 commit 內完成；不得先提交其中一部分再於後續 commit 補齊。
-- **角色 package 一輪只處理一名角色。** 除非使用者明確要求同一輪處理多名角色，否則不得把多名新角色的 source analysis、圖片生成、runtime implementation 或測試混在同一 execution batch。
-- **角色 package 必須使用真正的 Git working tree 作為 staging area。** `docs / code / tests / binary assets` 必須先共同存在於未提交的 working tree，通過本機驗證後再一次 commit。
-- **不得使用 GitHub Contents API 的逐檔 `create/update/delete` commit 作為 character package 的主要組裝流程。** 該 API 每次寫檔都產生 commit，會破壞 documentation gate 與 single atomic commit；它只可用於非角色 package 的小型文字修改，或作為 scratch/candidate 階段，最終仍必須重建為單一乾淨 commit。
-- 若執行環境只有 Git object API，允許先建立 candidate blobs/tree，最後以「`main`（或目標 base）為唯一 parent + 完整 candidate tree」建立一個乾淨 commit，再從該 commit 建立 branch；不要 force-push 或重寫既有 branch。
-- Binary portrait / compact WebP 必須作為真正 Git blob 寫入同一 commit；不得以 base64 文字檔、外部暫存連結或「之後再補」替代。
+- 新增或完成角色時，source/data/skill/runtime/tests/docs 應保持一致並可被正常驗證；**不再要求正式圖片與這些內容位於同一 atomic commit。**
+- 每個角色提交時仍必須有可解析的對應圖片 reference；若正式美術尚未手動上傳，使用 placeholder / 代用圖即可，不能留下 broken image path。
+- 正式圖片之後可由使用者獨立上傳／替換，不因此把角色程式碼視為 incomplete。
+- **角色 package 一輪只處理一名角色。** 除非使用者明確要求同一輪處理多名角色，否則不得把多名新角色的 source analysis、runtime implementation 或測試混在同一 execution batch。
+- 對角色程式碼的修改應優先使用真正 Git working tree；不得為了圖片傳輸而建立 Git blob/tree、base64 staging、Actions decode pipeline 或暫存 branch。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
 
 ## Figma
