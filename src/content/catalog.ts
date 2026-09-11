@@ -4,7 +4,7 @@ import { akikageCharacter, akikageSkills } from './akikage';
 import { cardList } from './cards';
 import { characterList } from './characters';
 import {
-  gameplayBoundarySkillIdsByCharacter,
+  gameplayBoundaryMigrations,
   gameplayBoundarySkills,
   LEGACY_GAMEPLAY_TAGS,
 } from './gameplayBoundarySkills';
@@ -34,19 +34,33 @@ const allSkills = [
 ];
 
 const legacyGameplayTags = new Set<string>(LEGACY_GAMEPLAY_TAGS);
-
-const allCharacters: CharacterDefinition[] = [
+const sourceCharacters: CharacterDefinition[] = [
   ...characterList,
   weakzhiCharacter,
   akikageCharacter,
   yamadaCharacter,
   lanyuCharacter,
   shennauCharacter,
-].map((character) => ({
+];
+
+function assertLegacyGameplayMigration(character: CharacterDefinition): void {
+  const actual = (character.tags ?? []).filter((tag) => legacyGameplayTags.has(tag)).sort();
+  const expected = [...(gameplayBoundaryMigrations[character.id]?.legacyTags ?? [])].sort();
+  if (actual.length !== expected.length || actual.some((tag, index) => tag !== expected[index])) {
+    throw new Error(
+      `Character ${character.id} has untracked gameplay tags (${actual.join(', ') || 'none'}); `
+      + `expected legacy migration tags: ${expected.join(', ') || 'none'}.`,
+    );
+  }
+}
+
+sourceCharacters.forEach(assertLegacyGameplayMigration);
+
+const allCharacters: CharacterDefinition[] = sourceCharacters.map((character) => ({
   ...character,
   skillIds: [
     ...character.skillIds,
-    ...(gameplayBoundarySkillIdsByCharacter[character.id] ?? []),
+    ...(gameplayBoundaryMigrations[character.id]?.skillIds ?? []),
   ],
   tags: character.tags?.filter((tag) => !legacyGameplayTags.has(tag)),
   portrait: resolvePublicAssetPath(character.portrait),

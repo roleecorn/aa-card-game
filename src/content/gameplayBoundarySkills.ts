@@ -9,9 +9,24 @@ export const LEGACY_GAMEPLAY_TAGS = [
   'not-standard-playable',
 ] as const;
 
-export const gameplayBoundarySkillIdsByCharacter: Record<string, string[]> = {
-  chaos: ['chaosStressImmunity'],
-  weakzhi: ['weakzhiRestrictions'],
+interface GameplayBoundaryMigration {
+  legacyTags: readonly string[];
+  skillIds: readonly string[];
+}
+
+export const gameplayBoundaryMigrations: Record<string, GameplayBoundaryMigration> = {
+  chaos: {
+    legacyTags: ['not-standard-playable', 'no-stress'],
+    skillIds: ['chaosStressImmunity'],
+  },
+  weakzhi: {
+    legacyTags: [
+      'cannot-act',
+      'coordination-untargetable',
+      'coordination-disabled-as-leader',
+    ],
+    skillIds: ['weakzhiRestrictions'],
+  },
 };
 
 export const gameplayBoundarySkills = skillDefinitionSchema.array().parse([
