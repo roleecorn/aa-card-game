@@ -15,11 +15,11 @@
 | triangle | 三角希＆有希 | Yes | 768×1024 | 雙人卡；回復、全適性已實裝；統籌權限 planned |
 | fengyang | 風揚 | Yes | 768×1024 | 商業作者已實裝 |
 | happy | 高興 | Yes | 768×1024 | 高興、編輯長已實裝 |
-| chaos | 卡奧斯 | No | 768×1024 | Boss resource / no-stress / roll floor 已實裝；Boss mode 未完成 |
+| chaos | 卡奧斯 | No | 768×1024 | Boss resource / Stress immunity skill / roll floor 已實裝；Boss mode 未完成 |
 
 ## Character art status
 
-目前 10 張 runtime portrait 都已通過 canonical validation：
+目前 runtime portrait 都必須通過 canonical validation：
 
 - WebP
 - 768×1024
@@ -30,7 +30,16 @@
 
 2026-09-09 audit 曾發現 `happy / triangle / fengyang / chaos` 的 GitHub WebP blob 被截斷，因此檔案存在但無法預覽。現在 `scripts/character-art.ts` 與 CI 會直接拒絕這類 truncated WebP。
 
-Pintbox、79、真白、銀櫻、旁白、藍風這六張是從既有 legacy-quality 素材規範化成 768×1024 runtime derivative；格式已一致，但這次沒有重新生成美術，不應把 upscale 說成新增高解析細節。
+Pintbox、79、真白、銀櫻、旁白、藍風等既有 legacy-quality 素材可能是規範化 derivative；格式一致不代表 upscale 產生了新增高解析細節。
+
+## Gameplay state boundary
+
+- Character Tag 只作為 metadata 或 Skill selector / condition 的目標標示，不承載 gameplay effect。
+- 卡奧斯的 Stress immunity 由 Skill 在 `gameStart` 套用 runtime status。
+- 弱智的行動／統籌限制由 Skill 套用 runtime statuses。
+- Standard roster eligibility 由 `content/match.ts` 管理，不使用 Character Tag。
+- Leader Stress 上限 +2 保存在當局 `CharacterState`，不修改全域 `CHARACTERS`。
+- Leader selection 透過 UI → Store 的明確參數傳遞，不再使用 module-global selection state。
 
 ## Known rules gaps
 
@@ -40,6 +49,8 @@ Pintbox、79、真白、銀櫻、旁白、藍風這六張是從既有 legacy-qua
 - Boss mode 尚未建立；卡奧斯不進 Standard 3v3。
 - Standard match 的 3v3 隨機組隊是 Prototype decision，不是原始討論已定案規則。
 - 部分角色作品適性與未列能力值使用 prototype assumption，應查看各角色 `sourceNotes`。
+- `GameContent` 已可注入，但 deck / match constants 尚未完整抽成 injectable `GameDefinition` / `MatchRules`。
+- Tutorial deterministic RNG cursor 與 progression controller 仍可進一步移入可序列化的 match state / controller。
 
 ## UI / design
 
@@ -50,16 +61,12 @@ Pintbox、79、真白、銀櫻、旁白、藍風這六張是從既有 legacy-qua
 
 ## Validation baseline
 
-最近完整驗證的角色內容 chain head：
-
-`76c2e50a79b21d1349940dd034f3f3462843cab0`
-
-GitHub Actions `UI Screenshot` 已成功執行：
+CI 的 `verify` job 會執行：
 
 - dependency install
-- TypeScript typecheck
+- tutorial regression
+- character art validation
 - Vitest
-- Vite dev server
-- headless Chrome runtime render
+- TypeScript / production Vite build
 
-Production `npm run build` 不包含在該 workflow 中；release 前仍應另外跑 `npm run verify`。
+因此 gameplay / runtime 修改必須以完整 CI `verify` 成功作為最低合併條件。

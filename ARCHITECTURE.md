@@ -22,12 +22,14 @@ src/
   content/
     catalog.ts              Aggregate + reference validation only
     skills.ts               Skill definitions
+    gameplayBoundarySkills.ts  Gameplay rules migrated out of legacy tags
     characters.ts           Character definitions
     cards.ts                Card definitions
-    match.ts                Default match / deck config
+    match.ts                Default match / deck / roster config
   game/
     contentRegistry.ts      Injectable GameContent interface
     schema.ts               Zod schemas + domain types
+    statuses.ts             Named runtime status keys and helpers
     engine.ts               Turn flow and core invariants
     skillRuntime.ts         Trigger / condition / usage dispatcher
     effectRegistry.ts       Reusable built-in effect handlers
@@ -58,6 +60,34 @@ SkillRuntime
 
 角色 ID 不應出現在 `SkillRuntime` 或 `EngineSession` 的條件分支中。
 
+## Tag boundary
+
+`CharacterDefinition.tags` 只描述「角色是什麼」，不描述「角色會做什麼」。Tag 可以被 UI 顯示，也可以被 selector / condition 用來找出技能效果的合法對象；Tag 本身不得直接產生 gameplay behavior。
+
+允許的用途：
+
+- UI 顯示分類，例如 `leader`、`triangle-creature`、`editorial`。
+- `taggedMember` 等 target selector 用 Tag 篩選技能目標。
+- 未來 condition 以 Tag 判斷效果適用對象。
+
+禁止的用途：
+
+- `if (definition.tags.includes(...))` 後直接改變 Stress、骰子、能力值或作品。
+- 用 Tag 禁止角色行動、阻止卡牌、提供免疫或修改權限。
+- 用 Tag 決定 Standard / Boss 等 game mode 的出場資格。
+
+任何會改變遊戲狀態、免疫、權限、行動限制或能力的規則都必須由 `SkillDefinition` 經 Skill / Effect runtime 實現；需要持續存在的效果可以由 Skill 套用 `CharacterState.statuses`。Game mode eligibility 屬於 `content/match.ts` 的 match configuration，而不是角色 Tag。
+
+目前 catalog 仍會移除舊資料中曾經承載行為的 legacy tags，並由 `validateCatalog()` 保證這些 Tag 不會進入 runtime。這是 migration guard，不是新的 gameplay mechanism；新角色資料不得新增這些 legacy tags。
+
+## Immutable content and match state
+
+`CharacterDefinition`、`SkillDefinition`、`CardDefinition` 是靜態內容，建立對局後不得為了當局效果修改 definition。
+
+例如組長「Stress 上限 +2」屬於 match state：由 `CharacterState.statuses` 保存 `leader-stress-cap-bonus`，`EngineSession.getEffectiveMaxStress()` 計算有效上限。不同對局因此不會互相污染，也不需要 reset 時回寫全域 `CHARACTERS`。
+
+UI setup state 也不得透過 module-level mutable variable 傳遞。組長選擇由 `DrawPhaseScreen -> App -> gameStore.startGame()` 明確傳入。
+
 ## Injectable GameContent
 
 `EngineSession` 接受 `GameContent`：
@@ -76,6 +106,8 @@ interface GameContent {
 - 可建立 prototype-only skill pack。
 - 可做 balance test，不修改 global catalog。
 - 未來多人房間可依房間規則載入不同 content pack。
+
+目前 deck / match constants 仍由 `content/match.ts` 提供；若開始實作多種房間規則，應再抽成 injectable `GameDefinition` / `MatchRules`，不要回到 global mutation。
 
 ## Skill definition model
 
@@ -210,19 +242,19 @@ interface GameContent {
 
 `CharacterCard` 與 `CardHand` 目前直接引用這些 assets。
 
-
 ## Character art boundary
 
 角色卡的文字與遊戲資料屬於 React/MUI UI，不烘焙進圖片。runtime portrait 固定使用 `public/assets/characters/*.webp` 的 3:4 asset；`CharacterCard` 只負責 frame、stats、stress 與技能 UI。
 
 這樣角色資料、美術與版面可以各自替換，不需要在新增角色時重新製作整張 raster card，也避免因 responsive layout 造成不規則裁切。詳細規格見 `CHARACTER_CARD_ART.md`。
 
-
 ## Standard roster / special resources
 
-- `selectStandardRosters()` 會排除 `not-standard-playable`，shuffle 後先取 player 3 名，再從剩餘角色取 enemy 3 名。
+- `selectStandardRosters()` 依 `content/match.ts` 的 Standard roster configuration 排除不參加一般模式的角色；不以角色 Tag 承載出場規則。
 - `CharacterState.resources` 可保存非 Stress resource；目前卡奧斯使用「體力」。
-- `no-stress` 是 generic tag：`adjustStress()` 對該角色忽略一般 Stress 變化，不依角色 ID 特判。
+- 卡奧斯的壓力免疫由 Skill 在 `gameStart` 套用 `stress-immune` status，不依角色 ID 或 Tag 特判。
+- 弱智的行動／統籌限制同樣由 Skill 在 `gameStart` 套用 runtime statuses。
+- 組長 Stress 上限加成保存在當局 `CharacterState`，不修改 `CHARACTERS`。
 - 目前 custom effect 例子：`addRandomCardsByKind`（高興）與 `changeOwnerResource`（卡奧斯）。
 - trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
 

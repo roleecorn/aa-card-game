@@ -5,8 +5,6 @@ export const CHARACTER_TAG_NAMES: Record<string, string> = {
   'triangle-creature': '三角生物',
   'commercial-author': '商業作者',
   boss: 'Boss',
-  'not-standard-playable': '非標準可出戰',
-  'no-stress': '無壓力',
   'vice-leader': '副組長',
   technical: '技術',
   qa: '品質驗證',
@@ -18,9 +16,6 @@ export const CHARACTER_TAG_NAMES: Record<string, string> = {
   'stress-driven': '壓力驅動',
   'gag-writer': '段子作者',
   'systems-thinker': '系統思考',
-  'cannot-act': '不能行動',
-  'coordination-untargetable': '不受統籌指定',
-  'coordination-disabled-as-leader': '組長時禁用統籌卡',
 };
 
 export function getCharacterTagName(tag: string): string {

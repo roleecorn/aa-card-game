@@ -1,9 +1,11 @@
 import { nanoid } from 'nanoid';
 import { BASE_DECK, DEFAULT_CONTENT, DEFAULT_MATCH, WORK_TYPES } from '../content/catalog';
+import { isStandardPlayableCharacterId } from '../content/match';
 import { builtInEffects } from './effectRegistry';
 import { executeCardHandler } from './cardHandlers';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
+import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
 import type { CardDefinition, CharacterDefinition, MemberSelector, SkillEffect, SkillStat, TeamId, WorkSelector, WorkType } from './schema';
 import type { GameContent } from './contentRegistry';
 import type {
@@ -28,7 +30,7 @@ export interface InitialGameOptions {
 }
 
 function isStandardPlayable(definition: CharacterDefinition): boolean {
-  return !definition.tags?.includes('not-standard-playable');
+  return isStandardPlayableCharacterId(definition.id);
 }
 
 function characterWorkTypes(definition: CharacterDefinition, content: GameContent): WorkType[] {
@@ -151,6 +153,20 @@ export class EngineSession {
     return this.getDefinition(memberId).skillIds.map((id) => this.content.skills[id]).filter((skill) => !!skill);
   }
 
+  getEffectiveMaxStress(teamId: TeamId, memberId: string): number | null | undefined {
+    const member = this.getCharacter(teamId, memberId);
+    if (!member) return undefined;
+    const base = this.getDefinition(memberId).maxStress;
+    if (base === null) return null;
+    return base + getStatusStacks(member, GAMEPLAY_STATUS.leaderStressCapBonus);
+  }
+
+  isAtStressCap(teamId: TeamId, memberId: string): boolean {
+    const member = this.getCharacter(teamId, memberId);
+    const maxStress = this.getEffectiveMaxStress(teamId, memberId);
+    return !!member && maxStress !== undefined && maxStress !== null && member.stress >= maxStress;
+  }
+
   getEffectiveStat(memberId: string, skill: SkillStat): number {
     const teamId = this.findMemberTeam(memberId);
     const member = teamId ? this.getCharacter(teamId, memberId) : undefined;
@@ -216,7 +232,7 @@ export class EngineSession {
   adjustStress(teamId: TeamId, memberId: string, amount: number, source: string, external = false, sourceId?: string): void {
     const member = this.getCharacter(teamId, memberId);
     if (!member || amount === 0) return;
-    if (this.getDefinition(memberId).tags?.includes('no-stress')) return;
+    if (hasGameplayStatus(member, GAMEPLAY_STATUS.stressImmune)) return;
     let actual = amount;
     if (external && amount > 0) {
       const event = this.skills.emit({ type: 'beforeExternalStress', teamId, targetId: memberId, sourceId, sourceKind: source, amount });
@@ -230,8 +246,8 @@ export class EngineSession {
     if (external && amount > 0) {
       this.skills.emit({ type: 'afterExternalStress', teamId, targetId: memberId, sourceId, sourceKind: source, amount: delta });
     }
-    const maxStress = this.getDefinition(memberId).maxStress;
-    if (maxStress !== null && member.stress > maxStress) {
+    const maxStress = this.getEffectiveMaxStress(teamId, memberId);
+    if (maxStress !== undefined && maxStress !== null && member.stress > maxStress) {
       const team = this.getTeam(teamId);
       const beforeDice = team.pendingDice.length;
       team.pendingDice = team.pendingDice.filter((die) => die.ownerId !== memberId);
@@ -433,11 +449,12 @@ export class EngineSession {
     for (const member of team.members) {
       try {
         const definition = this.getDefinition(member.defId);
-        if (definition.tags?.includes('cannot-act')) {
+        if (hasGameplayStatus(member, GAMEPLAY_STATUS.actionBlocked)) {
           this.log(`${definition.name} 不能行動，本回合不進行創作或摸魚。`);
           continue;
         }
-        const mustSlack = definition.maxStress !== null && member.stress >= definition.maxStress;
+        const maxStress = this.getEffectiveMaxStress(teamId, member.defId);
+        const mustSlack = maxStress !== null && maxStress !== undefined && member.stress >= maxStress;
         const action = mustSlack ? 'slack' : actions[member.defId] ?? 'work';
         if (action === 'slack') {
           this.adjustStress(teamId, member.defId, -2, '摸魚');
@@ -459,7 +476,7 @@ export class EngineSession {
 
         this.adjustStress(teamId, member.defId, 1, '工作');
         this.log(`${definition.name} 工作，產生 ${batch.length} 顆骰。`);
-        if (definition.maxStress !== null && member.stress > definition.maxStress) {
+        if (maxStress !== null && maxStress !== undefined && member.stress > maxStress) {
           this.log(`${definition.name} 壓力超過上限，本回合剛擲出的骰全部歸零。`);
         } else {
           team.pendingDice.push(...batch);
@@ -479,7 +496,8 @@ export class EngineSession {
     if (!instance) return false;
     const card = this.content.cards[instance.cardId];
     if (!card) return false;
-    if (card.kind === 'coordination' && team.leaderId && this.getDefinition(team.leaderId).tags?.includes('coordination-disabled-as-leader')) {
+    const leader = team.leaderId ? this.getCharacter(teamId, team.leaderId) : undefined;
+    if (card.kind === 'coordination' && leader && hasGameplayStatus(leader, GAMEPLAY_STATUS.coordinationDisabledAsLeader)) {
       this.log(`${this.getDefinition(team.leaderId).name} 擔任組長時不能使用統籌卡。`);
       return false;
     }
@@ -636,7 +654,8 @@ export class EngineSession {
       if (!target.memberId) return false;
       const targetTeam = this.findMemberTeam(target.memberId);
       if (!targetTeam) return false;
-      if (card.kind === 'coordination' && this.getDefinition(target.memberId).tags?.includes('coordination-untargetable')) return false;
+      const targetMember = this.getCharacter(targetTeam, target.memberId);
+      if (card.kind === 'coordination' && targetMember && hasGameplayStatus(targetMember, GAMEPLAY_STATUS.coordinationUntargetable)) return false;
       if (card.target.skillPicker && !target.skill) return false;
       return card.target.relation === 'ally' ? targetTeam === teamId : targetTeam !== teamId;
     }

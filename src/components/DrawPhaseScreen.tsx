@@ -16,7 +16,6 @@ import LayersIcon from '@mui/icons-material/Layers';
 import type { CharacterDefinition } from '../game/schema';
 import { SKILLS } from '../content/catalog';
 import { getCharacterTagName } from '../content/characterTags';
-import { setSelectedLeaderId } from '../game/leaderSelection';
 
 export type DrawPhase =
   | 'intro'
@@ -32,7 +31,7 @@ export type DrawPhase =
 interface Props {
   characters: CharacterDefinition[];
   onReroll: (index: number) => void;
-  onConfirm: () => void;
+  onConfirm: (leaderId: string) => void;
 }
 
 const transitionDelay: Partial<Record<DrawPhase, number>> = {
@@ -64,6 +63,17 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     return () => window.clearTimeout(timer);
   }, [phase]);
 
+  useEffect(() => {
+    if (phase !== 'rerolling' || rerollIndex === undefined) return;
+    const timer = window.setTimeout(() => {
+      onReroll(rerollIndex);
+      setSelectedIndex(undefined);
+      setRerollIndex(undefined);
+      setPhase('selection');
+    }, 950);
+    return () => window.clearTimeout(timer);
+  }, [onReroll, phase, rerollIndex]);
+
   const revealCount = phase === 'revealing-1'
     ? 1
     : phase === 'revealing-2'
@@ -88,10 +98,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     if (selectedIndex === undefined || rerollUsed || phase !== 'selection') return;
     setRerollUsed(true);
     setRerollIndex(selectedIndex);
-    onReroll(selectedIndex);
-    setSelectedIndex(undefined);
-    setRerollIndex(undefined);
-    setPhase('selection');
+    setPhase('rerolling');
   };
 
   const handleConfirmTeam = () => {
@@ -104,9 +111,8 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     if (phase !== 'leader-selection' || selectedIndex === undefined) return;
     const leader = characters[selectedIndex];
     if (!leader) return;
-    setSelectedLeaderId(leader.id);
     setPhase('confirmed');
-    onConfirm();
+    onConfirm(leader.id);
   };
 
   return (
@@ -161,7 +167,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
         </Box>
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-          {!['selection', 'leader-selection', 'confirmed'].includes(phase) && (
+          {!['selection', 'rerolling', 'leader-selection', 'confirmed'].includes(phase) && (
             <Button
               variant="text"
               onClick={() => setPhase('selection')}

@@ -15,8 +15,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
-import { CARDS, SKILLS } from '../content/catalog';
-import { characterList } from '../content/characters';
+import { CARDS, CHARACTERS, SKILLS } from '../content/catalog';
+import { isStandardPlayableCharacterId } from '../content/match';
 import type { TutorialStepId } from '../content/tutorial';
 import { EngineSession } from '../game/engine';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
@@ -74,7 +74,9 @@ export default function App() {
   const enemyScore = engine?.scoreTeam('enemy') ?? 0;
 
   const playableIds = useMemo(
-    () => characterList.filter((character) => !character.tags?.includes('not-standard-playable')).map((character) => character.id),
+    () => Object.values(CHARACTERS)
+      .filter((character) => isStandardPlayableCharacterId(character.id))
+      .map((character) => character.id),
     [],
   );
 
@@ -124,9 +126,9 @@ export default function App() {
     });
   }, [playableIds]);
 
-  const handleConfirmRoster = () => {
+  const handleConfirmRoster = (leaderId: string) => {
     if (!draftRoster) return;
-    startGame(draftRoster.player, draftRoster.enemy);
+    startGame(draftRoster.player, draftRoster.enemy, leaderId);
     setAppStage('battle');
   };
 
@@ -247,9 +249,10 @@ export default function App() {
   }
 
   if (appStage === 'draw' && draftRoster) {
-    const drawnCharacters = draftRoster.player
-      .map((memberId) => characterList.find((character) => character.id === memberId))
-      .filter((character): character is (typeof characterList)[number] => !!character);
+    const drawnCharacters = draftRoster.player.flatMap((memberId) => {
+      const character = CHARACTERS[memberId];
+      return character ? [character] : [];
+    });
     return (
       <>
         <DrawPhaseScreen

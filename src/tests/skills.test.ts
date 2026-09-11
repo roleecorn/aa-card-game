@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialGame, EngineSession, selectStandardRosters } from '../game/engine';
 import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { isStandardPlayableCharacterId } from '../content/match';
 import type { GameContent } from '../game/contentRegistry';
 import { matchesCondition } from '../game/skillRuntime';
-import type { EffectContext } from '../game/types';
+import type { EffectContext, GameState } from '../game/types';
 
 function fixedRng(value: number) {
   return () => value;
@@ -26,11 +27,6 @@ const TRIANGLE_ROSTER = {
 
 const FENGYANG_ROSTER = {
   playerMemberIds: ['fengyang', 'pintbox', 'mashiro'],
-  enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
-};
-
-const CHAOS_ROSTER = {
-  playerMemberIds: ['chaos', 'pintbox', 'mashiro'],
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
@@ -493,7 +489,7 @@ describe('random standard roster selection', () => {
     expect(selected.enemyMemberIds.every((id) => !selected.playerMemberIds.includes(id))).toBe(true);
     expect(fielded).not.toContain('chaos');
     expect(selected.unusedMemberIds).toHaveLength(
-      Object.values(CHARACTERS).filter((character) => !character.tags?.includes('not-standard-playable')).length - 6,
+      Object.values(CHARACTERS).filter((character) => isStandardPlayableCharacterId(character.id)).length - 6,
     );
   });
 
@@ -637,17 +633,48 @@ describe('風揚 complete character package', () => {
 });
 
 describe('卡奧斯 complete character package', () => {
-  function chaosPlayableContent(): GameContent {
-    return {
-      ...DEFAULT_CONTENT,
-      characters: {
-        ...DEFAULT_CONTENT.characters,
-        chaos: {
-          ...DEFAULT_CONTENT.characters.chaos!,
-          tags: ['boss', 'no-stress'],
-        },
+  function createChaosGame(rng: () => number = fixedRng(0.5)): { game: GameState; engine: EngineSession } {
+    const definition = CHARACTERS.chaos!;
+    const resource = definition.resource;
+    const game: GameState = {
+      round: 1,
+      maxRounds: 5,
+      phase: 'player-plan',
+      player: {
+        id: 'player',
+        name: 'player',
+        leaderId: 'chaos',
+        members: [{
+          defId: 'chaos',
+          stress: 0,
+          permanentStats: { ...definition.stats },
+          timedStatModifiers: [],
+          skillUsage: {},
+          statuses: {},
+          resources: resource ? { [resource.name]: resource.initial } : undefined,
+        }],
+        works: [],
+        hand: [],
+        deck: [],
+        discard: [],
+        pendingDice: [],
       },
+      enemy: {
+        id: 'enemy',
+        name: 'enemy',
+        leaderId: '',
+        members: [],
+        works: [],
+        hand: [],
+        deck: [],
+        discard: [],
+        pendingDice: [],
+      },
+      logs: [],
     };
+    const engine = new EngineSession(game, rng, DEFAULT_CONTENT);
+    engine.start();
+    return { game, engine };
   }
 
   it('keeps the Boss stats, portrait, resource and standard-match exclusion', () => {
@@ -656,13 +683,14 @@ describe('卡奧斯 complete character package', () => {
     expect(CHARACTERS.chaos?.compactPortrait).toBe('/assets/characters/compact/chaos.webp');
     expect(CHARACTERS.chaos?.portraitPosition).toEqual({ x: 50, y: 12 });
     expect(CHARACTERS.chaos?.resource).toEqual({ name: '體力', max: 5, initial: 5 });
-    expect(CHARACTERS.chaos?.tags).toEqual(expect.arrayContaining(['boss', 'not-standard-playable', 'no-stress']));
+    expect(CHARACTERS.chaos?.tags).toEqual(['boss']);
+    expect(CHARACTERS.chaos?.skillIds).toContain('chaosStressImmunity');
+    expect(SKILLS.chaosStressImmunity?.status).toBe('implemented');
+    expect(isStandardPlayableCharacterId('chaos')).toBe(false);
   });
 
   it('starts with 5 vitality, loses one at round end, and ignores stress', () => {
-    const content = chaosPlayableContent();
-    const game = createInitialGame(fixedRng(0.5), content, CHAOS_ROSTER);
-    const engine = new EngineSession(game, fixedRng(0.5), content);
+    const { engine } = createChaosGame(fixedRng(0.5));
 
     expect(engine.getResource('player', 'chaos', '體力')).toBe(5);
     engine.adjustStress('player', 'chaos', 99, 'test');
@@ -673,9 +701,7 @@ describe('卡奧斯 complete character package', () => {
   });
 
   it('never rolls below 3', () => {
-    const content = chaosPlayableContent();
-    const game = createInitialGame(fixedRng(0), content, CHAOS_ROSTER);
-    const engine = new EngineSession(game, fixedRng(0), content);
+    const { engine } = createChaosGame(fixedRng(0));
 
     expect(engine.skills.getRollFloor('chaos')).toBe(3);
     expect(engine.rollDieFor('chaos')).toBe(3);

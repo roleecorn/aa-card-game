@@ -35,6 +35,7 @@ export const shennauSkills = skillDefinitionSchema.array().parse([
     description: '不能受到其他角色技能或卡牌造成的正面、負面修正。',
     activation: 'triggered',
     status: 'implemented',
+    passives: [{ kind: 'effect.immunity', source: 'external' }],
     triggers: [
       {
         event: 'beforeExternalStress',

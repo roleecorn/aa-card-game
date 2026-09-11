@@ -14,6 +14,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import type { ActionChoice, CharacterState } from '../game/types';
 import type { CharacterDefinition } from '../game/schema';
+import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from '../game/statuses';
 import { getCharacterTagName } from '../content/characterTags';
 import { SkillList } from './SkillList';
 
@@ -40,15 +41,18 @@ export function CharacterCard({
   onActivateSkill,
   canActivateSkill,
 }: Props) {
-  const maxStress = definition.maxStress ?? 1;
-  const stressPercent = definition.maxStress === null ? 0 : Math.min(100, (state.stress / maxStress) * 100);
+  const effectiveMaxStress = definition.maxStress === null
+    ? null
+    : definition.maxStress + getStatusStacks(state, GAMEPLAY_STATUS.leaderStressCapBonus);
+  const maxStress = effectiveMaxStress ?? 1;
+  const stressPercent = effectiveMaxStress === null ? 0 : Math.min(100, (state.stress / maxStress) * 100);
   const portrait = compact ? definition.compactPortrait : definition.portrait;
   const portraitPosition = compact && definition.compactPortrait
     ? 'center'
     : definition.portraitPosition
     ? `${definition.portraitPosition.x}% ${definition.portraitPosition.y}%`
     : 'center 22%';
-  const actionsDisabled = definition.tags?.includes('cannot-act') ?? false;
+  const actionsDisabled = hasGameplayStatus(state, GAMEPLAY_STATUS.actionBlocked);
 
   return (
     <Card sx={{ overflow: 'hidden', bgcolor: '#fff', borderWidth: 1.5 }}>
@@ -119,7 +123,7 @@ export function CharacterCard({
               <>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography sx={{ fontSize: 10.5, fontWeight: 800, color: 'text.secondary' }}>壓力 Stress</Typography>
-                  <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress} / {definition.maxStress === null ? '∞' : definition.maxStress}</Typography>
+                  <Typography sx={{ fontSize: 10.5, fontWeight: 900 }}>{state.stress} / {effectiveMaxStress === null ? '∞' : effectiveMaxStress}</Typography>
                 </Stack>
                 <LinearProgress
                   variant="determinate"

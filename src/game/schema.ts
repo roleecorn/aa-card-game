@@ -286,6 +286,7 @@ export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
   z.object({ kind: z.literal('card.permission'), cardKind: z.enum(['coordination', 'event']) }),
   z.object({ kind: z.literal('coordination.stressBearer') }),
+  z.object({ kind: z.literal('effect.immunity'), source: z.literal('external') }),
 ]);
 
 export const triggerSchema = z.object({

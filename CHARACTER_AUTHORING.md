@@ -139,13 +139,29 @@ Chat / AI agent 可以：
 
 若正式圖片還沒上傳，`portrait` 必須先指向 repo 中已存在的 placeholder / 代用圖，或使用專案既有 fallback 機制；不能先寫一個不存在的未來路徑。reference 必須保持 repository-relative，不得以 `/` 開頭。
 
-### Special tags / resource
+### Tag policy
 
-目前 generic tags：
+`tags` 只用來描述與辨識角色，或作為 Skill selector / condition 的目標條件。Tag **不得承載 gameplay effect**。
 
-- `not-standard-playable`：不進 Standard match random roster。
-- `no-stress`：忽略一般 Stress 變化。
-- `duo-card`：美術 / content metadata，表示一張卡明確代表兩人。
+合法例子：
+
+- `duo-card`：角色內容／美術 metadata。
+- `triangle-creature`：讓 `taggedMember` 類 selector 找到合法技能目標。
+- `leader`、`editorial`：UI / content 分類。
+
+禁止用 Tag 表示：
+
+- 不能行動。
+- Stress 免疫。
+- 卡牌使用／被指定權限。
+- 能力值或骰子修改。
+- Standard / Boss mode 是否可出戰。
+
+上述規則都必須由 `SkillDefinition` 實現；需要持續存在的效果可以由 Skill 在 `gameStart` 或其他 trigger 使用 `status.change` 套到 `CharacterState.statuses`。Game mode eligibility 放在 `src/content/match.ts`。
+
+不要新增 `no-stress`、`cannot-act`、`coordination-untargetable`、`coordination-disabled-as-leader`、`not-standard-playable` 這類 behavior tag。`validateCatalog()` 會拒絕它們進入 runtime catalog。
+
+### Special resource
 
 特殊 resource：
 
@@ -157,21 +173,22 @@ resource: {
 }
 ```
 
-runtime 存入 `CharacterState.resources`。
+runtime 存入 `CharacterState.resources`。resource 本身只保存數值；會如何增減、免疫什麼效果，仍由 Skill / Effect runtime 定義。
 
 ## 3. Skills
 
 位置：
 
-`src/content/skills.ts`
+`src/content/skills.ts` 或對應角色的 content module。
 
 優先使用 declarative effect vocabulary。完整規則見 `SKILL_AUTHORING.md`。
 
-禁止為單一角色在 `EngineSession` 寫角色 ID 特判。
+禁止為單一角色在 `EngineSession` 寫角色 ID 特判，也禁止用 Character Tag 繞過 Skill system 實作效果。
 
 如果 mechanic 可重用：
 
 - 優先增加 generic effect / selector / condition。
+- 持續性規則優先考慮由 Skill 套用 generic status。
 - 高度特殊才用 `customEffects.ts`。
 
 ## 4. Portrait
@@ -222,7 +239,9 @@ Chat / AI agent 不執行第 6 步。
 - 每個 implemented skill 的成功效果
 - 必要的失敗 / 限制條件
 - random mechanic 使用 deterministic RNG
-- special resource / tag 行為
+- special resource / runtime status 行為
+- Tag selector / condition 若存在，測試 Tag 只負責選出效果對象
+- runtime catalog 不包含 behavior tags
 
 測試不應要求「一定是正式角色美術」；placeholder 是合法狀態。
 
@@ -256,6 +275,8 @@ npm run art:validate
 - [ ] 缺失資料沒有被偽裝成 source-backed
 - [ ] 所有 implemented 技能有 runtime effect
 - [ ] 所有 implemented 技能有 test
+- [ ] Tag 只用於 metadata / target / condition，沒有直接承載 gameplay effect
+- [ ] Game mode eligibility 沒有塞進 Character Tag
 - [ ] `portrait` reference 可解析，不是 broken path
 - [ ] UI 需要 `compactPortrait` 時，其 reference 也可解析
 - [ ] `portrait` / `compactPortrait` 使用 repository-relative path，不以 `/` 開頭
