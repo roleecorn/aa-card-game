@@ -8,12 +8,11 @@ import {
   TUTORIAL_PLAYER_ROSTER,
   tutorialRandomValue,
 } from './config';
+import type { TutorialRuntimeState } from './scenario';
 
-let tutorialRandomIndex = 0;
-
-function tutorialRandom(): number {
-  const value = tutorialRandomValue(tutorialRandomIndex);
-  tutorialRandomIndex += 1;
+function tutorialRandom(runtime: TutorialRuntimeState): number {
+  const value = tutorialRandomValue(runtime.randomIndex);
+  runtime.randomIndex += 1;
   return value;
 }
 
@@ -27,10 +26,6 @@ function applyTutorialDeck(team: TeamState, cardIds: readonly string[], prefix: 
   team.discard = [];
 }
 
-export function resetTutorialRuntime(): void {
-  tutorialRandomIndex = 0;
-}
-
 export function createTutorialGame(): GameState {
   const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
     playerMemberIds: [...TUTORIAL_PLAYER_ROSTER],
@@ -39,10 +34,9 @@ export function createTutorialGame(): GameState {
   applyTutorialDeck(game.player, TUTORIAL_PLAYER_DECK, 'player');
   applyTutorialDeck(game.enemy, TUTORIAL_ENEMY_DECK, 'enemy');
   game.logs.push({ id: 'tutorial-start', round: 1, text: '教學關卡：角色、抽牌順序與隨機結果已固定。' });
-  resetTutorialRuntime();
   return game;
 }
 
-export function createTutorialSession(game: GameState): EngineSession {
-  return new EngineSession(game, tutorialRandom, STANDARD_GAME_DEFINITION);
+export function createTutorialSession(game: GameState, runtime: TutorialRuntimeState): EngineSession {
+  return new EngineSession(game, () => tutorialRandom(runtime), STANDARD_GAME_DEFINITION);
 }

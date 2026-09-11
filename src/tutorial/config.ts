@@ -72,20 +72,3 @@ export function tutorialRandomValue(index: number): number {
   const die = TUTORIAL_DIE_RESULTS[index % TUTORIAL_DIE_RESULTS.length] ?? 3;
   return (die - 0.5) / 6;
 }
-
-export type TutorialStepId =
-  | 'grimm-slack'
-  | 'grimm-work'
-  | 'perform-work'
-  | 'grimm-skill'
-  | 'grimm-target'
-  | 'dice-select'
-  | 'work-slot'
-  | 'card-guide'
-  | 'card-target'
-  | 'mashiro-skill'
-  | 'mashiro-target'
-  | 'triangle-skill'
-  | 'triangle-target'
-  | 'end-turn'
-  | 'complete';
