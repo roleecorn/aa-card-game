@@ -18,6 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Validate release promotion source
+        if: github.event_name == 'pull_request' && github.base_ref == 'release'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "$HEAD_REF" != "main" || "$HEAD_REPO" != "$REPOSITORY" ]]; then
+            echo "Release pull requests must promote this repository's main branch into release."
+            echo "Expected: ${REPOSITORY}:main -> ${REPOSITORY}:release"
+            echo "Actual:   ${HEAD_REPO}:${HEAD_REF} -> ${REPOSITORY}:release"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
