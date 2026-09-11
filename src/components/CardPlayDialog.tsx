@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { CARDS, CHARACTERS } from '../content/catalog';
+import { CARDS, CHARACTERS, SKILLS } from '../content/catalog';
 import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
 import type { CardInstance, CharacterState, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
@@ -44,6 +44,12 @@ function guideEligibleStats(member?: CharacterState): SkillStat[] {
   return SKILL_STATS.filter((stat) => effectiveStat(member, stat) <= 1);
 }
 
+function hasExternalEffectImmunity(memberId: string): boolean {
+  const definition = CHARACTERS[memberId];
+  if (!definition) return false;
+  return definition.skillIds.some((skillId) => SKILLS[skillId]?.tags?.includes('external-effect-immune'));
+}
+
 export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }: Props) {
   const mode = useGameStore((state) => state.mode);
   const card = cardInstance ? CARDS[cardInstance.cardId] : undefined;
@@ -66,7 +72,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
     let candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
-    candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('external-effect-immune'));
+    candidates = candidates.filter((member) => !hasExternalEffectImmunity(member.defId));
     if (card.kind === 'coordination') {
       candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('coordination-untargetable'));
     }
