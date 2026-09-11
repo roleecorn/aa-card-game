@@ -8,8 +8,8 @@ export const weakzhiCharacter = characterDefinitionSchema.parse({
   affinities: ['笑'],
   skillIds: ['weakzhiFinalRush'],
   tags: ['cannot-act', 'coordination-untargetable', 'coordination-disabled-as-leader'],
-  portrait: '/assets/characters/portrait/weakzhi.webp',
-  compactPortrait: '/assets/characters/compact/weakzhi.webp',
+  portrait: 'assets/characters/portrait/weakzhi.webp',
+  compactPortrait: 'assets/characters/compact/weakzhi.webp',
   sourceNotes: [
     '2026-09-10 18:06:44（UTC+8）：PintBox 直接定義 Text 1 / Design 1 / AA 1 / Stress 5、適性（笑）、不能行動、不能成為統籌卡目標，並在結算前以 1d6 填充所有剩餘進度。',
     '2026-09-10 18:27:00（UTC+8）：PintBox 以「15d6」澄清五格作品的 15 個 Design / Text / AA 空位各自獨立擲 1d6，而不是共用同一個骰值。',
