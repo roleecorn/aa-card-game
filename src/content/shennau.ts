@@ -7,7 +7,6 @@ export const shennauCharacter = characterDefinitionSchema.parse({
   maxStress: 2,
   affinities: [],
   skillIds: ['shennauSettingManiac', 'shennauDoItMyself'],
-  tags: ['external-effect-immune'],
   portrait: '/assets/characters/portrait/shennau.webp',
   compactPortrait: '/assets/characters/compact/shennau.webp',
   sourceNotes: [
@@ -36,6 +35,7 @@ export const shennauSkills = skillDefinitionSchema.array().parse([
     description: '不能受到其他角色技能或卡牌造成的正面、負面修正。',
     activation: 'triggered',
     status: 'implemented',
+    tags: ['external-effect-immune'],
     triggers: [
       {
         event: 'beforeExternalStress',
