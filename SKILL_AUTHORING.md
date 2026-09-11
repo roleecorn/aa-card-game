@@ -6,7 +6,7 @@
 
 ### Passive
 
-適合持續規則，例如適性或最低骰值：
+適合持續規則，例如適性、最低骰值或提供其他系統可查詢的能力 metadata：
 
 ```ts
 {
@@ -18,6 +18,14 @@
   passives: [{ kind: 'affinity.grant', types: 'all' }]
 }
 ```
+
+若某個持續能力同時需要 event runtime 執行與 UI／targeting 判斷，可在同一 Skill 放 `passives` 與 `triggers`。例如外部效果免疫可用：
+
+```ts
+passives: [{ kind: 'effect.immunity', source: 'external' }]
+```
+
+UI 可以查詢這項 Skill passive 來隱藏非法目標；真正的 Stress／dice effect cancellation 仍由同一 Skill 的 triggers 執行。不要另外建立 Character ID、Tag 或平行 metadata table 來描述同一規則。
 
 ### Triggered
 
@@ -146,16 +154,18 @@ if (character.id === 'someCharacter') {
 - 每回合 / 每局 usage limit。
 - target relation。
 - 若涉及 random，使用 deterministic RNG。
+- 若 UI 需要依技能能力過濾目標，驗證 UI 所讀的是 Skill passive / runtime status，而不是 Character Tag 或角色 ID。
 
 v0.3 的測試也包含一個 injected `GameContent` 技能，證明新增技能不需要修改 `EngineSession`。
-
 
 ## 9. 目前的 special mechanics
 
 - Trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
 - `card.permission` schema 已存在，但目前 team-level 出牌沒有 card actor identity；不能把角色級 permission 說成完整 enforce。
+- `effect.immunity` passive 可讓 UI / targeting 查詢外部效果免疫；實際效果仍須由 Skill runtime triggers enforce。
 - `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
-- `no-stress`、`not-standard-playable`、`duo-card` 是目前使用的 generic metadata/tag。
+- Character Tag 只可用於 metadata 或 selector / condition；`no-stress`、`cannot-act`、`not-standard-playable` 等 behavior tag 不得新增。
+- Standard / Boss mode eligibility 放在 match configuration，不放 Character Tag。
 - custom handler `addRandomCardsByKind` 用於高興「編輯長」。
 - custom handler `changeOwnerResource` 用於卡奧斯「Boss 體力」。
 
