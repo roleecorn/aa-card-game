@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS } from '../content/catalog';
+import { CHARACTERS, SKILLS } from '../content/catalog';
 
 describe('神惱 UI immunity metadata', () => {
-  it('marks 神惱 as immune to direct external member effects', () => {
-    expect(CHARACTERS.shennau?.tags).toContain('external-effect-immune');
+  it('keeps runtime immunity out of player-visible character tags', () => {
+    expect(CHARACTERS.shennau?.tags ?? []).not.toContain('external-effect-immune');
+    expect(SKILLS.shennauDoItMyself?.tags).toContain('external-effect-immune');
   });
 });
