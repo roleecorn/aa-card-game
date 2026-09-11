@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 describe('2026-09-10 character card calibration', () => {
@@ -41,7 +41,7 @@ describe('2026-09-10 character card calibration', () => {
   });
 
   it('副組長力 only transfers coordination stress when the vice leader is below the leader', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'triangle', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -61,7 +61,7 @@ describe('2026-09-10 character card calibration', () => {
   });
 
   it('79 spends one stress to add two to a selected Text die', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['user79', 'pintbox', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -75,7 +75,7 @@ describe('2026-09-10 character card calibration', () => {
   });
 
   it('火場救援 grants three dice that can fill another ally work', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['lemon', 'pintbox', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });

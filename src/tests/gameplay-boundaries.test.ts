@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession, selectStandardRosters } from '../game/engine';
 import { GAMEPLAY_STATUS, hasGameplayStatus } from '../game/statuses';
 import type { GameState } from '../game/types';
 
-const LEGACY_BEHAVIOR_TAGS = [
+const FORBIDDEN_BEHAVIOR_TAGS = [
   'no-stress',
   'cannot-act',
   'coordination-untargetable',
@@ -13,13 +13,16 @@ const LEGACY_BEHAVIOR_TAGS = [
 ];
 
 describe('gameplay state boundaries', () => {
-  it('keeps gameplay behavior out of runtime character tags', () => {
+  it('keeps gameplay behavior out of character tags and assigns behavior skills explicitly', () => {
     for (const character of Object.values(CHARACTERS)) {
-      for (const tag of LEGACY_BEHAVIOR_TAGS) {
+      for (const tag of FORBIDDEN_BEHAVIOR_TAGS) {
         expect(character.tags ?? []).not.toContain(tag);
       }
     }
 
+    expect(CHARACTERS.chaos?.tags).toEqual(['boss']);
+    expect(CHARACTERS.chaos?.skillIds).toContain('chaosStressImmunity');
+    expect(CHARACTERS.weakzhi?.skillIds).toContain('weakzhiRestrictions');
     expect(SKILLS.triangleRecovery?.activeTarget).toMatchObject({
       kind: 'taggedMember',
       tag: 'triangle-creature',
@@ -27,7 +30,7 @@ describe('gameplay state boundaries', () => {
   });
 
   it('keeps Standard roster eligibility in match configuration instead of tags', () => {
-    const selected = selectStandardRosters(() => 0.5, DEFAULT_CONTENT);
+    const selected = selectStandardRosters(() => 0.5, STANDARD_GAME_DEFINITION);
     expect([
       ...selected.playerMemberIds,
       ...selected.enemyMemberIds,
@@ -35,8 +38,8 @@ describe('gameplay state boundaries', () => {
     ]).not.toContain('chaos');
   });
 
-  it('applies Weakzhi gameplay restrictions through a skill-created status', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, {
+  it('applies Weakzhi gameplay restrictions through an explicitly assigned skill', () => {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['weakzhi', 'pintbox', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -48,7 +51,7 @@ describe('gameplay state boundaries', () => {
     expect(hasGameplayStatus(weakzhi, GAMEPLAY_STATUS.coordinationDisabledAsLeader)).toBe(true);
   });
 
-  it('applies Chaos stress immunity through a skill rather than a tag', () => {
+  it('applies Chaos stress immunity through an explicitly assigned skill', () => {
     const chaosDefinition = CHARACTERS.chaos!;
     const state: GameState = {
       round: 1,
@@ -86,7 +89,7 @@ describe('gameplay state boundaries', () => {
       },
       logs: [],
     };
-    const engine = new EngineSession(state, () => 0.5, DEFAULT_CONTENT);
+    const engine = new EngineSession(state, () => 0.5, STANDARD_GAME_DEFINITION);
 
     engine.start();
     const chaos = state.player.members[0]!;

@@ -1,4 +1,5 @@
 import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+import { GAMEPLAY_STATUS } from '../game/statuses';
 
 export const weakzhiCharacter = characterDefinitionSchema.parse({
   id: 'weakzhi',
@@ -6,8 +7,7 @@ export const weakzhiCharacter = characterDefinitionSchema.parse({
   stats: { design: 1, text: 1, aa: 1 },
   maxStress: 5,
   affinities: ['笑'],
-  skillIds: ['weakzhiFinalRush'],
-  tags: ['cannot-act', 'coordination-untargetable', 'coordination-disabled-as-leader'],
+  skillIds: ['weakzhiFinalRush', 'weakzhiRestrictions'],
   portrait: 'assets/characters/portrait/weakzhi.webp',
   compactPortrait: 'assets/characters/compact/weakzhi.webp',
   sourceNotes: [
@@ -29,6 +29,41 @@ export const weakzhiSkills = skillDefinitionSchema.array().parse([
         event: 'roundEnd',
         condition: { kind: 'round', op: 'eq', value: 5 },
         effects: [{ kind: 'custom', handler: 'fillOwnerWorkRemainingRandom' }],
+      },
+    ],
+  },
+  {
+    id: 'weakzhiRestrictions',
+    name: '行動限制',
+    description: '不能行動、不能成為統籌卡目標；若擔任組長，隊伍不能使用統籌卡。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [
+      {
+        event: 'gameStart',
+        effects: [
+          {
+            kind: 'status.change',
+            target: 'owner',
+            status: GAMEPLAY_STATUS.actionBlocked,
+            stacks: 1,
+            stacking: 'replace',
+          },
+          {
+            kind: 'status.change',
+            target: 'owner',
+            status: GAMEPLAY_STATUS.coordinationUntargetable,
+            stacks: 1,
+            stacking: 'replace',
+          },
+          {
+            kind: 'status.change',
+            target: 'owner',
+            status: GAMEPLAY_STATUS.coordinationDisabledAsLeader,
+            stacks: 1,
+            stacking: 'replace',
+          },
+        ],
       },
     ],
   },

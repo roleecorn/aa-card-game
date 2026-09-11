@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 import type { DieToken, DieValue } from '../game/types';
 
@@ -24,10 +24,10 @@ describe('嵐羽 complete character package', () => {
   });
 
   it('好溝通 grants one Design die when the allied leader rolls Design >= 4', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     game.player.leaderId = 'pintbox';
     game.player.pendingDice = [];
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
 
     engine.skills.emit({
       type: 'afterRollBatch',
@@ -45,8 +45,8 @@ describe('嵐羽 complete character package', () => {
   });
 
   it('好溝通 does not trigger for a non-leader, a low Design roll, or while 嵐羽 is leader', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     game.player.pendingDice = [];
     game.player.leaderId = 'pintbox';
 
@@ -59,9 +59,9 @@ describe('嵐羽 complete character package', () => {
   });
 
   it('技術底力 adds one stress and one AA die, once per round', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     game.player.pendingDice = [];
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     const member = game.player.members.find((candidate) => candidate.defId === 'lanyu')!;
 
     expect(engine.activateSkill('player', 'lanyu', 'lanyuTechnicalReserve')).toBe(true);

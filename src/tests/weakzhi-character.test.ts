@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -15,11 +15,12 @@ describe('弱智 complete character package', () => {
     expect(CHARACTERS.weakzhi?.portrait).toBe('/assets/characters/portrait/weakzhi.webp');
     expect(CHARACTERS.weakzhi?.compactPortrait).toBe('/assets/characters/compact/weakzhi.webp');
     expect(SKILLS.weakzhiFinalRush?.status).toBe('implemented');
+    expect(SKILLS.weakzhiRestrictions?.status).toBe('implemented');
   });
 
   it('cannot take work or slack actions', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
 
     engine.performPlayerActions({ weakzhi: 'work', pintbox: 'slack', mashiro: 'slack' });
 
@@ -28,8 +29,8 @@ describe('弱智 complete character package', () => {
   });
 
   it('cannot be selected by a coordination card', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     game.player.hand = [{ instanceId: 'soothe-test', cardId: 'soothe' }];
 
     expect(engine.playCard('player', 'soothe-test', { memberId: 'weakzhi' })).toBe(false);
@@ -37,21 +38,21 @@ describe('弱智 complete character package', () => {
   });
 
   it('cannot use coordination cards while serving as leader', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     game.player.leaderId = 'weakzhi';
     game.player.hand = [{ instanceId: 'soothe-test', cardId: 'soothe' }];
-    const engine = new EngineSession(game, () => 0.5, DEFAULT_CONTENT);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
 
     expect(engine.playCard('player', 'soothe-test', { memberId: 'pintbox' })).toBe(false);
     expect(game.player.hand).toHaveLength(1);
   });
 
   it('rolls an independent d6 for every remaining progress cell before final scoring', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     game.round = game.maxRounds;
     const work = game.player.works.find((candidate) => candidate.ownerId === 'weakzhi')!;
     work.slots[0]!.design = 6;
-    const engine = new EngineSession(game, () => 0, DEFAULT_CONTENT);
+    const engine = new EngineSession(game, () => 0, STANDARD_GAME_DEFINITION);
 
     engine.skills.emit({ type: 'roundEnd' });
 
