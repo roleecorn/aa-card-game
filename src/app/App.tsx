@@ -17,6 +17,7 @@ import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import { CARDS, CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, selectStandardRosters } from '../game/engine';
+import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { GameHeader } from '../components/GameHeader';
@@ -35,6 +36,10 @@ import { TutorialGuide } from '../tutorial/TutorialGuide';
 
 type AppStage = 'start' | 'draw' | 'battle';
 
+interface AppProps {
+  gameDefinition?: GameDefinition;
+}
+
 const panelSx = {
   p: 1.15,
   border: '1.5px solid #dfe8f4',
@@ -42,8 +47,9 @@ const panelSx = {
   bgcolor: 'rgba(255,255,255,.94)',
 };
 
-export default function App() {
+export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppProps) {
   const game = useGameStore((state) => state.game);
+  const activeGameDefinition = useGameStore((state) => state.gameDefinition);
   const mode = useGameStore((state) => state.mode);
   const tutorial = useGameStore((state) => state.tutorial);
   const actionChoices = useGameStore((state) => state.actionChoices);
@@ -60,7 +66,10 @@ export default function App() {
   const discardCards = useGameStore((state) => state.discardCards);
   const activateSkill = useGameStore((state) => state.activateSkill);
 
-  const engine = useMemo(() => game ? new EngineSession(game) : undefined, [game]);
+  const engine = useMemo(
+    () => game ? new EngineSession(game, Math.random, activeGameDefinition) : undefined,
+    [activeGameDefinition, game],
+  );
   const [selectedDieId, setSelectedDieId] = useState<string>();
   const [cardInstance, setCardInstance] = useState<CardInstance>();
   const [skillDialog, setSkillDialog] = useState<{ memberId: string; skillId: string }>();
@@ -75,11 +84,11 @@ export default function App() {
   const enemyScore = engine?.scoreTeam('enemy') ?? 0;
 
   const playableIds = useMemo(() => {
-    const excluded = new Set(STANDARD_GAME_DEFINITION.roster.excludedCharacterIds);
-    return Object.values(STANDARD_GAME_DEFINITION.content.characters)
+    const excluded = new Set(gameDefinition.roster.excludedCharacterIds);
+    return Object.values(gameDefinition.content.characters)
       .filter((character) => !excluded.has(character.id))
       .map((character) => character.id);
-  }, []);
+  }, [gameDefinition]);
 
   const clearTransientUi = () => {
     setSelectedDieId(undefined);
@@ -90,7 +99,7 @@ export default function App() {
 
   const handleStart = () => {
     reset();
-    const selected = selectStandardRosters(Math.random, STANDARD_GAME_DEFINITION);
+    const selected = selectStandardRosters(Math.random, gameDefinition);
     setDraftRoster({
       player: selected.playerMemberIds,
       enemy: selected.enemyMemberIds,
@@ -121,7 +130,7 @@ export default function App() {
 
   const handleConfirmRoster = (leaderId: string) => {
     if (!draftRoster) return;
-    startGame(draftRoster.player, draftRoster.enemy, leaderId);
+    startGame(draftRoster.player, draftRoster.enemy, leaderId, gameDefinition);
     setAppStage('battle');
   };
 
@@ -235,13 +244,14 @@ export default function App() {
 
   if (appStage === 'draw' && draftRoster) {
     const drawnCharacters = draftRoster.player.flatMap((memberId) => {
-      const character = CHARACTERS[memberId];
+      const character = gameDefinition.content.characters[memberId];
       return character ? [character] : [];
     });
     return (
       <>
         <DrawPhaseScreen
           characters={drawnCharacters}
+          leaderStressBonus={gameDefinition.rules.leaderStressBonus}
           onReroll={handleReroll}
           onConfirm={handleConfirmRoster}
         />
