@@ -10,11 +10,22 @@ const QUALITY = 82;
 const ALPHA_QUALITY = 90;
 const EFFORT = 6;
 const ROOT = path.resolve('public/assets/characters');
+const CONTENT_ROOT = path.resolve('src/content');
+
+async function contentSources(): Promise<string[]> {
+  const entries = await fs.readdir(CONTENT_ROOT, { withFileTypes: true });
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.ts'))
+    .map((entry) => path.join(CONTENT_ROOT, entry.name));
+  return Promise.all(files.map((file) => fs.readFile(file, 'utf8')));
+}
 
 async function configuredAssets(field: 'portrait' | 'compactPortrait'): Promise<string[]> {
-  const source = await fs.readFile(path.resolve('src/content/characters.ts'), 'utf8');
-  const re = new RegExp(`${field}:\\s*['"]\\/assets\\/characters\\/([^'"]+\\.webp)['"]`, 'g');
-  return [...source.matchAll(re)].map((match) => match[1]).sort();
+  const re = new RegExp(`${field}:\\s*['"]\\/?assets\\/characters\\/([^'"]+\\.webp)['"]`, 'g');
+  const matches = (await contentSources()).flatMap((source) =>
+    [...source.matchAll(re)].map((match) => match[1]),
+  );
+  return [...new Set(matches)].sort();
 }
 
 function idsFrom(paths: string[], prefix: string): string[] {
