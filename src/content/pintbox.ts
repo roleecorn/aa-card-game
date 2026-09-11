@@ -56,6 +56,7 @@ export const pintboxSkills = skillDefinitionSchema.array().parse([
         conditions: [
           { kind: 'relation', field: 'targetId', relation: 'self' },
           { kind: 'eventAmount', op: 'gt', value: 0 },
+          { kind: 'not', condition: { kind: 'relation', field: 'sourceId', relation: 'self' } },
         ],
       },
       effects: [{ kind: 'event.amount', amount: -1, min: 0 }],
