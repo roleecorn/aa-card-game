@@ -1,7 +1,7 @@
 import type { CardDefinition } from './schema';
 import type { SkillActivationTarget, TeamState } from './types';
 import type { EngineSession } from './engine';
-import { hasExternalEffectImmunity } from './externalImmunity';
+import { isCardEffectBlocked } from './externalImmunity';
 
 export type CardHandler = (
   team: TeamState,
@@ -28,7 +28,8 @@ export function executeCardHandler(name: string, team: TeamState, card: CardDefi
 registerCardHandler('guide', (team, _card, target, engine) => {
   const member = team.members.find((item) => item.defId === target.memberId);
   const skill = target.skill;
-  if (!member || !skill || hasExternalEffectImmunity(engine, member.defId) || engine.getEffectiveStat(member.defId, skill) > 1) return false;
+  if (!member || !skill || engine.getEffectiveStat(member.defId, skill) > 1) return false;
+  if (isCardEffectBlocked(engine, member.defId)) return true;
   const die = engine.grantDice(team.id, member.defId, skill, 1, '指導', true)[0];
   if (die?.value === 6) {
     member.permanentStats[skill] += 1;
@@ -39,7 +40,7 @@ registerCardHandler('guide', (team, _card, target, engine) => {
 
 registerCardHandler('voice', (team, _card, target, engine) => {
   const mode = target.voiceMode ?? 'relief';
-  const affectedMembers = team.members.filter((member) => !hasExternalEffectImmunity(engine, member.defId));
+  const affectedMembers = team.members.filter((member) => !isCardEffectBlocked(engine, member.defId));
   if (mode === 'relief') {
     for (const member of affectedMembers) engine.adjustStress(team.id, member.defId, -1, '語音會議');
     return true;

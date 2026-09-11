@@ -12,7 +12,7 @@ export const shennauCharacter = characterDefinitionSchema.parse({
   sourceNotes: [
     '2026-09-10：卡奧斯提出神惱卡；PintBox 明確認可原案。',
     '設定狂：每回合一次，可以少 1 顆 Text 骰換取額外 1 顆 Design 骰。',
-    '自己做：不能受到正面或負面的修正，包含技能、事件卡與統籌卡。',
+    '自己做：仍可被技能／卡牌指定；若效果來源為其他角色技能、事件卡或統籌卡，該效果對神惱無效。「無效」不代表「不能指定」。',
     '討論沒有明確定義作品適性，因此不自行補適性。',
   ],
 });
@@ -32,7 +32,7 @@ export const shennauSkills = skillDefinitionSchema.array().parse([
   {
     id: 'shennauDoItMyself',
     name: '自己做',
-    description: '不能受到其他角色技能或卡牌造成的正面、負面修正。',
+    description: '仍可被指定；其他角色技能或卡牌造成的正面、負面修正對自己無效。',
     activation: 'triggered',
     status: 'implemented',
     passives: [{ kind: 'effect.immunity', source: 'external' }],

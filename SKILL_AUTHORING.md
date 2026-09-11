@@ -25,7 +25,16 @@
 passives: [{ kind: 'effect.immunity', source: 'external' }]
 ```
 
-UI 可以查詢這項 Skill passive 來隱藏非法目標；真正的 Stress／dice effect cancellation 仍由同一 Skill 的 triggers 執行。不要另外建立 Character ID、Tag 或平行 metadata table 來描述同一規則。
+`effect.immunity` 是 **effect resolution** 規則，不是 target validation 規則。UI 不得因為看到 immunity 就把角色從可選目標中隱藏；selector 也不得因 immunity 改選下一個角色。真正的 Stress／dice effect cancellation 可由同一 Skill 的 triggers 或共用 effect-resolution helper 執行。不要另外建立 Character ID、Tag 或平行 metadata table 來描述同一規則。
+
+### 「無效」與「不能指定」
+
+這兩種規則必須分開建模：
+
+- **無效（immune / ineffective）**：目標仍然合法，Skill／Card 可以正常發動並消耗使用次數或卡牌；只有落在免疫角色／作品上的 effect 變成 no-op。同一個 Skill 的其他 effect 仍照常結算。
+- **不能指定（untargetable）**：屬於 target validation；該角色根本不是合法目標，玩家不能以它完成該次指定。這必須由 `activeTarget`、Card target rule 或明確的 runtime status 表達，例如 `coordinationUntargetable`。
+
+例如，若神惱同時具有 `triangle-creature` Tag，三角希仍可用「滾滾三角生物」指定神惱：三角希自己的 Stress -1 正常生效，神惱的 Stress -1 因「自己做」而無效；技能仍視為已發動。若規則文字真正寫的是「不能被指定」，才應在 target validation 階段排除。
 
 ### Triggered
 
@@ -156,7 +165,7 @@ if (character.id === 'someCharacter') {
 - 每回合 / 每局 usage limit。
 - target relation。
 - 若涉及 random，使用 deterministic RNG。
-- 若 UI 需要依技能能力過濾目標，驗證 UI 所讀的是 Skill passive / runtime status，而不是 Character Tag 或角色 ID。
+- 若 UI 需要依規則過濾目標，驗證依據是真正的 target rule / runtime status，而不是 `effect.immunity`、Character Tag 或角色 ID。
 
 需要注入自訂 content 的測試，先用 `withGameContent()` 從一個完整 `GameDefinition` 建出測試 definition，再交給 `EngineSession` / `createInitialGame()`；Engine API 不接受單獨 `GameContent`。
 
@@ -165,7 +174,7 @@ if (character.id === 'someCharacter') {
 - Trigger event 已包含 `roundEnd`、`afterDiePlaced` 與 `cardPlayed`。
 - 卡牌一律由當前 `TeamState.leaderId` 對應的組長使用，`cardPlayed.actorId` 由 Engine 推導；不要在 Skill authoring 建立另一套任意 card actor / `card.permission` 模型。
 - `coordination.stressBearer` 可讓副組長代替組長承擔統籌卡的 +1 Stress，但不改變出牌者 identity。
-- `effect.immunity` passive 可讓 UI / targeting 查詢外部效果免疫；實際效果仍須由 Skill runtime triggers enforce。
+- `effect.immunity` passive 表示外部 effect 在結算時無效；它**不得**被 UI / selector 解讀成「不能指定」。真正的 untargetable 規則必須另用 target rule / runtime status 表達。
 - `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
 - Character Tag 只可用於 metadata 或 selector / condition；`no-stress`、`cannot-act`、`not-standard-playable` 等 behavior tag 不得新增。
 - Standard / Boss mode eligibility 放在 match configuration，不放 Character Tag。

@@ -81,7 +81,7 @@ describe('refactor regression coverage', () => {
     expect(game.enemy.hand.slice(2).every((card) => CARDS[card.cardId]?.kind === 'coordination')).toBe(true);
   });
 
-  it('Shennau external immunity blocks cards that target Shennau work', () => {
+  it('Shennau external immunity makes a targeted work card ineffective without making the work untargetable', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['shennau', 'pintbox', 'mashiro'],
       enemyMemberIds: STANDARD_ENEMY,
@@ -90,9 +90,10 @@ describe('refactor regression coverage', () => {
     const work = game.player.works.find((candidate) => candidate.ownerId === 'shennau')!;
     game.player.hand.push({ instanceId: 'immune-rush', cardId: 'rush' });
 
-    expect(engine.playCard('player', 'immune-rush', { workId: work.id })).toBe(false);
+    expect(engine.playCard('player', 'immune-rush', { workId: work.id })).toBe(true);
     expect(work.slots.every((slot) => slot.design === undefined && slot.text === undefined && slot.aa === undefined)).toBe(true);
-    expect(game.player.hand.some((card) => card.instanceId === 'immune-rush')).toBe(true);
+    expect(game.player.hand.some((card) => card.instanceId === 'immune-rush')).toBe(false);
+    expect(game.player.discard).toContain('rush');
   });
 
   it('Shennau external immunity ignores team-wide card effects while teammates still receive them', () => {
