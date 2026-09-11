@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
-import { EngineSession, applyLeaderStressBonuses, createInitialGame } from '../game/engine';
+import { EngineSession, createInitialGame } from '../game/engine';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId } from '../game/schema';
 import { createTutorialGame, createTutorialSession } from '../tutorial/runtime';
@@ -85,12 +85,10 @@ export const useGameStore = create<GameStore>()(
         playerMemberIds: orderedPlayerMemberIds,
         enemyMemberIds,
       });
-      applyLeaderStressBonuses(state.game as GameState, STANDARD_GAME_DEFINITION);
       state.actionChoices = defaultChoices(state.game as GameState);
     }),
     startTutorial: () => set((state) => {
       const game = createTutorialGame();
-      applyLeaderStressBonuses(game, STANDARD_GAME_DEFINITION);
       state.mode = 'tutorial';
       state.tutorial = createTutorialRuntimeState();
       state.game = game;

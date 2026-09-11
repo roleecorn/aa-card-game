@@ -4,7 +4,7 @@ import { createInitialGame, EngineSession } from '../game/engine';
 import type { DieToken } from '../game/types';
 
 const ROSTER = {
-  playerMemberIds: ['akikage', 'weakzhi', 'pintbox'],
+  playerMemberIds: ['pintbox', 'akikage', 'weakzhi'],
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
@@ -22,7 +22,11 @@ describe('秋影 complete character package', () => {
   it('follows the common max-stress rule and is forced to slack at game start', () => {
     const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
+    expect(game.player.leaderId).toBe('pintbox');
+    expect(engine.getEffectiveMaxStress('player', 'akikage')).toBe(3);
+
     engine.performPlayerActions({ akikage: 'work', weakzhi: 'work', pintbox: 'slack' });
+
     expect(game.player.members.find((member) => member.defId === 'akikage')?.stress).toBe(1);
     expect(game.player.pendingDice.some((die) => die.ownerId === 'akikage')).toBe(false);
   });

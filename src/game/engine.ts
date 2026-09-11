@@ -6,6 +6,7 @@ import type { GameContent } from './contentRegistry';
 import type { GameDefinition } from './gameDefinition';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
+import { hasExternalEffectImmunity } from './externalImmunity';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
 import type { CardDefinition, CharacterDefinition, MemberSelector, SkillEffect, SkillStat, TeamId, WorkSelector, WorkType } from './schema';
 import type {
@@ -319,16 +320,26 @@ export class EngineSession {
     work.length = next;
   }
 
+  private canReceiveSkillEffect(context: EffectContext, memberId: string): boolean {
+    if (memberId === context.ownerId) return true;
+    if (this.content.skills[context.definition.id] !== context.definition) return true;
+    return !hasExternalEffectImmunity(this, memberId);
+  }
+
   resolveMembers(selector: MemberSelector, context: EffectContext): Array<{ teamId: TeamId; member: CharacterState }> {
     const one = (id?: string): Array<{ teamId: TeamId; member: CharacterState }> => {
-      if (!id) return [];
+      if (!id || !this.canReceiveSkillEffect(context, id)) return [];
       const teamId = this.findMemberTeam(id);
       const member = teamId ? this.getCharacter(teamId, id) : undefined;
       return teamId && member ? [{ teamId, member }] : [];
     };
-    const allies = this.getTeam(context.ownerTeamId).members.map((member) => ({ teamId: context.ownerTeamId, member }));
+    const allies = this.getTeam(context.ownerTeamId).members
+      .filter((member) => this.canReceiveSkillEffect(context, member.defId))
+      .map((member) => ({ teamId: context.ownerTeamId, member }));
     const enemiesId = this.opponentId(context.ownerTeamId);
-    const enemies = this.getTeam(enemiesId).members.map((member) => ({ teamId: enemiesId, member }));
+    const enemies = this.getTeam(enemiesId).members
+      .filter((member) => this.canReceiveSkillEffect(context, member.defId))
+      .map((member) => ({ teamId: enemiesId, member }));
     const pickRandom = <T,>(items: T[]): T[] => items.length ? [items[Math.floor(this.random() * items.length)]!] : [];
     const pickStress = (items: Array<{ teamId: TeamId; member: CharacterState }>, direction: 'highest' | 'lowest') => {
       if (!items.length) return [];
@@ -357,18 +368,20 @@ export class EngineSession {
   }
 
   resolveWorks(selector: WorkSelector, context: EffectContext): WorkState[] {
-    const allies = this.getTeam(context.ownerTeamId).works;
-    const enemies = this.getTeam(this.opponentId(context.ownerTeamId)).works;
+    const eligible = (work: WorkState) => this.canReceiveSkillEffect(context, work.ownerId);
+    const allies = this.getTeam(context.ownerTeamId).works.filter(eligible);
+    const enemies = this.getTeam(this.opponentId(context.ownerTeamId)).works.filter(eligible);
     const pickRandom = (items: WorkState[]): WorkState[] => items.length ? [items[Math.floor(this.random() * items.length)]!] : [];
     const pickScore = (items: WorkState[], direction: 'highest' | 'lowest'): WorkState[] => {
       if (!items.length) return [];
       return [[...items].sort((a, b) => direction === 'highest' ? this.scoreWork(b) - this.scoreWork(a) : this.scoreWork(a) - this.scoreWork(b))[0]!];
     };
+    const one = (work?: WorkState) => work && eligible(work) ? [work] : [];
 
     switch (selector) {
       case 'ownerWork': return allies.filter((work) => work.ownerId === context.ownerId);
-      case 'eventWork': return this.findWork(context.event.workId) ? [this.findWork(context.event.workId)!] : [];
-      case 'selectedWork': return this.findWork(context.activationTarget?.workId) ? [this.findWork(context.activationTarget?.workId)!] : [];
+      case 'eventWork': return one(this.findWork(context.event.workId));
+      case 'selectedWork': return one(this.findWork(context.activationTarget?.workId));
       case 'allAllyWorks': return allies;
       case 'allEnemyWorks': return enemies;
       case 'randomAllyWork': return pickRandom(allies);
@@ -518,6 +531,8 @@ export class EngineSession {
         if ((member.statuses.writerBlock?.stacks ?? 0) > 0 && batch.some((die) => die.value <= 2)) {
           delete member.statuses.writerBlock;
           this.adjustStress(teamId, member.defId, 2, '卡文', true);
+          if (this.isGameFinished()) return;
+          if (!this.getCharacter(teamId, member.defId)) continue;
         }
 
         this.adjustStress(teamId, member.defId, 1, '工作');
@@ -579,7 +594,7 @@ export class EngineSession {
     this.log(`${team.name} 使用「${card.name}」。`);
     if (card.kind === 'coordination') {
       const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
-      this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true);
+      this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true, actorId);
     }
     this.skills.emit({ type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } });
     return true;
@@ -808,6 +823,7 @@ export function createInitialGame(
   engine.drawCards('enemy', rules.initialHandSize);
   engine.log(`本局隨機隊伍：我方 ${playerMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}；對手 ${enemyMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}。`);
   engine.log(`遊戲開始：${rules.maxRounds} 回合內完成作品；每個 slot 以 Design / Text / AA 的最低值計分，缺項視為 ${rules.missingWorkStatScore}。`);
+  applyLeaderStressBonuses(state, gameDefinition);
   engine.start();
   return state;
 }
