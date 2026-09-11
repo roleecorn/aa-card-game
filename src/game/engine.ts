@@ -1,13 +1,13 @@
 import { nanoid } from 'nanoid';
-import { BASE_DECK, DEFAULT_CONTENT, DEFAULT_MATCH, WORK_TYPES } from '../content/catalog';
-import { isStandardPlayableCharacterId } from '../content/match';
+import { STANDARD_GAME_DEFINITION, WORK_TYPES } from '../content/catalog';
 import { builtInEffects } from './effectRegistry';
 import { executeCardHandler } from './cardHandlers';
+import type { GameContent } from './contentRegistry';
+import { isGameDefinition, type GameDefinition, type GameDefinitionInput } from './gameDefinition';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
 import type { CardDefinition, CharacterDefinition, MemberSelector, SkillEffect, SkillStat, TeamId, WorkSelector, WorkType } from './schema';
-import type { GameContent } from './contentRegistry';
 import type {
   ActionChoice,
   CharacterState,
@@ -29,8 +29,12 @@ export interface InitialGameOptions {
   enemyMemberIds?: string[];
 }
 
-function isStandardPlayable(definition: CharacterDefinition): boolean {
-  return isStandardPlayableCharacterId(definition.id);
+function normalizeGameDefinition(input: GameDefinitionInput = STANDARD_GAME_DEFINITION): GameDefinition {
+  return isGameDefinition(input) ? input : { ...STANDARD_GAME_DEFINITION, content: input };
+}
+
+function isRosterPlayable(definition: CharacterDefinition, gameDefinition: GameDefinition): boolean {
+  return !gameDefinition.roster.excludedCharacterIds.includes(definition.id);
 }
 
 function characterWorkTypes(definition: CharacterDefinition, content: GameContent): WorkType[] {
@@ -58,53 +62,58 @@ function chooseWorkType(engine: EngineSession, memberId: string): WorkType {
 }
 
 function validateRosterOverride(
-  content: GameContent,
+  gameDefinition: GameDefinition,
   playerMemberIds: string[],
   enemyMemberIds: string[],
-  teamSize: number,
 ): void {
-  if (playerMemberIds.length !== teamSize || enemyMemberIds.length !== teamSize) {
-    throw new Error(`Each standard team must contain exactly ${teamSize} characters.`);
+  const { content, rules } = gameDefinition;
+  if (playerMemberIds.length !== rules.teamSize || enemyMemberIds.length !== rules.teamSize) {
+    throw new Error(`Each team must contain exactly ${rules.teamSize} characters for game definition ${gameDefinition.id}.`);
   }
   const combined = [...playerMemberIds, ...enemyMemberIds];
   if (new Set(combined).size !== combined.length) throw new Error('Player and enemy rosters must not contain duplicate characters.');
   for (const id of combined) {
     const definition = content.characters[id];
     if (!definition) throw new Error(`Unknown character ${id}`);
-    if (!isStandardPlayable(definition)) throw new Error(`Character ${id} is not available in a standard match.`);
+    if (!isRosterPlayable(definition, gameDefinition)) throw new Error(`Character ${id} is not available in game definition ${gameDefinition.id}.`);
   }
 }
 
 export function selectStandardRosters(
   rng: () => number = Math.random,
-  content: GameContent = DEFAULT_CONTENT,
+  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
 ): { playerMemberIds: string[]; enemyMemberIds: string[]; unusedMemberIds: string[] } {
-  const playable = Object.values(content.characters)
-    .filter(isStandardPlayable)
+  const gameDefinition = normalizeGameDefinition(definitionInput);
+  const playable = Object.values(gameDefinition.content.characters)
+    .filter((definition) => isRosterPlayable(definition, gameDefinition))
     .map((character) => character.id);
 
-  const required = DEFAULT_MATCH.teamSize * 2;
+  const required = gameDefinition.rules.teamSize * 2;
   if (playable.length < required) {
-    throw new Error(`Standard match requires at least ${required} playable characters; found ${playable.length}.`);
+    throw new Error(`${gameDefinition.id} requires at least ${required} playable characters; found ${playable.length}.`);
   }
 
-  const bootstrap = new EngineSession({} as GameState, rng, content);
+  const bootstrap = new EngineSession({} as GameState, rng, gameDefinition);
   const shuffled = bootstrap.shuffle(playable);
   return {
-    playerMemberIds: shuffled.slice(0, DEFAULT_MATCH.teamSize),
-    enemyMemberIds: shuffled.slice(DEFAULT_MATCH.teamSize, required),
+    playerMemberIds: shuffled.slice(0, gameDefinition.rules.teamSize),
+    enemyMemberIds: shuffled.slice(gameDefinition.rules.teamSize, required),
     unusedMemberIds: shuffled.slice(required),
   };
 }
 
 export class EngineSession {
   readonly skills: SkillRuntime;
+  readonly gameDefinition: GameDefinition;
+  readonly content: GameContent;
 
   constructor(
     public readonly state: GameState,
     readonly rng: () => number = Math.random,
-    public readonly content: GameContent = DEFAULT_CONTENT,
+    definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
   ) {
+    this.gameDefinition = normalizeGameDefinition(definitionInput);
+    this.content = this.gameDefinition.content;
     this.skills = new SkillRuntime(this);
   }
 
@@ -182,7 +191,8 @@ export class EngineSession {
   }
 
   scoreWork(work: WorkState): number {
-    return work.slots.reduce((sum, slot) => sum + Math.min(slot.design ?? -2, slot.text ?? -2, slot.aa ?? -2), 0);
+    const missing = this.gameDefinition.rules.missingWorkStatScore;
+    return work.slots.reduce((sum, slot) => sum + Math.min(slot.design ?? missing, slot.text ?? missing, slot.aa ?? missing), 0);
   }
 
   scoreTeam(teamId: TeamId): number {
@@ -385,7 +395,8 @@ export class EngineSession {
     if (cards.some((card) => !card)) return false;
 
     const remainingCount = team.hand.length - uniqueIds.length;
-    if (team.hand.length > DEFAULT_MATCH.handLimit && remainingCount !== DEFAULT_MATCH.handLimit) return false;
+    const handLimit = this.gameDefinition.rules.handLimit;
+    if (team.hand.length > handLimit && remainingCount !== handLimit) return false;
 
     const selected = new Set(uniqueIds);
     team.hand = team.hand.filter((card) => !selected.has(card.instanceId));
@@ -396,7 +407,7 @@ export class EngineSession {
 
   private discardEnemyOverflow(): void {
     const team = this.state.enemy;
-    const excess = team.hand.length - DEFAULT_MATCH.handLimit;
+    const excess = team.hand.length - this.gameDefinition.rules.handLimit;
     if (excess <= 0) return;
     const shuffled = this.shuffle(team.hand);
     const discarded = shuffled.slice(0, excess);
@@ -439,7 +450,7 @@ export class EngineSession {
   }
 
   performPlayerActions(actions: Record<string, ActionChoice>): void {
-    if (this.state.phase !== 'player-plan' || this.state.player.hand.length > DEFAULT_MATCH.handLimit) return;
+    if (this.state.phase !== 'player-plan' || this.state.player.hand.length > this.gameDefinition.rules.handLimit) return;
     this.performTeamActions('player', actions);
     this.state.phase = 'player-assign';
   }
@@ -490,7 +501,7 @@ export class EngineSession {
 
   playCard(teamId: TeamId, instanceId: string, target: SkillActivationTarget): boolean {
     const team = this.getTeam(teamId);
-    if (team.hand.length > DEFAULT_MATCH.handLimit) return false;
+    if (team.hand.length > this.gameDefinition.rules.handLimit) return false;
     const index = team.hand.findIndex((card) => card.instanceId === instanceId);
     const instance = team.hand[index];
     if (!instance) return false;
@@ -621,8 +632,8 @@ export class EngineSession {
     this.state.phase = 'player-plan';
 
     try {
-      this.drawCards('player', DEFAULT_MATCH.cardsPerRound);
-      this.drawCards('enemy', DEFAULT_MATCH.cardsPerRound);
+      this.drawCards('player', this.gameDefinition.rules.cardsPerRound);
+      this.drawCards('enemy', this.gameDefinition.rules.cardsPerRound);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`系統保護：回合抽牌失敗，已略過：${message}`);
@@ -688,13 +699,14 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
       resources: definition.resource ? { [definition.resource.name]: definition.resource.initial } : undefined,
     };
   });
+  const workLength = engine.gameDefinition.rules.workLength;
   const works: WorkState[] = memberIds.map((ownerId) => ({
     id: engine.uid('work'),
     ownerId,
     title: `${engine.content.characters[ownerId]?.name ?? ownerId} 的作品`,
     type: chooseWorkType(engine, ownerId),
-    length: 5,
-    slots: Array.from({ length: 5 }, () => ({})),
+    length: workLength,
+    slots: Array.from({ length: workLength }, () => ({})),
   }));
   return {
     id,
@@ -703,19 +715,35 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
     members,
     works,
     hand: [],
-    deck: engine.shuffle(BASE_DECK),
+    deck: engine.shuffle([...engine.gameDefinition.deck]),
     discard: [],
     pendingDice: [],
   };
 }
 
+export function applyLeaderStressBonuses(
+  game: GameState,
+  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
+): void {
+  const gameDefinition = normalizeGameDefinition(definitionInput);
+  const bonus = gameDefinition.rules.leaderStressBonus;
+  if (bonus <= 0) return;
+  for (const team of [game.player, game.enemy]) {
+    const leader = team.members.find((member) => member.defId === team.leaderId);
+    if (!leader) continue;
+    leader.statuses[GAMEPLAY_STATUS.leaderStressCapBonus] = { stacks: bonus };
+  }
+}
+
 export function createInitialGame(
   rng: () => number = Math.random,
-  content: GameContent = DEFAULT_CONTENT,
+  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
   options: InitialGameOptions = {},
 ): GameState {
+  const gameDefinition = normalizeGameDefinition(definitionInput);
+  const { content, rules } = gameDefinition;
   const placeholder = {} as GameState;
-  const bootstrap = new EngineSession(placeholder, rng, content);
+  const bootstrap = new EngineSession(placeholder, rng, gameDefinition);
 
   let playerMemberIds: string[];
   let enemyMemberIds: string[];
@@ -724,23 +752,23 @@ export function createInitialGame(
     if (!options.playerMemberIds || !options.enemyMemberIds) {
       throw new Error('Both playerMemberIds and enemyMemberIds must be provided together.');
     }
-    validateRosterOverride(content, options.playerMemberIds, options.enemyMemberIds, DEFAULT_MATCH.teamSize);
+    validateRosterOverride(gameDefinition, options.playerMemberIds, options.enemyMemberIds);
     playerMemberIds = [...options.playerMemberIds];
     enemyMemberIds = [...options.enemyMemberIds];
   } else {
-    const selected = selectStandardRosters(rng, content);
+    const selected = selectStandardRosters(rng, gameDefinition);
     playerMemberIds = selected.playerMemberIds;
     enemyMemberIds = selected.enemyMemberIds;
   }
 
-  const player = createTeam(bootstrap, 'player', DEFAULT_MATCH.player.name, playerMemberIds);
-  const enemy = createTeam(bootstrap, 'enemy', DEFAULT_MATCH.enemy.name, enemyMemberIds);
-  const state: GameState = { round: 1, maxRounds: DEFAULT_MATCH.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
-  const engine = new EngineSession(state, rng, content);
-  engine.drawCards('player', DEFAULT_MATCH.initialHandSize);
-  engine.drawCards('enemy', DEFAULT_MATCH.initialHandSize);
+  const player = createTeam(bootstrap, 'player', rules.player.name, playerMemberIds);
+  const enemy = createTeam(bootstrap, 'enemy', rules.enemy.name, enemyMemberIds);
+  const state: GameState = { round: 1, maxRounds: rules.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
+  const engine = new EngineSession(state, rng, gameDefinition);
+  engine.drawCards('player', rules.initialHandSize);
+  engine.drawCards('enemy', rules.initialHandSize);
   engine.log(`本局隨機隊伍：我方 ${playerMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}；對手 ${enemyMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}。`);
-  engine.log('遊戲開始：5 回合內完成作品；每個 slot 以 Design / Text / AA 的最低值計分，缺項視為 -2。');
+  engine.log(`遊戲開始：${rules.maxRounds} 回合內完成作品；每個 slot 以 Design / Text / AA 的最低值計分，缺項視為 ${rules.missingWorkStatScore}。`);
   engine.start();
   return state;
 }

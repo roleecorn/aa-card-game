@@ -1,3 +1,4 @@
+import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 import type { GameState, TeamState } from '../game/types';
 import {
@@ -17,7 +18,7 @@ function tutorialRandom(): number {
 }
 
 function applyTutorialDeck(team: TeamState, cardIds: readonly string[], prefix: string): void {
-  const initialHandSize = 2;
+  const initialHandSize = STANDARD_GAME_DEFINITION.rules.initialHandSize;
   team.hand = cardIds.slice(0, initialHandSize).map((cardId, index) => ({
     instanceId: `tutorial-${prefix}-card-${index + 1}`,
     cardId,
@@ -31,7 +32,7 @@ export function resetTutorialRuntime(): void {
 }
 
 export function createTutorialGame(): GameState {
-  const game = createInitialGame(() => 0.5, undefined, {
+  const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
     playerMemberIds: [...TUTORIAL_PLAYER_ROSTER],
     enemyMemberIds: [...TUTORIAL_ENEMY_ROSTER],
   });
@@ -43,5 +44,5 @@ export function createTutorialGame(): GameState {
 }
 
 export function createTutorialSession(game: GameState): EngineSession {
-  return new EngineSession(game, tutorialRandom);
+  return new EngineSession(game, tutorialRandom, STANDARD_GAME_DEFINITION);
 }
