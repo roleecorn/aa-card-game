@@ -11,6 +11,14 @@
 - build 使用 **Vite**，測試使用 **Vitest**。
 - 新 dependency 必須有明確用途；不要為一個很小的 helper 引入大型套件。
 
+## 部署與 public asset 路徑
+
+- **不得假設此 Web app 部署在 domain root。** GitHub Pages、preview、reverse proxy 或其他 hosting 都可能將程式掛在 `/aa-card-game/` 或其他子路徑。
+- Repository 內 `public/` 資源的 canonical reference 必須使用 repository-relative path，例如 `assets/characters/portrait/example.webp`；**不得把 `/assets/...` 這類 root-absolute URL 當成正式寫法。**
+- Browser runtime URL 必須經由 Vite `import.meta.env.BASE_URL` 或專案共用的 `resolvePublicAssetPath` 解析；不要在 component / content module 自行拼接網站根路徑。
+- `https://...` 等真正外部資源 URL 可保持完整 URL；本 repository 自帶資源不適用此例外。
+- 任何 public asset path 相關修改至少要有一個 non-root base regression，例如 `BASE_URL=/aa-card-game/`，確認輸出為 `/aa-card-game/assets/...` 而不是 `/assets/...`。
+
 ## 遊戲規則架構
 
 - 不得用角色名稱或角色 ID 在 `GameEngine` 內建立角色特判，例如：
@@ -39,7 +47,7 @@
 
 ## 角色美術
 
-- runtime 角色立繪使用 `public/assets/characters/*.webp`。
+- runtime 角色立繪使用 `public/assets/characters/*.webp`；content reference 使用 `assets/characters/...`，由 runtime resolver 套用 deployment base。
 - 每個可用角色都必須有可解析的 `portrait`；若 UI 需要 `compactPortrait`，也必須有可解析的對應圖片。
 - **角色提交不要求正式美術完成；placeholder / 代用圖即可滿足圖片完整性要求。** 正式 portrait 可在後續由使用者手動替換。
 - 立繪固定 **3:4**，標準輸出為 **768 x 1024**；compact slot 為 **384 x 320**。
