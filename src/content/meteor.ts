@@ -8,8 +8,8 @@ export const meteorCharacter = characterDefinitionSchema.parse({
   affinities: ['燃'],
   skillIds: ['meteorTrack', 'viceLeaderPower'],
   tags: ['vice-leader'],
-  portrait: '/assets/characters/portrait/meteor.webp',
-  compactPortrait: '/assets/characters/compact/meteor.webp',
+  portrait: 'assets/characters/portrait/meteor.webp',
+  compactPortrait: 'assets/characters/compact/meteor.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-03 07:20:07：PintBox 明確設計「流星」卡：Text 1、AA 2；技能「軌」在（燃）作品時可額外擲 2 顆骰取高。',
@@ -40,13 +40,5 @@ export const meteorSkills = skillDefinitionSchema.array().parse([
       origin: '軌',
       requireOwnerWorkType: '燃',
     }],
-  },
-  {
-    id: 'meteorCoordination',
-    name: '副組長聖體',
-    description: '隊伍使用統籌卡時，由流星代替隊長承擔 +1 外部壓力。',
-    activation: 'passive',
-    status: 'implemented',
-    passives: [{ kind: 'coordination.stressBearer' }],
   },
 ]);

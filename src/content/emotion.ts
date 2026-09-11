@@ -7,8 +7,8 @@ export const emotionCharacter = characterDefinitionSchema.parse({
   maxStress: 5,
   affinities: ['情'],
   skillIds: ['emotionCraftAwareness'],
-  portrait: '/assets/characters/portrait/emotion.webp',
-  compactPortrait: '/assets/characters/compact/emotion.webp',
+  portrait: 'assets/characters/portrait/emotion.webp',
+  compactPortrait: 'assets/characters/compact/emotion.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-03 07:12:37：PintBox 明確評價情緒屬於「有意識」能想到簡單改善 AA 效果的人，並表示做 AA 最重要的是意識、其次才是技術。',

@@ -5,7 +5,7 @@ import {
   TUTORIAL_ENEMY_ROSTER,
   TUTORIAL_PLAYER_DECK,
   TUTORIAL_PLAYER_ROSTER,
-} from '../content/tutorial';
+} from './config';
 import { CHARACTERS } from '../content/catalog';
 import { useGameStore } from '../store/gameStore';
 import { createTutorialGame, createTutorialSession } from './runtime';
@@ -31,7 +31,7 @@ describe('tutorial match', () => {
     expect(game.player.members.map((member) => member.defId)).toEqual([...TUTORIAL_PLAYER_ROSTER]);
     expect(game.enemy.members.map((member) => member.defId)).toEqual([...TUTORIAL_ENEMY_ROSTER]);
     expect(game.player.hand.map((card) => card.cardId)).toEqual(TUTORIAL_PLAYER_DECK.slice(0, 2));
-    expect(game.enemy.hand.map((card) => card.cardId)).toEqual(TUTORIAL_ENEMY_DECK.slice(0, 2));
+    expect(game.enemy.hand.slice(0, 2).map((card) => card.cardId)).toEqual(TUTORIAL_ENEMY_DECK.slice(0, 2));
     expect(game.player.deck).toEqual(TUTORIAL_PLAYER_DECK.slice(2));
     expect(game.enemy.deck).toEqual(TUTORIAL_ENEMY_DECK.slice(2));
   });

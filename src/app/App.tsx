@@ -32,7 +32,7 @@ import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { StartScreen } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
 import { HandLimitDialog } from '../components/HandLimitDialog';
-import { TutorialGuide } from '../components/TutorialGuide';
+import { TutorialGuide } from '../tutorial/TutorialGuide';
 
 type AppStage = 'start' | 'draw' | 'battle';
 

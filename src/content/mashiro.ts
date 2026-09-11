@@ -7,8 +7,8 @@ export const mashiroCharacter = characterDefinitionSchema.parse({
   maxStress: 5,
   affinities: [],
   skillIds: ['mashiroAffinity', 'mashiroSynthesis'],
-  portrait: '/assets/characters/portrait/mashiro.webp',
-  compactPortrait: '/assets/characters/compact/mashiro.webp',
+  portrait: 'assets/characters/portrait/mashiro.webp',
+  compactPortrait: 'assets/characters/compact/mashiro.webp',
   sourceNotes: [
     '2026-09-03 07:56:48：Text 1、Design 2、AA 2、壓力上限 5。',
     '討論明確指定全作品適性。',

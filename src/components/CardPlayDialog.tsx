@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CARDS, CHARACTERS, SKILLS } from '../content/catalog';
-import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
+import { TUTORIAL_CARD_TARGETS } from '../tutorial/config';
 import { GAMEPLAY_STATUS, hasGameplayStatus } from '../game/statuses';
 import type { CardInstance, CharacterState, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
@@ -100,7 +100,8 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
 
   const works = useMemo(() => {
     if (!card || card.target.kind !== 'work') return [];
-    return card.target.relation === 'ally' ? game.player.works : game.enemy.works;
+    const candidates = card.target.relation === 'ally' ? game.player.works : game.enemy.works;
+    return candidates.filter((work) => !hasExternalEffectImmunity(work.ownerId));
   }, [card, game]);
 
   if (!card) return null;

@@ -90,6 +90,7 @@ export const useGameStore = create<GameStore>()(
     }),
     startTutorial: () => set((state) => {
       const game = createTutorialGame();
+      applyLeaderStressBonuses(game, STANDARD_GAME_DEFINITION);
       state.mode = 'tutorial';
       state.tutorial = createTutorialRuntimeState();
       state.game = game;

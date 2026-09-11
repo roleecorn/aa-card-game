@@ -9,8 +9,8 @@ export function runEnemyPreTurnAi(engine: EngineSession): void {
 
 export function chooseEnemyActions(engine: EngineSession): Record<string, ActionChoice> {
   return Object.fromEntries(engine.state.enemy.members.map((member) => {
-    const max = engine.getDefinition(member.defId).maxStress;
-    return [member.defId, max !== null && member.stress >= max ? 'slack' : 'work'];
+    const max = engine.getEffectiveMaxStress('enemy', member.defId);
+    return [member.defId, max !== null && max !== undefined && member.stress >= max ? 'slack' : 'work'];
   })) as Record<string, ActionChoice>;
 }
 
@@ -39,6 +39,12 @@ function useOneCard(engine: EngineSession): void {
   }
 }
 
+function effectiveStressCap(engine: EngineSession, memberId: string): number {
+  const teamId = engine.findMemberTeam(memberId);
+  if (!teamId) return Number.POSITIVE_INFINITY;
+  return engine.getEffectiveMaxStress(teamId, memberId) ?? Number.POSITIVE_INFINITY;
+}
+
 function chooseCardTarget(engine: EngineSession, card: CardDefinition): SkillActivationTarget | undefined {
   const policy = card.ai?.when ?? 'always';
   if (card.target.kind === 'member') {
@@ -51,8 +57,8 @@ function chooseCardTarget(engine: EngineSession, card: CardDefinition): SkillAct
     }
     if (policy === 'enemyLowestHeadroom') {
       const target = [...pool].sort((a, b) => {
-        const maxA = engine.getDefinition(a.defId).maxStress ?? 99;
-        const maxB = engine.getDefinition(b.defId).maxStress ?? 99;
+        const maxA = effectiveStressCap(engine, a.defId);
+        const maxB = effectiveStressCap(engine, b.defId);
         return (maxA - a.stress) - (maxB - b.stress);
       })[0];
       return target ? { memberId: target.defId } : undefined;

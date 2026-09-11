@@ -41,21 +41,15 @@ export const yamadaSkills = skillDefinitionSchema.array().parse([
   {
     id: 'yamadaVanish',
     name: '神隱',
-    description: '自己的 Stress 達到上限時直接離場，之後無法繼續參與遊戲。',
+    description: '自己的 Stress 達到有效上限時直接離場，之後無法繼續參與遊戲。',
     activation: 'triggered',
     status: 'implemented',
     triggers: [
       {
         event: 'afterExternalStress',
         priority: -100,
-        condition: {
-          kind: 'all',
-          conditions: [
-            { kind: 'relation', field: 'targetId', relation: 'self' },
-            { kind: 'ownerStress', op: 'gte', value: 2 },
-          ],
-        },
-        effects: [{ kind: 'custom', handler: 'departOwner' }],
+        condition: { kind: 'relation', field: 'targetId', relation: 'self' },
+        effects: [{ kind: 'custom', handler: 'departOwnerIfAtStressCap' }],
       },
       {
         event: 'afterRollBatch',

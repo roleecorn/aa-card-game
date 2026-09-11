@@ -8,8 +8,8 @@ export const tanxiCharacter = characterDefinitionSchema.parse({
   affinities: ['情'],
   skillIds: ['tanxiHardPush', 'tanxiHardToCoordinate'],
   tags: ['solo-creator', 'stress-driven'],
-  portrait: '/assets/characters/portrait/tanxi.webp',
-  compactPortrait: '/assets/characters/compact/tanxi.webp',
+  portrait: 'assets/characters/portrait/tanxi.webp',
+  compactPortrait: 'assets/characters/compact/tanxi.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-05 11:30:10：本人主動向 PintBox 詢問角色卡；PintBox 回覆目前只能給較低能力值。',

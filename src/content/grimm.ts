@@ -8,8 +8,8 @@ export const grimmCharacter = characterDefinitionSchema.parse({
   affinities: ['情', '燃', '笑'],
   skillIds: ['grimmBurningFrame'],
   tags: ['leader', 'visual-storyteller'],
-  portrait: '/assets/characters/portrait/grimm.webp',
-  compactPortrait: '/assets/characters/compact/grimm.webp',
+  portrait: 'assets/characters/portrait/grimm.webp',
+  compactPortrait: 'assets/characters/compact/grimm.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-01 23:40:56：PintBox 將格林描述為「長板很突出但有召喚代價」的類型。',

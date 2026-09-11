@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CHARACTERS, SKILLS } from '../content/catalog';
-import { TUTORIAL_SKILL_TARGETS, type TutorialDieTarget } from '../content/tutorial';
+import { TUTORIAL_SKILL_TARGETS, type TutorialDieTarget } from '../tutorial/config';
 import type { DieToken, GameState, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 

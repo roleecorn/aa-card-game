@@ -1,6 +1,7 @@
 import type { SkillEffect } from './schema';
 import type { EffectContext } from './types';
 import type { EngineSession } from './engine';
+import { hasExternalEffectImmunity, selectedExternalTargetMemberId } from './externalImmunity';
 
 export type CustomEffect = Extract<SkillEffect, { kind: 'custom' }>;
 export type CustomEffectHandler = (effect: CustomEffect, context: EffectContext, engine: EngineSession) => boolean;
@@ -19,6 +20,13 @@ export function executeCustomSkillEffect(effect: CustomEffect, context: EffectCo
   }
   return handler(effect, context, engine);
 }
+
+registerCustomSkillEffect('cancelIfSelectedTargetExternalImmune', (_effect, context, engine) => {
+  const targetId = selectedExternalTargetMemberId(engine, context);
+  if (!targetId || !hasExternalEffectImmunity(engine, targetId)) return false;
+  context.event.cancelled = true;
+  return false;
+});
 
 registerCustomSkillEffect('addRandomCardsByKind', (effect, context, engine) => {
   const cardKind = effect.args?.cardKind;
@@ -133,10 +141,15 @@ function departOwner(context: EffectContext, engine: EngineSession): boolean {
 
 registerCustomSkillEffect('departOwner', (_effect, context, engine) => departOwner(context, engine));
 
+registerCustomSkillEffect('departOwnerIfAtStressCap', (_effect, context, engine) => {
+  if (!engine.isAtStressCap(context.ownerTeamId, context.ownerId)) return false;
+  return departOwner(context, engine);
+});
+
 registerCustomSkillEffect('departOwnerIfWorkWouldReachStressCap', (_effect, context, engine) => {
   const member = engine.getCharacter(context.ownerTeamId, context.ownerId);
-  const maxStress = engine.getDefinition(context.ownerId).maxStress;
-  if (!member || maxStress === null || member.stress + 1 < maxStress) return false;
+  const maxStress = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
+  if (!member || maxStress === null || maxStress === undefined || member.stress + 1 < maxStress) return false;
 
   const amountToCap = Math.max(0, maxStress - member.stress);
   if (amountToCap > 0) engine.adjustStress(context.ownerTeamId, context.ownerId, amountToCap, '工作');
