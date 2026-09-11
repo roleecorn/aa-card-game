@@ -13,9 +13,9 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { CARDS, CHARACTERS } from '../content/catalog';
-import { hasCharacterMechanic } from '../content/characterMechanics';
+import { CARDS, CHARACTERS, SKILLS } from '../content/catalog';
 import { TUTORIAL_CARD_TARGETS } from '../content/tutorial';
+import { GAMEPLAY_STATUS, hasGameplayStatus } from '../game/statuses';
 import type { CardInstance, CharacterState, GameState, SkillActivationTarget } from '../game/types';
 import type { SkillStat } from '../game/schema';
 import { useGameStore } from '../store/gameStore';
@@ -45,6 +45,14 @@ function guideEligibleStats(member?: CharacterState): SkillStat[] {
   return SKILL_STATS.filter((stat) => effectiveStat(member, stat) <= 1);
 }
 
+function hasExternalEffectImmunity(memberId: string): boolean {
+  const character = CHARACTERS[memberId];
+  if (!character) return false;
+  return character.skillIds.some((skillId) => SKILLS[skillId]?.passives?.some(
+    (passive) => passive.kind === 'effect.immunity' && passive.source === 'external',
+  ));
+}
+
 export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }: Props) {
   const mode = useGameStore((state) => state.mode);
   const card = cardInstance ? CARDS[cardInstance.cardId] : undefined;
@@ -67,9 +75,9 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const members = useMemo(() => {
     if (!card || card.target.kind !== 'member') return [];
     let candidates = card.target.relation === 'ally' ? game.player.members : game.enemy.members;
-    candidates = candidates.filter((member) => !hasCharacterMechanic(member.defId, 'externalEffectImmune'));
+    candidates = candidates.filter((member) => !hasExternalEffectImmunity(member.defId));
     if (card.kind === 'coordination') {
-      candidates = candidates.filter((member) => !CHARACTERS[member.defId]?.tags?.includes('coordination-untargetable'));
+      candidates = candidates.filter((member) => !hasGameplayStatus(member, GAMEPLAY_STATUS.coordinationUntargetable));
     }
     if (card.id === 'guide') {
       candidates = candidates.filter((member) => guideEligibleStats(member).length > 0);
