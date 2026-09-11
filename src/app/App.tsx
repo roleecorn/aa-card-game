@@ -15,9 +15,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
-import { CARDS, CHARACTERS, SKILLS } from '../content/catalog';
-import { isStandardPlayableCharacterId } from '../content/match';
-import { EngineSession } from '../game/engine';
+import { CARDS, CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { EngineSession, selectStandardRosters } from '../game/engine';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { GameHeader } from '../components/GameHeader';
@@ -75,21 +74,12 @@ export default function App() {
   const playerScore = engine?.scoreTeam('player') ?? 0;
   const enemyScore = engine?.scoreTeam('enemy') ?? 0;
 
-  const playableIds = useMemo(
-    () => Object.values(CHARACTERS)
-      .filter((character) => isStandardPlayableCharacterId(character.id))
-      .map((character) => character.id),
-    [],
-  );
-
-  const shuffledPlayableIds = useCallback(() => {
-    const ids = [...playableIds];
-    for (let i = ids.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [ids[i], ids[j]] = [ids[j]!, ids[i]!];
-    }
-    return ids;
-  }, [playableIds]);
+  const playableIds = useMemo(() => {
+    const excluded = new Set(STANDARD_GAME_DEFINITION.roster.excludedCharacterIds);
+    return Object.values(STANDARD_GAME_DEFINITION.content.characters)
+      .filter((character) => !excluded.has(character.id))
+      .map((character) => character.id);
+  }, []);
 
   const clearTransientUi = () => {
     setSelectedDieId(undefined);
@@ -100,8 +90,11 @@ export default function App() {
 
   const handleStart = () => {
     reset();
-    const six = shuffledPlayableIds().slice(0, 6);
-    setDraftRoster({ player: six.slice(0, 3), enemy: six.slice(3, 6) });
+    const selected = selectStandardRosters(Math.random, STANDARD_GAME_DEFINITION);
+    setDraftRoster({
+      player: selected.playerMemberIds,
+      enemy: selected.enemyMemberIds,
+    });
     clearTransientUi();
     setAppStage('draw');
   };
