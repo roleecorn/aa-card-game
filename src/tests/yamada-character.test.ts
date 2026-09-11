@@ -45,7 +45,7 @@ describe('山田 complete character package', () => {
     ]);
   });
 
-  it('leaves immediately when external stress reaches the cap and reassigns leadership', () => {
+  it('leaves immediately when external stress reaches the cap and randomly reassigns leadership', () => {
     const game = createInitialGame(() => 0.9, STANDARD_GAME_DEFINITION, ROSTER);
     const engine = new EngineSession(game, () => 0.9, STANDARD_GAME_DEFINITION);
 
@@ -53,7 +53,7 @@ describe('山田 complete character package', () => {
 
     expect(game.player.members.some((member) => member.defId === 'yamada')).toBe(false);
     expect(game.player.pendingDice.some((die) => die.ownerId === 'yamada')).toBe(false);
-    expect(game.player.leaderId).toBe('pintbox');
+    expect(game.player.leaderId).toBe('mashiro');
     expect(game.player.works.some((work) => work.ownerId === 'yamada')).toBe(true);
   });
 

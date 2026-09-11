@@ -115,7 +115,9 @@ usage: { scope: 'game', limit: 2, key: 'shield' }
 
 ## 6. 加入角色
 
-技能加入 `src/content/skills.ts` 或角色自己的 content module 後，必須直接把 skill ID 加到角色：
+角色專屬 Skill 應與 `CharacterDefinition` 放在同一個 `src/content/<character-id>.ts` package；只有真正跨角色共用的 Skill 才放到 shared module，例如 `viceLeaderSkill.ts`。
+
+技能定義完成後，必須直接把 skill ID 加到角色：
 
 ```ts
 {
@@ -160,8 +162,9 @@ if (character.id === 'someCharacter') {
 
 ## 9. 目前的 special mechanics
 
-- Trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
-- `card.permission` schema 已存在，但目前 team-level 出牌沒有 card actor identity；不能把角色級 permission 說成完整 enforce。
+- Trigger event 已包含 `roundEnd`、`afterDiePlaced` 與 `cardPlayed`。
+- 卡牌一律由當前 `TeamState.leaderId` 對應的組長使用，`cardPlayed.actorId` 由 Engine 推導；不要在 Skill authoring 建立另一套任意 card actor / `card.permission` 模型。
+- `coordination.stressBearer` 可讓副組長代替組長承擔統籌卡的 +1 Stress，但不改變出牌者 identity。
 - `effect.immunity` passive 可讓 UI / targeting 查詢外部效果免疫；實際效果仍須由 Skill runtime triggers enforce。
 - `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
 - Character Tag 只可用於 metadata 或 selector / condition；`no-stress`、`cannot-act`、`not-standard-playable` 等 behavior tag 不得新增。

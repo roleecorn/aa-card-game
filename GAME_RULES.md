@@ -35,6 +35,9 @@
 - 組長本局 Stress 上限 +2。
 - 這個加成保存在當局 `CharacterState.statuses`，不修改全域 `CharacterDefinition.maxStress`。
 - 因此不同對局、重新開始與未來平行 game session 不會共享組長加成。
+- 若組長離場，從仍在場的組員中使用當局 RNG **隨機選擇一名接任組長**。
+- 接任者取得組長的 Stress 上限加成；原本只有組長生效的卡牌限制也立即改以新組長判定。
+- 若組長離場後已沒有任何可接任的組員，該隊**立即判負**，不再繼續該回合或進行一般分數結算。
 
 ## Works
 
@@ -111,6 +114,14 @@ Tag 不得直接造成以下行為：
 
 基礎牌庫目前為固定 12 張 Prototype deck。
 
+**所有卡牌一律視為由該隊當前組長使用。** UI / caller 不指定任意 card actor；Engine 從 `TeamState.leaderId` 推導出牌角色，並在 `cardPlayed` event 中記錄當下組長的 `actorId`。
+
+因此：
+
+- 組長專屬的卡牌限制一律檢查當前 `leaderId` 對應角色。
+- 組長離場並由新組員接任後，之後的卡牌立即改視為由新組長使用。
+- 「副組長力」只會在使用統籌卡時代替組長承擔 +1 外部壓力；它**不會改變出牌者 identity**。
+
 ### Coordination
 
 目前包含：
@@ -122,9 +133,9 @@ Tag 不得直接造成以下行為：
 - 趕工
 - 語音會議
 
-統籌卡一般由 team-level 出牌流程處理。因 runtime 尚未保存「實際是哪一名角色使用這張卡」，角色級 `card.permission` 目前不能完整 enforce。
+統籌卡仍由 team-level hand / deck 管理，但使用者 identity 固定為當前組長。
 
-因此三角希＆有希的 `統籌權限` 仍標記為 `planned`。
+三角希＆有希的統籌相關能力為共用 Skill「副組長力」；不再保留額外的 `triangleCoordination` / `card.permission` compatibility definition。
 
 ### Event
 

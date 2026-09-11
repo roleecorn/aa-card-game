@@ -75,6 +75,14 @@ function validateRosterOverride(
   }
 }
 
+function applyLeaderStressBonusToTeam(team: TeamState, bonus: number): void {
+  for (const member of team.members) delete member.statuses[GAMEPLAY_STATUS.leaderStressCapBonus];
+  if (bonus <= 0) return;
+  const leader = team.members.find((member) => member.defId === team.leaderId);
+  if (!leader) return;
+  leader.statuses[GAMEPLAY_STATUS.leaderStressCapBonus] = { stacks: bonus };
+}
+
 export function selectStandardRosters(
   rng: () => number = Math.random,
   gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
@@ -169,6 +177,34 @@ export class EngineSession {
     const member = this.getCharacter(teamId, memberId);
     const maxStress = this.getEffectiveMaxStress(teamId, memberId);
     return !!member && maxStress !== undefined && maxStress !== null && member.stress >= maxStress;
+  }
+
+  departCharacter(teamId: TeamId, memberId: string, reason: string): boolean {
+    const team = this.getTeam(teamId);
+    const member = this.getCharacter(teamId, memberId);
+    if (!member) return false;
+
+    const wasLeader = team.leaderId === memberId;
+    team.pendingDice = team.pendingDice.filter((die) => die.ownerId !== memberId);
+    team.members = team.members.filter((candidate) => candidate.defId !== memberId);
+    this.log(`${this.getDefinition(memberId).name} 因「${reason}」離場，之後不再參與本局。`);
+
+    if (!wasLeader) return true;
+    if (team.members.length === 0) {
+      team.leaderId = '';
+      this.state.phase = 'finished';
+      this.state.winner = this.opponentId(teamId);
+      this.log(`${team.name} 已無可接任組長的組員，立即判負。`);
+      return true;
+    }
+
+    const rawIndex = Math.floor(this.random() * team.members.length);
+    const successorIndex = Math.max(0, Math.min(team.members.length - 1, rawIndex));
+    const successor = team.members[successorIndex]!;
+    team.leaderId = successor.defId;
+    applyLeaderStressBonusToTeam(team, this.gameDefinition.rules.leaderStressBonus);
+    this.log(`${this.getDefinition(successor.defId).name} 隨機接任 ${team.name} 組長。`);
+    return true;
   }
 
   getEffectiveStat(memberId: string, skill: SkillStat): number {
@@ -447,12 +483,14 @@ export class EngineSession {
   performPlayerActions(actions: Record<string, ActionChoice>): void {
     if (this.state.phase !== 'player-plan' || this.state.player.hand.length > this.gameDefinition.rules.handLimit) return;
     this.performTeamActions('player', actions);
-    this.state.phase = 'player-assign';
+    if (!this.isGameFinished()) this.state.phase = 'player-assign';
   }
 
   private performTeamActions(teamId: TeamId, actions: Record<string, ActionChoice>): void {
     const team = this.getTeam(teamId);
-    for (const member of team.members) {
+    for (const member of [...team.members]) {
+      if (this.isGameFinished()) return;
+      if (!this.getCharacter(teamId, member.defId)) continue;
       try {
         const definition = this.getDefinition(member.defId);
         if (hasGameplayStatus(member, GAMEPLAY_STATUS.actionBlocked)) {
@@ -474,6 +512,8 @@ export class EngineSession {
           }
         }
         this.skills.emit({ type: 'afterRollBatch', teamId, actorId: member.defId, dice: batch, amount: batch.length, sourceKind: 'work' });
+        if (this.isGameFinished()) return;
+        if (!this.getCharacter(teamId, member.defId)) continue;
 
         if ((member.statuses.writerBlock?.stacks ?? 0) > 0 && batch.some((die) => die.value <= 2)) {
           delete member.statuses.writerBlock;
@@ -495,6 +535,7 @@ export class EngineSession {
   }
 
   playCard(teamId: TeamId, instanceId: string, target: SkillActivationTarget): boolean {
+    if (this.isGameFinished()) return false;
     const team = this.getTeam(teamId);
     if (team.hand.length > this.gameDefinition.rules.handLimit) return false;
     const index = team.hand.findIndex((card) => card.instanceId === instanceId);
@@ -502,9 +543,11 @@ export class EngineSession {
     if (!instance) return false;
     const card = this.content.cards[instance.cardId];
     if (!card) return false;
-    const leader = team.leaderId ? this.getCharacter(teamId, team.leaderId) : undefined;
-    if (card.kind === 'coordination' && leader && hasGameplayStatus(leader, GAMEPLAY_STATUS.coordinationDisabledAsLeader)) {
-      this.log(`${this.getDefinition(team.leaderId).name} 擔任組長時不能使用統籌卡。`);
+    const actorId = team.leaderId;
+    const leader = actorId ? this.getCharacter(teamId, actorId) : undefined;
+    if (!leader) return false;
+    if (card.kind === 'coordination' && hasGameplayStatus(leader, GAMEPLAY_STATUS.coordinationDisabledAsLeader)) {
+      this.log(`${this.getDefinition(actorId).name} 擔任組長時不能使用統籌卡。`);
       return false;
     }
     if (!this.validateCardTarget(teamId, card, target)) return false;
@@ -512,10 +555,10 @@ export class EngineSession {
     let success = false;
     if (card.effects?.length) {
       const context: EffectContext = {
-        ownerId: team.leaderId,
+        ownerId: actorId,
         ownerTeamId: teamId,
         definition: card,
-        event: { type: 'cardPlayed', teamId, sourceKind: card.kind, metadata: { cardId: card.id } },
+        event: { type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } },
         activationTarget: target,
       };
       success = this.applyEffects(card.effects, context);
@@ -535,10 +578,10 @@ export class EngineSession {
     team.discard.push(card.id);
     this.log(`${team.name} 使用「${card.name}」。`);
     if (card.kind === 'coordination') {
-      const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? team.leaderId;
-      if (bearerId) this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true);
+      const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
+      this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true);
     }
-    this.skills.emit({ type: 'cardPlayed', teamId, sourceKind: card.kind, metadata: { cardId: card.id } });
+    this.skills.emit({ type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } });
     return true;
   }
 
@@ -558,16 +601,18 @@ export class EngineSession {
       this.state.player.pendingDice = [];
     }
     this.runEnemyTurn();
-    this.advanceRound();
+    if (!this.isGameFinished()) this.advanceRound();
   }
 
   private runEnemyTurn(): void {
+    if (this.isGameFinished()) return;
     try {
       runEnemyPreTurnAi(this);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`系統保護：對手技能／卡牌 AI 處理失敗，已略過：${message}`);
     }
+    if (this.isGameFinished()) return;
 
     try {
       this.performTeamActions('enemy', chooseEnemyActions(this));
@@ -575,6 +620,7 @@ export class EngineSession {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`系統保護：對手行動處理失敗，已略過：${message}`);
     }
+    if (this.isGameFinished()) return;
 
     try {
       this.autoAssign('enemy');
@@ -606,6 +652,7 @@ export class EngineSession {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`系統保護：回合結束效果失敗，已略過：${message}`);
     }
+    if (this.isGameFinished()) return;
 
     if (this.state.round >= this.state.maxRounds) {
       const playerScore = this.scoreTeam('player');
@@ -670,6 +717,10 @@ export class EngineSession {
     return card.target.relation === 'ally' ? ownerTeam === teamId : ownerTeam !== teamId;
   }
 
+  private isGameFinished(): boolean {
+    return this.state.phase === 'finished';
+  }
+
   shuffle<T>(input: T[]): T[] {
     const output = [...input];
     for (let i = output.length - 1; i > 0; i -= 1) {
@@ -721,12 +772,7 @@ export function applyLeaderStressBonuses(
   gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
 ): void {
   const bonus = gameDefinition.rules.leaderStressBonus;
-  if (bonus <= 0) return;
-  for (const team of [game.player, game.enemy]) {
-    const leader = team.members.find((member) => member.defId === team.leaderId);
-    if (!leader) continue;
-    leader.statuses[GAMEPLAY_STATUS.leaderStressCapBonus] = { stacks: bonus };
-  }
+  for (const team of [game.player, game.enemy]) applyLeaderStressBonusToTeam(team, bonus);
 }
 
 export function createInitialGame(
