@@ -20,9 +20,7 @@ import { getCharacterTagName } from '../content/characterTags';
 export type DrawPhase =
   | 'intro'
   | 'dealing'
-  | 'revealing-1'
-  | 'revealing-2'
-  | 'revealing-3'
+  | 'revealing'
   | 'selection'
   | 'rerolling'
   | 'leader-selection'
@@ -34,34 +32,42 @@ interface Props {
   onConfirm: (leaderId: string) => void;
 }
 
-const transitionDelay: Partial<Record<DrawPhase, number>> = {
-  intro: 520,
-  dealing: 720,
-  'revealing-1': 420,
-  'revealing-2': 420,
-  'revealing-3': 520,
-};
-
 export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
   const [phase, setPhase] = useState<DrawPhase>('intro');
+  const [revealCount, setRevealCount] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number>();
   const [rerollUsed, setRerollUsed] = useState(false);
   const [rerollIndex, setRerollIndex] = useState<number>();
 
   useEffect(() => {
-    const next: Partial<Record<DrawPhase, DrawPhase>> = {
-      intro: 'dealing',
-      dealing: 'revealing-1',
-      'revealing-1': 'revealing-2',
-      'revealing-2': 'revealing-3',
-      'revealing-3': 'selection',
-    };
-    const target = next[phase];
-    const delay = transitionDelay[phase];
-    if (!target || !delay) return;
-    const timer = window.setTimeout(() => setPhase(target), delay);
+    if (phase === 'intro') {
+      const timer = window.setTimeout(() => setPhase('dealing'), 520);
+      return () => window.clearTimeout(timer);
+    }
+    if (phase === 'dealing') {
+      const timer = window.setTimeout(() => {
+        if (!characters.length) {
+          setPhase('selection');
+          return;
+        }
+        setRevealCount(1);
+        setPhase('revealing');
+      }, 720);
+      return () => window.clearTimeout(timer);
+    }
+    if (phase !== 'revealing') return;
+
+    if (revealCount < characters.length) {
+      const timer = window.setTimeout(
+        () => setRevealCount((current) => Math.min(characters.length, current + 1)),
+        420,
+      );
+      return () => window.clearTimeout(timer);
+    }
+
+    const timer = window.setTimeout(() => setPhase('selection'), 520);
     return () => window.clearTimeout(timer);
-  }, [phase]);
+  }, [characters.length, phase, revealCount]);
 
   useEffect(() => {
     if (phase !== 'rerolling' || rerollIndex === undefined) return;
@@ -74,18 +80,10 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     return () => window.clearTimeout(timer);
   }, [onReroll, phase, rerollIndex]);
 
-  const revealCount = phase === 'revealing-1'
-    ? 1
-    : phase === 'revealing-2'
-    ? 2
-    : ['revealing-3', 'selection', 'leader-selection', 'confirmed'].includes(phase)
-    ? 3
-    : 0;
-
   const title = phase === 'intro'
     ? '正在決定你的隊伍'
     : phase === 'dealing'
-    ? '抽出三名創作夥伴'
+    ? `抽出 ${characters.length} 名創作夥伴`
     : phase === 'rerolling'
     ? '重新抽取中…'
     : phase === 'leader-selection'
@@ -114,6 +112,13 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
     setPhase('confirmed');
     onConfirm(leader.id);
   };
+
+  const skipReveal = () => {
+    setRevealCount(characters.length);
+    setPhase('selection');
+  };
+
+  const desktopColumns = `repeat(${Math.min(Math.max(characters.length, 1), 4)}, minmax(0,1fr))`;
 
   return (
     <Box
@@ -144,10 +149,11 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
           </Typography>
         </Stack>
 
-        <Box sx={{ width: 'min(1280px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0,1fr))' }, gap: { xs: 1.4, md: 2.2 } }}>
+        <Box sx={{ width: 'min(1280px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: desktopColumns }, gap: { xs: 1.4, md: 2.2 } }}>
           {characters.map((character, index) => {
             const isRerolling = phase === 'rerolling' && rerollIndex === index;
-            const revealed = phase === 'selection' || phase === 'leader-selection' || phase === 'confirmed' || index < revealCount;
+            const fullyRevealed = phase === 'selection' || phase === 'leader-selection' || phase === 'confirmed' || phase === 'rerolling';
+            const revealed = fullyRevealed || index < revealCount;
             const selected = selectedIndex === index;
             const interactive = phase === 'selection' || phase === 'leader-selection';
             return (
@@ -170,7 +176,7 @@ export function DrawPhaseScreen({ characters, onReroll, onConfirm }: Props) {
           {!['selection', 'rerolling', 'leader-selection', 'confirmed'].includes(phase) && (
             <Button
               variant="text"
-              onClick={() => setPhase('selection')}
+              onClick={skipReveal}
               sx={{ minWidth: 140, fontWeight: 850 }}
             >
               跳過抽卡動畫
