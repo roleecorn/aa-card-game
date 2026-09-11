@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -19,8 +19,8 @@ describe('鬼影 complete character package', () => {
   });
 
   it('鬆散段子 expands the work and grants two extra Text dice once per round', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     const work = game.player.works.find((item) => item.ownerId === 'ghostshadow')!;
     const beforeLength = work.length;
     const beforeDice = game.player.pendingDice.filter((die) => die.ownerId === 'ghostshadow').length;
@@ -32,8 +32,8 @@ describe('鬼影 complete character package', () => {
   });
 
   it('各寫各的 adds stress only on the first other-ally placement each round', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     engine.skills.emit({ type: 'afterDiePlaced', teamId: 'player', actorId: 'pintbox' });
     expect(engine.getCharacter('player', 'ghostshadow')?.stress).toBe(1);
     engine.skills.emit({ type: 'afterDiePlaced', teamId: 'player', actorId: 'mashiro' });

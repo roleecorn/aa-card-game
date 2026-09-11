@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createInitialGame, EngineSession } from '../game/engine';
-import { DEFAULT_CONTENT } from '../content/catalog';
+import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { builtInEffects } from '../game/effectRegistry';
 
 function fixedRng(value: number) {
@@ -9,7 +9,7 @@ function fixedRng(value: number) {
 
 describe('blocking-safety guards', () => {
   it('disables target-dependent active skills when no legal target exists', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['triangle', 'pintbox', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -17,7 +17,7 @@ describe('blocking-safety guards', () => {
 
     expect(engine.canUseActiveSkill('triangle', 'triangleRecovery')).toBe(false);
 
-    const otherTriangleGame = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const otherTriangleGame = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['triangle', 'avocado', 'pintbox'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -26,7 +26,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('only enables copy-die skills when both source and destination dice exist', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['mashiro', 'pintbox', 'user79'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -40,7 +40,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('disables no-target dice modifiers until a matching die exists', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['emotion', 'lemon', 'meteor'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
@@ -52,7 +52,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('disables conditional no-target skills until their work condition is met', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['meteor', 'lemon', 'emotion'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
@@ -66,7 +66,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('continues to the next round when one enemy runtime trigger throws', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'mashiro', 'user79'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -91,7 +91,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('isolates an opponent defensive trigger failure during a player card effect', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['mashiro', 'user79', 'lemon'],
       enemyMemberIds: ['pintbox', 'ginsakura', 'bluewind'],
     });
@@ -118,7 +118,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('isolates a player defensive trigger failure caused by an opponent effect', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'mashiro', 'user79'],
       enemyMemberIds: ['lemon', 'meteor', 'bluewind'],
     });
@@ -142,7 +142,7 @@ describe('blocking-safety guards', () => {
   });
 
   it('never lets trigger discovery errors escape an emitted opponent event', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'mashiro', 'user79'],
       enemyMemberIds: ['lemon', 'meteor', 'bluewind'],
     });

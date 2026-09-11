@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -17,8 +17,8 @@ describe('鴿子的化身 complete character package', () => {
   });
 
   it('讀者視角 improves one other ally pending die once per round', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     const die = engine.grantDice('player', 'pintbox', 'text', 1, 'test', false, 4)[0]!;
     die.value = 4;
     expect(engine.activateSkill('player', 'pigeon', 'pigeonReaderPerspective', { targetDieId: die.id })).toBe(true);

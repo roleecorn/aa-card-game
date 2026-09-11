@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -19,8 +19,8 @@ describe('格林 complete character package', () => {
   });
 
   it('燃燒畫面 spends stress to add 2 to a selected AA die', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     const die = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 4)[0]!;
     die.value = 4;
 

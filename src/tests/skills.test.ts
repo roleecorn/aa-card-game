@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialGame, EngineSession, selectStandardRosters } from '../game/engine';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, DEFAULT_CONTENT, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { isStandardPlayableCharacterId } from '../content/match';
 import type { GameContent } from '../game/contentRegistry';
+import { withGameContent, type GameDefinition } from '../game/gameDefinition';
 import { matchesCondition } from '../game/skillRuntime';
 import type { EffectContext, GameState } from '../game/types';
 
@@ -30,8 +31,8 @@ const FENGYANG_ROSTER = {
   enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
 };
 
-function createFixedGame(rng: () => number = fixedRng(0.5), content: GameContent = DEFAULT_CONTENT) {
-  return createInitialGame(rng, content, FIXED_ROSTER);
+function createFixedGame(rng: () => number = fixedRng(0.5), gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION) {
+  return createInitialGame(rng, gameDefinition, FIXED_ROSTER);
 }
 
 function context(ownerId = 'pintbox'): EffectContext {
@@ -85,7 +86,7 @@ describe('data-driven skill runtime', () => {
     expect(engine.activateSkill('player', 'mashiro', 'mashiroSynthesis', { sourceDieId: source.id, targetDieId: target.id })).toBe(false);
   });
 
-  it('accepts an injected content pack without changing EngineSession code', () => {
+  it('accepts an explicitly derived game definition with an injected content pack', () => {
     const customContent: GameContent = {
       ...DEFAULT_CONTENT,
       skills: {
@@ -111,8 +112,9 @@ describe('data-driven skill runtime', () => {
         },
       },
     };
-    const game = createFixedGame(fixedRng(0.5), customContent);
-    const engine = new EngineSession(game, fixedRng(0.5), customContent);
+    const customDefinition = withGameContent(STANDARD_GAME_DEFINITION, customContent);
+    const game = createFixedGame(fixedRng(0.5), customDefinition);
+    const engine = new EngineSession(game, fixedRng(0.5), customDefinition);
     engine.getCharacter('player', 'pintbox')!.stress = 2;
 
     expect(engine.activateSkill('player', 'pintbox', 'prototypeInjectedSkill')).toBe(true);
@@ -164,7 +166,7 @@ describe('additional discussion-ranked character cards', () => {
   });
 
   it('八代 reduces the highest allied stress by one at round start', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['yashiro', 'lemon', 'meteor'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
@@ -195,7 +197,7 @@ describe('流星 complete character package', () => {
   });
 
   it('軌 only works on a 燃 owner work and keeps the better of two rolls', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, METEOR_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const rolls = [0, 0.999];
     const skillRng = () => rolls.shift() ?? 0.5;
     const engine = new EngineSession(game, skillRng);
@@ -212,7 +214,7 @@ describe('流星 complete character package', () => {
   });
 
   it('副組長力 makes 流星 take coordination-card stress when below the leader', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, METEOR_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     engine.getCharacter('player', 'pintbox')!.stress = 2;
     engine.addCard('player', 'soothe', 1);
@@ -239,7 +241,7 @@ describe('八代 complete character package', () => {
   });
 
   it('可愛又好學 reduces the highest allied stress at round start', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, YASHIRO_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, YASHIRO_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     engine.getCharacter('player', 'yashiro')!.stress = 1;
     engine.getCharacter('player', 'lemon')!.stress = 4;
@@ -249,7 +251,7 @@ describe('八代 complete character package', () => {
   });
 
   it('查到比預期更深 grants one Text die with floor 3 once per round', () => {
-    const game = createInitialGame(fixedRng(0), DEFAULT_CONTENT, YASHIRO_ROSTER);
+    const game = createInitialGame(fixedRng(0), STANDARD_GAME_DEFINITION, YASHIRO_ROSTER);
     const engine = new EngineSession(game, fixedRng(0));
     expect(engine.activateSkill('player', 'yashiro', 'yashiroDeepResearch')).toBe(true);
     const die = game.player.pendingDice.find((item) => item.ownerId === 'yashiro' && item.origin === '查到比預期更深');
@@ -275,7 +277,7 @@ describe('檸檬 complete character package', () => {
   });
 
   it('火場救援 adds one stress and grants three rescue dice once per round', () => {
-    const game = createInitialGame(fixedRng(0.999), DEFAULT_CONTENT, LEMON_ROSTER);
+    const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, LEMON_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.999));
     const before = game.player.pendingDice.length;
 
@@ -302,7 +304,7 @@ describe('情緒 complete character package', () => {
   });
 
   it('改善效果的意識 improves one pending AA die by one once per round', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, EMOTION_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, EMOTION_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     const die = engine.grantDice('player', 'emotion', 'aa', 1, 'test', false, 4)[0]!;
     die.value = 4;
@@ -328,7 +330,7 @@ describe('酪梨 complete character package', () => {
   });
 
   it('使用說明 adds one 指導 card at game start', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, AVOCADO_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, AVOCADO_ROSTER);
     expect(game.player.hand).toHaveLength(3);
     expect(game.player.hand.some((item) => item.cardId === 'guide')).toBe(true);
   });
@@ -349,7 +351,7 @@ describe('キツ complete character package', () => {
   });
 
   it('重播三十次 rerolls the first self work die of 1 once per round', () => {
-    const game = createInitialGame(fixedRng(0.999), DEFAULT_CONTENT, KITSU_ROSTER);
+    const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, KITSU_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.999));
 
     const first = { id: 'kitsu-low-a', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
@@ -531,14 +533,14 @@ describe('高興 complete character package', () => {
     expect(CHARACTERS.happy?.compactPortrait).toBe('/assets/characters/compact/happy.webp');
     expect(CHARACTERS.happy?.portraitPosition).toEqual({ x: 50, y: 12 });
 
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, HAPPY_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     engine.adjustStress('player', 'happy', 20, 'test');
     expect(engine.getCharacter('player', 'happy')?.stress).toBe(20);
   });
 
   it('gets three extra coordination cards at game start', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, HAPPY_ROSTER);
     expect(game.player.hand).toHaveLength(5);
     expect(game.logs.some((entry) => entry.text.includes('編輯長：額外取得 3 張統籌卡'))).toBe(true);
   });
@@ -558,7 +560,7 @@ describe('高興 complete character package', () => {
   });
 
   it('turns a work into 怪 when 高興 places a die into it', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, HAPPY_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, HAPPY_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     const work = game.player.works.find((item) => item.ownerId === 'happy')!;
     work.type = '謀';
@@ -584,7 +586,7 @@ describe('三角希 complete character package', () => {
   });
 
   it('滾滾三角生物 targets another triangle creature on either team once per round', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, TRIANGLE_ROSTER);
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, TRIANGLE_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
     const triangle = engine.getCharacter('player', 'triangle')!;
     const avocado = engine.getCharacter('player', 'avocado')!;
@@ -621,7 +623,7 @@ describe('風揚 complete character package', () => {
   });
 
   it('commercial author makes every roll at least 3', () => {
-    const game = createInitialGame(fixedRng(0), DEFAULT_CONTENT, FENGYANG_ROSTER);
+    const game = createInitialGame(fixedRng(0), STANDARD_GAME_DEFINITION, FENGYANG_ROSTER);
     const engine = new EngineSession(game, fixedRng(0));
 
     expect(engine.skills.getRollFloor('fengyang')).toBe(3);
@@ -672,7 +674,7 @@ describe('卡奧斯 complete character package', () => {
       },
       logs: [],
     };
-    const engine = new EngineSession(game, rng, DEFAULT_CONTENT);
+    const engine = new EngineSession(game, rng, STANDARD_GAME_DEFINITION);
     engine.start();
     return { game, engine };
   }

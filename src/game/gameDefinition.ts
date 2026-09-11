@@ -23,12 +23,6 @@ export interface GameDefinition {
   };
 }
 
-export type GameDefinitionInput = GameDefinition | GameContent;
-
-export function isGameDefinition(value: GameDefinitionInput): value is GameDefinition {
-  return 'content' in value && 'rules' in value && 'deck' in value && 'roster' in value;
-}
-
 export function withGameContent(definition: GameDefinition, content: GameContent): GameDefinition {
   return { ...definition, content };
 }

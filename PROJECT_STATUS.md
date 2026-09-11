@@ -8,10 +8,10 @@
 | --- | --- | --- | --- | --- |
 | pintbox | Pintbox | Yes | 768×1024 | AI 已實裝；審稿 partial |
 | mashiro | 真白 | Yes | 768×1024 | 全適性、骰值複製已實裝 |
-| user79 | 79 | Yes | 768×1024 | 共鳴、虛之會圈已實裝 |
+| user79 | 79 | Yes | 768×1024 | 共鳴、燃燒文字已實裝 |
 | narrator | 旁白 | Yes | 768×1024 | 主要技能 planned |
 | ginsakura | 銀櫻 | Yes | 768×1024 | 主要技能 planned |
-| bluewind | 藍風 | Yes | 768×1024 | 妄想全開已實裝 |
+| bluewind | 藍風 | Yes | 768×1024 | 妄想全開、虛之會圈已實裝 |
 | triangle | 三角希＆有希 | Yes | 768×1024 | 雙人卡；回復、全適性已實裝；統籌權限 planned |
 | fengyang | 風揚 | Yes | 768×1024 | 商業作者已實裝 |
 | happy | 高興 | Yes | 768×1024 | 高興、編輯長已實裝 |
@@ -35,11 +35,28 @@ Pintbox、79、真白、銀櫻、旁白、藍風等既有 legacy-quality 素材�
 ## Gameplay state boundary
 
 - Character Tag 只作為 metadata 或 Skill selector / condition 的目標標示，不承載 gameplay effect。
-- 卡奧斯的 Stress immunity 由 Skill 在 `gameStart` 套用 runtime status。
-- 弱智的行動／統籌限制由 Skill 套用 runtime statuses。
+- 卡奧斯的 Stress immunity 直接列在角色 `skillIds`，由 Skill 在 `gameStart` 套用 runtime status。
+- 弱智的行動／統籌限制直接列在角色 `skillIds`，由 Skill 套用 runtime statuses。
+- 舊的 behavior-tag migration layer 已移除；authoring source 本身不得再保存 behavior tags。
+- `validateCatalog()` 仍保留 forbidden behavior-tag guard，避免新資料重新引入這種架構。
 - Standard roster eligibility 由 `content/match.ts` 管理，不使用 Character Tag。
 - Leader Stress 上限 +2 保存在當局 `CharacterState`，不修改全域 `CHARACTERS`。
-- Leader selection 透過 UI → Store 的明確參數傳遞，不再使用 module-global selection state。
+- Leader selection 透過 UI → Store 的明確參數傳遞，不使用 module-global selection state。
+
+## GameDefinition boundary
+
+- `EngineSession`、`createInitialGame()`、`selectStandardRosters()` 與 leader bonus setup 都接受完整 `GameDefinition`。
+- Engine 不再接受單獨 `GameContent` 並自動補 Standard rules / deck / roster。
+- 要使用替換 content 的測試或 game mode，先以 `withGameContent(definition, content)` 建立明確的 `GameDefinition`。
+- Standard mode 使用 `STANDARD_GAME_DEFINITION`；match constants、deck 與 roster eligibility 都由 definition 注入。
+
+## Tutorial state boundary
+
+- Tutorial progression 使用集中式 `TUTORIAL_SCENARIO` 與 semantic events。
+- `TutorialRuntimeState` 保存可序列化的 `step` 與 deterministic RNG `randomIndex`。
+- Tutorial RNG cursor 不再是 module-global mutable variable；不同 session 的 cursor 互相隔離。
+- `App.tsx` 只回報 Tutorial event，不自行決定下一個 step。
+- Tutorial guide copy、highlight selector 與 transition rule 共用同一份 scenario definition。
 
 ## Known rules gaps
 
@@ -49,8 +66,6 @@ Pintbox、79、真白、銀櫻、旁白、藍風等既有 legacy-quality 素材�
 - Boss mode 尚未建立；卡奧斯不進 Standard 3v3。
 - Standard match 的 3v3 隨機組隊是 Prototype decision，不是原始討論已定案規則。
 - 部分角色作品適性與未列能力值使用 prototype assumption，應查看各角色 `sourceNotes`。
-- `GameContent` 已可注入，但 deck / match constants 尚未完整抽成 injectable `GameDefinition` / `MatchRules`。
-- Tutorial deterministic RNG cursor 與 progression controller 仍可進一步移入可序列化的 match state / controller。
 
 ## UI / design
 

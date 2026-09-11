@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -18,8 +18,8 @@ describe('嘆息 complete character package', () => {
   });
 
   it('硬憋 spends stress and grants one best-of-two Text die once per round', () => {
-    const game = createInitialGame(() => 0.999, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.999);
+    const game = createInitialGame(() => 0.999, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.999, STANDARD_GAME_DEFINITION);
     const before = game.player.pendingDice.filter((die) => die.ownerId === 'tanxi').length;
 
     expect(engine.activateSkill('player', 'tanxi', 'tanxiHardPush')).toBe(true);
@@ -32,8 +32,8 @@ describe('嘆息 complete character package', () => {
   });
 
   it('難以配合 adds stress only once per round when another ally places a die', () => {
-    const game = createInitialGame(() => 0.5, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.5);
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
     engine.skills.emit({ type: 'afterDiePlaced', teamId: 'player', actorId: 'pintbox' });
     expect(engine.getCharacter('player', 'tanxi')?.stress).toBe(1);
     engine.skills.emit({ type: 'afterDiePlaced', teamId: 'player', actorId: 'mashiro' });

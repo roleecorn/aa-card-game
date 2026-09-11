@@ -21,13 +21,13 @@ src/
   components/               Reusable UI components
   content/
     catalog.ts              Aggregate + reference validation only
-    skills.ts               Skill definitions
-    gameplayBoundarySkills.ts  Gameplay rules migrated out of legacy tags
+    skills.ts               Shared Skill definitions
+    chaos.ts                Chaos-specific Skill definitions
     characters.ts           Character definitions
     cards.ts                Card definitions
     match.ts                Standard match rules / deck / roster config
   game/
-    contentRegistry.ts      Injectable GameContent interface
+    contentRegistry.ts      Static GameContent interface
     gameDefinition.ts       GameDefinition / MatchRules boundary
     schema.ts               Zod schemas + domain types
     statuses.ts             Named runtime status keys and helpers
@@ -36,6 +36,11 @@ src/
     effectRegistry.ts       Reusable built-in effect handlers
     customEffects.ts        Escape hatch for unique mechanics
     cardHandlers.ts         Card-only custom handlers
+  tutorial/
+    config.ts               Fixed tutorial fixture data
+    scenario.ts             Serializable tutorial state + semantic transitions
+    runtime.ts              Tutorial game/session construction
+    TutorialGuide.tsx       Scenario-driven guide UI
   store/gameStore.ts        Zustand + Immer integration
   tests/                    Vitest rules tests
 public/assets/               Runtime art only
@@ -69,7 +74,7 @@ SkillRuntime
 
 - UI 顯示分類，例如 `leader`、`triangle-creature`、`editorial`。
 - `taggedMember` 等 target selector 用 Tag 篩選技能目標。
-- 未來 condition 以 Tag 判斷效果適用對象。
+- condition 以 Tag 判斷效果適用對象。
 
 禁止的用途：
 
@@ -79,7 +84,7 @@ SkillRuntime
 
 任何會改變遊戲狀態、免疫、權限、行動限制或能力的規則都必須由 `SkillDefinition` 經 Skill / Effect runtime 實現；需要持續存在的效果可以由 Skill 套用 `CharacterState.statuses`。Game mode eligibility 屬於 `content/match.ts` 的 match configuration，而不是角色 Tag。
 
-目前 catalog 仍會移除舊資料中曾經承載行為的 legacy tags，並由 `validateCatalog()` 保證這些 Tag 不會進入 runtime。這是 migration guard，不是新的 gameplay mechanism；新角色資料不得新增這些 legacy tags。
+舊的 behavior-tag migration layer 已移除。Chaos、Weakzhi 等角色在 authoring source 中就直接列出真正的 Skill ID；catalog 不再 strip behavior tags 或自動補 Skill。`validateCatalog()` 只保留 forbidden behavior-tag guard，用來拒絕重新引入 `no-stress`、`cannot-act`、`not-standard-playable` 等錯誤資料模型。
 
 ## Immutable content and match state
 
@@ -89,7 +94,7 @@ SkillRuntime
 
 UI setup state 也不得透過 module-level mutable variable 傳遞。組長選擇由 `DrawPhaseScreen -> App -> gameStore.startGame()` 明確傳入。
 
-## Injectable GameDefinition
+## GameContent and GameDefinition
 
 `GameContent` 只描述靜態卡牌／角色／技能 registry：
 
@@ -101,7 +106,7 @@ interface GameContent {
 }
 ```
 
-實際一局如何建立與執行，則由 `GameDefinition` 注入：
+實際一局如何建立與執行，則由完整 `GameDefinition` 注入：
 
 ```ts
 interface GameDefinition {
@@ -127,9 +132,16 @@ interface GameDefinition {
 - `missingWorkStatScore`
 - player / enemy team name
 
-Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard deck、Standard roster eligibility 與 `DEFAULT_MATCH`。`EngineSession` constructor 進來後會先把輸入正規化成 `GameDefinition`；之後 hand limit、抽牌數、計分、作品長度等規則只從 `gameDefinition` 讀取，不再直接讀 Standard constants。
+Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard deck、Standard roster eligibility 與 `DEFAULT_MATCH`。
 
-目前仍允許只傳 `GameContent` 作為 migration compatibility path；這會套用 Standard rules / deck / roster config，只替換 content registry。Production path 應優先明確傳入 `GameDefinition`。
+`EngineSession`、`createInitialGame()`、`selectStandardRosters()`、`applyLeaderStressBonuses()` 都只接受完整 `GameDefinition`。不再支援傳入單獨 `GameContent` 後隱式套用 Standard rules / deck / roster config。
+
+需要在測試或其他 mode 替換 content 時，必須明確建立 definition，例如：
+
+```ts
+const customDefinition = withGameContent(STANDARD_GAME_DEFINITION, customContent);
+const engine = new EngineSession(state, rng, customDefinition);
+```
 
 這個邊界讓測試或未來 game mode 可以建立不同的：
 
@@ -142,6 +154,28 @@ Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard
 - roster eligibility
 
 不需要修改 `EngineSession`，也不需要 mutation global catalog。
+
+## Tutorial state boundary
+
+Tutorial 不使用 module-global mutable cursor，也不讓 `App.tsx` 自己維護 progression state machine。
+
+```text
+UI interaction
+   ↓
+TutorialEvent
+   ↓
+reduceTutorialEvent(runtime, event)
+   ↓
+TutorialRuntimeState { step, randomIndex }
+```
+
+- `TUTORIAL_SCENARIO` 同時保存 guide copy、highlight selector 與 semantic transition。
+- `TutorialRuntimeState` 是可 JSON serialize 的 plain data。
+- deterministic RNG 由每局自己的 `randomIndex` 消耗固定 `TUTORIAL_DIE_RESULTS`，不同 session 互不共享 cursor。
+- `App.tsx` 只回報 `actionChanged`、`diePlaced`、`skillResolved`、`cardResolved` 等事件，不直接指定下一個 step。
+- `TutorialGuide` 與 controller 共用同一份 scenario definition。
+
+詳細規則見 `src/tutorial/README.md`。
 
 ## Skill definition model
 
@@ -286,8 +320,8 @@ Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard
 
 - `selectStandardRosters()` 依注入的 `GameDefinition.roster` 排除不參加該 mode 的角色；Standard mode 的設定來源仍是 `content/match.ts`。
 - `CharacterState.resources` 可保存非 Stress resource；目前卡奧斯使用「體力」。
-- 卡奧斯的壓力免疫由 Skill 在 `gameStart` 套用 `stress-immune` status，不依角色 ID 或 Tag 特判。
-- 弱智的行動／統籌限制同樣由 Skill 在 `gameStart` 套用 runtime statuses。
+- 卡奧斯的壓力免疫由角色直接引用的 Skill 在 `gameStart` 套用 `stress-immune` status，不依角色 ID 或 Tag 特判。
+- 弱智的行動／統籌限制同樣由角色直接引用的 Skill 在 `gameStart` 套用 runtime statuses。
 - 組長 Stress 上限加成保存在當局 `CharacterState`，加成值由當局 `GameDefinition.rules.leaderStressBonus` 提供，不修改 `CHARACTERS`。
 - 目前 custom effect 例子：`addRandomCardsByKind`（高興）與 `changeOwnerResource`（卡奧斯）。
 - trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。

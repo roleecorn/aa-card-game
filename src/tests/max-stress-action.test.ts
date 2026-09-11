@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT } from '../content/catalog';
+import { CHARACTERS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame } from '../game/engine';
 import { actionChoicesForCurrentStress } from '../store/gameStore';
 
@@ -9,7 +9,7 @@ function fixedRng(value: number) {
 
 describe('max-stress action defaults', () => {
   it('forces capped characters to slack while preserving other requested actions', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'mashiro', 'user79'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
@@ -32,7 +32,7 @@ describe('max-stress action defaults', () => {
   });
 
   it('defaults a capped character to slack even without an explicit choice', () => {
-    const game = createInitialGame(fixedRng(0.5), DEFAULT_CONTENT, {
+    const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'mashiro', 'user79'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });

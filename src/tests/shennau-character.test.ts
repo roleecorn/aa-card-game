@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHARACTERS, DEFAULT_CONTENT, SKILLS } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
 const ROSTER = {
@@ -17,8 +17,8 @@ describe('神惱 complete character package', () => {
   });
 
   it('trades exactly one selected Text die for one extra Design die once per round', () => {
-    const game = createInitialGame(() => 0.8, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.8, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.8, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.8, STANDARD_GAME_DEFINITION);
     game.player.pendingDice = [{ id: 'text-1', ownerId: 'shennau', skill: 'text', value: 4, round: 1, origin: 'test' }];
 
     expect(engine.activateSkill('player', 'shennau', 'shennauSettingManiac', { targetDieId: 'text-1' })).toBe(true);
@@ -28,15 +28,15 @@ describe('神惱 complete character package', () => {
   });
 
   it('rejects non-Text dice for 設定狂', () => {
-    const game = createInitialGame(() => 0.8, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.8, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.8, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.8, STANDARD_GAME_DEFINITION);
     game.player.pendingDice = [{ id: 'design-1', ownerId: 'shennau', skill: 'design', value: 4, round: 1, origin: 'test' }];
     expect(engine.activateSkill('player', 'shennau', 'shennauSettingManiac', { targetDieId: 'design-1' })).toBe(false);
   });
 
   it('cancels external Stress changes but keeps normal self action Stress', () => {
-    const game = createInitialGame(() => 0.8, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.8, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.8, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.8, STANDARD_GAME_DEFINITION);
     const member = game.player.members.find((item) => item.defId === 'shennau')!;
 
     engine.adjustStress('player', 'shennau', 2, '事件測試', true, 'pintbox');
@@ -46,8 +46,8 @@ describe('神惱 complete character package', () => {
   });
 
   it('cancels another character modifying 神惱 pending dice', () => {
-    const game = createInitialGame(() => 0.8, DEFAULT_CONTENT, ROSTER);
-    const engine = new EngineSession(game, () => 0.8, DEFAULT_CONTENT);
+    const game = createInitialGame(() => 0.8, STANDARD_GAME_DEFINITION, ROSTER);
+    const engine = new EngineSession(game, () => 0.8, STANDARD_GAME_DEFINITION);
     const event = engine.skills.emit({
       type: 'beforeDieModified', teamId: 'player', actorId: 'mashiro', targetId: 'shennau',
       dieId: 'die-x', skill: 'text', amount: 2,

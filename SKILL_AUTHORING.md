@@ -115,7 +115,7 @@ usage: { scope: 'game', limit: 2, key: 'shield' }
 
 ## 6. 加入角色
 
-技能加入 `src/content/skills.ts` 後，只需把 skill ID 加到角色：
+技能加入 `src/content/skills.ts` 或角色自己的 content module 後，必須直接把 skill ID 加到角色：
 
 ```ts
 {
@@ -125,7 +125,7 @@ usage: { scope: 'game', limit: 2, key: 'shield' }
 }
 ```
 
-`catalog.ts` 會在啟動時驗證角色是否引用不存在的技能。
+`catalog.ts` 會在啟動時驗證角色是否引用不存在的技能。不要依賴 catalog migration 在 runtime 偷補 skill；authoring source 本身就是 canonical definition。
 
 ## 7. 什麼時候才寫 custom handler
 
@@ -156,7 +156,7 @@ if (character.id === 'someCharacter') {
 - 若涉及 random，使用 deterministic RNG。
 - 若 UI 需要依技能能力過濾目標，驗證 UI 所讀的是 Skill passive / runtime status，而不是 Character Tag 或角色 ID。
 
-v0.3 的測試也包含一個 injected `GameContent` 技能，證明新增技能不需要修改 `EngineSession`。
+需要注入自訂 content 的測試，先用 `withGameContent()` 從一個完整 `GameDefinition` 建出測試 definition，再交給 `EngineSession` / `createInitialGame()`；Engine API 不接受單獨 `GameContent`。
 
 ## 9. 目前的 special mechanics
 

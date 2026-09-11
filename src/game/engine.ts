@@ -3,7 +3,7 @@ import { STANDARD_GAME_DEFINITION, WORK_TYPES } from '../content/catalog';
 import { builtInEffects } from './effectRegistry';
 import { executeCardHandler } from './cardHandlers';
 import type { GameContent } from './contentRegistry';
-import { isGameDefinition, type GameDefinition, type GameDefinitionInput } from './gameDefinition';
+import type { GameDefinition } from './gameDefinition';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
@@ -27,10 +27,6 @@ function cloneStats(stats: CharacterDefinition['stats']): CharacterDefinition['s
 export interface InitialGameOptions {
   playerMemberIds?: string[];
   enemyMemberIds?: string[];
-}
-
-function normalizeGameDefinition(input: GameDefinitionInput = STANDARD_GAME_DEFINITION): GameDefinition {
-  return isGameDefinition(input) ? input : { ...STANDARD_GAME_DEFINITION, content: input };
 }
 
 function isRosterPlayable(definition: CharacterDefinition, gameDefinition: GameDefinition): boolean {
@@ -81,9 +77,8 @@ function validateRosterOverride(
 
 export function selectStandardRosters(
   rng: () => number = Math.random,
-  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
+  gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
 ): { playerMemberIds: string[]; enemyMemberIds: string[]; unusedMemberIds: string[] } {
-  const gameDefinition = normalizeGameDefinition(definitionInput);
   const playable = Object.values(gameDefinition.content.characters)
     .filter((definition) => isRosterPlayable(definition, gameDefinition))
     .map((character) => character.id);
@@ -110,10 +105,10 @@ export class EngineSession {
   constructor(
     public readonly state: GameState,
     readonly rng: () => number = Math.random,
-    definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
+    gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
   ) {
-    this.gameDefinition = normalizeGameDefinition(definitionInput);
-    this.content = this.gameDefinition.content;
+    this.gameDefinition = gameDefinition;
+    this.content = gameDefinition.content;
     this.skills = new SkillRuntime(this);
   }
 
@@ -723,9 +718,8 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
 
 export function applyLeaderStressBonuses(
   game: GameState,
-  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
+  gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
 ): void {
-  const gameDefinition = normalizeGameDefinition(definitionInput);
   const bonus = gameDefinition.rules.leaderStressBonus;
   if (bonus <= 0) return;
   for (const team of [game.player, game.enemy]) {
@@ -737,10 +731,9 @@ export function applyLeaderStressBonuses(
 
 export function createInitialGame(
   rng: () => number = Math.random,
-  definitionInput: GameDefinitionInput = STANDARD_GAME_DEFINITION,
+  gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
   options: InitialGameOptions = {},
 ): GameState {
-  const gameDefinition = normalizeGameDefinition(definitionInput);
   const { content, rules } = gameDefinition;
   const placeholder = {} as GameState;
   const bootstrap = new EngineSession(placeholder, rng, gameDefinition);
