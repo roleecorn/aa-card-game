@@ -49,11 +49,12 @@ npm run storybook
 
 ### Branch / release policy
 
-- `main` 是 application source、deployment workflow 與 release-only UI behavior 的唯一 source-of-truth。
+- `main` 是 application source、deployment workflow 與 release UI behavior 的唯一 source-of-truth。
 - `release` 只代表「目前部署中的版本」，不應直接維護任何只存在於 `release` 的 source code、workflow 或 UI 差異。
-- GitHub Pages workflow 可以存在於 `main`，但只在 `release` branch push 時觸發部署。
-- 發布時應從 `main` 建立臨時 release branch，再透過 PR 更新 `release`；不要直接在 `release` 上開發功能。
-- 若 `release` 與 `main` 因歷史原因產生功能性差異，應先把必要差異移回 `main`，再同步 `release`，而不是長期維護兩套 source tree。
+- GitHub Pages workflow 可以存在於 `main`，但只在 `release` branch push 時觸發部署；一般 `main` 更新只跑 CI，不會布版。
+- 發布時直接建立 `main -> release` PR，通過 `CI / verify` 後必須使用 **Merge commit**；不要使用 Squash 或 Rebase，也不要直接在 `release` 上開發功能。
+- `main` 與 `release` 應使用分開的 branch ruleset：`main` 可要求 up-to-date 並只允許 Squash；`release` 不要求 up-to-date，且只允許 Merge commit。
+- 完整發布流程見 [`docs/release-flow.md`](./docs/release-flow.md)。
 
 Repository 自帶的 `public/` 資源必須以 repository-relative reference 表示，例如：
 
