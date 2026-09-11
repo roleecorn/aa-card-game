@@ -10,6 +10,7 @@ interface Props {
 }
 
 const releasedAtTaiwan = import.meta.env.VITE_RELEASED_AT_TW as string | undefined;
+const gameManualUrl = 'https://github.com/roleecorn/aa-card-game/blob/main/GAME_MANUAL.md';
 
 export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
   return (
@@ -76,6 +77,15 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
             </Button>
             <Button variant="outlined" onClick={onOpenRoster} sx={{ py: .85, fontWeight: 850, borderRadius: 2 }}>
               角色卡
+            </Button>
+            <Button
+              href={gameManualUrl}
+              target="_blank"
+              rel="noreferrer"
+              variant="text"
+              sx={{ fontWeight: 850 }}
+            >
+              完整遊戲規則
             </Button>
           </Stack>
           <Typography sx={{ fontSize: 11.5, color: 'text.secondary', fontWeight: 700 }}>
