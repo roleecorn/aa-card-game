@@ -7,8 +7,8 @@ export const happyCharacter = characterDefinitionSchema.parse({
   maxStress: null,
   affinities: ['怪'],
   skillIds: ['happyContagion', 'happyEditor'],
-  portrait: '/assets/characters/portrait/happy.webp',
-  compactPortrait: '/assets/characters/compact/happy.webp',
+  portrait: 'assets/characters/portrait/happy.webp',
+  compactPortrait: 'assets/characters/compact/happy.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '原始角色卡明確列出 Design 3、壓力上限 ∞。',

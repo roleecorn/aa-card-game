@@ -9,8 +9,8 @@ export const chaosCharacter = characterDefinitionSchema.parse({
   affinities: ['情', '謀', '笑'],
   skillIds: ['chaosSteadyRoll', 'chaosVitality', 'chaosStressImmunity'],
   tags: ['boss'],
-  portrait: '/assets/characters/portrait/chaos.webp',
-  compactPortrait: '/assets/characters/compact/chaos.webp',
+  portrait: 'assets/characters/portrait/chaos.webp',
+  compactPortrait: 'assets/characters/compact/chaos.webp',
   portraitPosition: { x: 50, y: 12 },
   resource: { name: '體力', max: 5, initial: 5 },
   sourceNotes: [

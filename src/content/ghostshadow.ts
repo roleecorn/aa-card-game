@@ -8,8 +8,8 @@ export const ghostshadowCharacter = characterDefinitionSchema.parse({
   affinities: ['笑'],
   skillIds: ['ghostLoosePunchlines', 'ghostHardToCoordinate'],
   tags: ['gag-writer', 'solo-creator'],
-  portrait: '/assets/characters/portrait/ghostshadow.webp',
-  compactPortrait: '/assets/characters/compact/ghostshadow.webp',
+  portrait: 'assets/characters/portrait/ghostshadow.webp',
+  compactPortrait: 'assets/characters/compact/ghostshadow.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-05 11:42:37：PintBox 直接評估鬼影為「布置下任務後鑽回去掏出東西」的類型，明確給出 Text 2、壓力上限 2。',

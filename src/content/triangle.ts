@@ -8,8 +8,8 @@ export const triangleCharacter = characterDefinitionSchema.parse({
   affinities: [],
   skillIds: ['triangleRecovery', 'triangleAffinity', 'viceLeaderPower'],
   tags: ['duo-card', 'triangle-creature'],
-  portrait: '/assets/characters/portrait/triangle.webp',
-  compactPortrait: '/assets/characters/compact/triangle.webp',
+  portrait: 'assets/characters/portrait/triangle.webp',
+  compactPortrait: 'assets/characters/compact/triangle.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-03 08:51:47：Text 2、Design 1、AA 2、壓力上限 4。',

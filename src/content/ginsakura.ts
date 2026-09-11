@@ -7,8 +7,8 @@ export const ginsakuraCharacter = characterDefinitionSchema.parse({
   maxStress: 3,
   affinities: ['燃'],
   skillIds: ['ginsakuraRise', 'ginsakuraSupport'],
-  portrait: '/assets/characters/portrait/ginsakura.webp',
-  compactPortrait: '/assets/characters/compact/ginsakura.webp',
+  portrait: 'assets/characters/portrait/ginsakura.webp',
+  compactPortrait: 'assets/characters/compact/ginsakura.webp',
   sourceNotes: [
     '2026-09-03 07:49:52：Text 2、Design 1、AA 3、壓力上限 3。',
     '2026-09-10 角色校正：作品適性定案為僅（燃）。',

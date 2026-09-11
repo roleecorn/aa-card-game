@@ -8,8 +8,8 @@ export const pigeonCharacter = characterDefinitionSchema.parse({
   affinities: ['燃', '謀', '笑', '情', '怪'],
   skillIds: ['pigeonReaderPerspective'],
   tags: ['editorial', 'reader-perspective'],
-  portrait: '/assets/characters/portrait/pigeon.webp',
-  compactPortrait: '/assets/characters/compact/pigeon.webp',
+  portrait: 'assets/characters/portrait/pigeon.webp',
+  compactPortrait: 'assets/characters/compact/pigeon.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-05 11:22:13：PintBox 直接回覆鴿子的卡面基礎為 Text 2 / Design 1 / AA 1 / Stress 4。',

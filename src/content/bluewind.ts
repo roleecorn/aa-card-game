@@ -7,8 +7,8 @@ export const bluewindCharacter = characterDefinitionSchema.parse({
   maxStress: 3,
   affinities: ['情'],
   skillIds: ['bluewindDelusion', 'virtualCircle'],
-  portrait: '/assets/characters/portrait/bluewind.webp',
-  compactPortrait: '/assets/characters/compact/bluewind.webp',
+  portrait: 'assets/characters/portrait/bluewind.webp',
+  compactPortrait: 'assets/characters/compact/bluewind.webp',
   sourceNotes: [
     '2026-09-03 19:21:48：Text 1、Design 1、壓力上限 3。',
     'AA 未在目前整理紀錄中明確列出；prototype 暫用 0。',

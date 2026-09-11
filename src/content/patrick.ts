@@ -8,8 +8,8 @@ export const patrickCharacter = characterDefinitionSchema.parse({
   affinities: [],
   skillIds: [],
   tags: ['systems-thinker', 'review'],
-  portrait: '/assets/characters/portrait/patrick.webp',
-  compactPortrait: '/assets/characters/compact/patrick.webp',
+  portrait: 'assets/characters/portrait/patrick.webp',
+  compactPortrait: 'assets/characters/compact/patrick.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '本角色不是 PintBox 已有卡面設計；依使用者指定 fallback 規則，從 dataset(1).zip 的發言 reply graph 選出。',
@@ -18,16 +18,4 @@ export const patrickCharacter = characterDefinitionSchema.parse({
   ],
 });
 
-export const patrickSkills = skillDefinitionSchema.array().parse([
-  {
-    id: 'patrickConsistencyCheck',
-    name: '一致性檢查',
-    description: '每回合一次，重擲自己作品中目前最低的一顆已填入骰。',
-    activation: 'active',
-    status: 'implemented',
-    activeUsage: { scope: 'round', limit: 1 },
-    activeTarget: { kind: 'none' },
-    activeEffects: [{ kind: 'work.progress.rerollLowest', target: 'ownerWork', count: 1 }],
-    tags: ['prototype', 'review'],
-  },
-]);
+export const patrickSkills = skillDefinitionSchema.array().parse([]);

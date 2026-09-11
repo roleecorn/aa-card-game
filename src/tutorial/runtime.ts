@@ -16,12 +16,23 @@ function tutorialRandom(runtime: TutorialRuntimeState): number {
   return value;
 }
 
-function applyTutorialDeck(team: TeamState, cardIds: readonly string[], prefix: string): void {
+function startupHandAdditions(team: TeamState): TeamState['hand'] {
   const initialHandSize = STANDARD_GAME_DEFINITION.rules.initialHandSize;
-  team.hand = cardIds.slice(0, initialHandSize).map((cardId, index) => ({
+  return team.hand.slice(initialHandSize).map((card) => ({ ...card }));
+}
+
+function applyTutorialDeck(
+  team: TeamState,
+  cardIds: readonly string[],
+  prefix: string,
+  startupCards: TeamState['hand'],
+): void {
+  const initialHandSize = STANDARD_GAME_DEFINITION.rules.initialHandSize;
+  const fixedHand = cardIds.slice(0, initialHandSize).map((cardId, index) => ({
     instanceId: `tutorial-${prefix}-card-${index + 1}`,
     cardId,
   }));
+  team.hand = [...fixedHand, ...startupCards];
   team.deck = [...cardIds.slice(initialHandSize)];
   team.discard = [];
 }
@@ -31,8 +42,13 @@ export function createTutorialGame(): GameState {
     playerMemberIds: [...TUTORIAL_PLAYER_ROSTER],
     enemyMemberIds: [...TUTORIAL_ENEMY_ROSTER],
   });
-  applyTutorialDeck(game.player, TUTORIAL_PLAYER_DECK, 'player');
-  applyTutorialDeck(game.enemy, TUTORIAL_ENEMY_DECK, 'enemy');
+
+  // createInitialGame has already emitted gameStart. Preserve cards granted by
+  // startup Skills while replacing only the randomly drawn fixture hand/deck.
+  const playerStartupCards = startupHandAdditions(game.player);
+  const enemyStartupCards = startupHandAdditions(game.enemy);
+  applyTutorialDeck(game.player, TUTORIAL_PLAYER_DECK, 'player', playerStartupCards);
+  applyTutorialDeck(game.enemy, TUTORIAL_ENEMY_DECK, 'enemy', enemyStartupCards);
   game.logs.push({ id: 'tutorial-start', round: 1, text: '教學關卡：角色、抽牌順序與隨機結果已固定。' });
   return game;
 }

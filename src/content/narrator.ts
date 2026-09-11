@@ -7,8 +7,8 @@ export const narratorCharacter = characterDefinitionSchema.parse({
   maxStress: 5,
   affinities: ['笑'],
   skillIds: ['narratorOsaka', 'narratorLongForm'],
-  portrait: '/assets/characters/portrait/narrator.webp',
-  compactPortrait: '/assets/characters/compact/narrator.webp',
+  portrait: 'assets/characters/portrait/narrator.webp',
+  compactPortrait: 'assets/characters/compact/narrator.webp',
   sourceNotes: [
     '2026-09-03 08:00:45：Text 3、Design 1、AA 1。',
     '壓力上限未在目前整理紀錄中明確列出；prototype 暫用 5。',

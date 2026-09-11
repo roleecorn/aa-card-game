@@ -8,8 +8,8 @@ export const lemonCharacter = characterDefinitionSchema.parse({
   affinities: ['謀'],
   skillIds: ['lemonFireRescue'],
   tags: ['leader'],
-  portrait: '/assets/characters/portrait/lemon.webp',
-  compactPortrait: '/assets/characters/compact/lemon.webp',
+  portrait: 'assets/characters/portrait/lemon.webp',
+  compactPortrait: 'assets/characters/compact/lemon.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-05 05:50:27：PintBox 將檸檬與風揚並列為「比較嚴格的組長」。',
@@ -21,26 +21,6 @@ export const lemonCharacter = characterDefinitionSchema.parse({
 });
 
 export const lemonSkills = skillDefinitionSchema.array().parse([
-  {
-    id: 'lemonStrictLeader',
-    name: '嚴格的組長',
-    description: '每回合第一次有我方角色工作骰出 1 或 2 時，重擲最低的一顆。',
-    activation: 'triggered',
-    status: 'implemented',
-    triggers: [{
-      event: 'afterRollBatch',
-      priority: 10,
-      usage: { scope: 'round', limit: 1, key: 'contingency' },
-      condition: {
-        kind: 'all',
-        conditions: [
-          { kind: 'relation', field: 'actorId', relation: 'ally' },
-          { kind: 'diceMatch', maxValue: 2 },
-        ],
-      },
-      effects: [{ kind: 'dice.rerollBatch', count: 1, maxValue: 2, lowestFirst: true }],
-    }],
-  },
   {
     id: 'lemonFireRescue',
     name: '火場救援',

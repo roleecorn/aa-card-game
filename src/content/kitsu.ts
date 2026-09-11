@@ -8,8 +8,8 @@ export const kitsuCharacter = characterDefinitionSchema.parse({
   affinities: ['笑', '怪'],
   skillIds: ['kitsuReplayThirty'],
   tags: ['qa', 'regression'],
-  portrait: '/assets/characters/portrait/kitsu.webp',
-  compactPortrait: '/assets/characters/compact/kitsu.webp',
+  portrait: 'assets/characters/portrait/kitsu.webp',
+  compactPortrait: 'assets/characters/compact/kitsu.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-02 10:20:29：本人明確表示「做完當天我大概重播了30次」。',

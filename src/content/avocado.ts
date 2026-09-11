@@ -8,8 +8,8 @@ export const avocadoCharacter = characterDefinitionSchema.parse({
   affinities: [],
   skillIds: ['avocadoManual'],
   tags: ['technical', 'triangle-creature'],
-  portrait: '/assets/characters/portrait/avocado.webp',
-  compactPortrait: '/assets/characters/compact/avocado.webp',
+  portrait: 'assets/characters/portrait/avocado.webp',
+  compactPortrait: 'assets/characters/compact/avocado.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-05 05:12:21：PintBox 明確提到「酪梨不是有發使用說明嗎，跟著用應該就行」。',

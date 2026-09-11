@@ -8,8 +8,8 @@ export const yashiroCharacter = characterDefinitionSchema.parse({
   affinities: ['情'],
   skillIds: ['yashiroQuickLearner', 'yashiroDeepResearch'],
   tags: ['triangle-creature'],
-  portrait: '/assets/characters/portrait/yashiro.webp',
-  compactPortrait: '/assets/characters/compact/yashiro.webp',
+  portrait: 'assets/characters/portrait/yashiro.webp',
+  compactPortrait: 'assets/characters/compact/yashiro.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-02 07:05:59：PintBox 卡面片段明確列 AA 3、壓力上限 5，以及「可愛又好學：回合開始時壓力最大的組員壓力 -1」。',

@@ -7,8 +7,8 @@ export const user79Character = characterDefinitionSchema.parse({
   maxStress: 4,
   affinities: ['燃', '謀'],
   skillIds: ['resonance79', 'burningText79'],
-  portrait: '/assets/characters/portrait/user79.webp',
-  compactPortrait: '/assets/characters/compact/user79.webp',
+  portrait: 'assets/characters/portrait/user79.webp',
+  compactPortrait: 'assets/characters/compact/user79.webp',
   sourceNotes: [
     '2026-09-03 23:06:59：Text 3、Design 2、AA 2、壓力上限 4。',
     '2026-09-10 角色校正：移除「虛之會圈」，改為與格林類似的燃燒型技能；自身 +1 壓力並令一顆 Text 骰 +2。',
@@ -36,14 +36,6 @@ export const user79Skills = skillDefinitionSchema.array().parse([
         { kind: 'dice.grant', target: 'owner', skill: 'design', count: { fromEvent: 'amount' }, origin: '共鳴', extra: true },
       ],
     }],
-  },
-  {
-    id: 'virtualCircle79',
-    name: '虛之會圈',
-    description: '遊戲開始時額外取得兩張「語音會議」。',
-    activation: 'triggered',
-    status: 'implemented',
-    triggers: [{ event: 'gameStart', effects: [{ kind: 'cards.add', cardId: 'voice', count: 2 }] }],
   },
   {
     id: 'burningText79',

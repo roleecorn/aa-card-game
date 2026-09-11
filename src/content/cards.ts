@@ -1,6 +1,7 @@
 import { cardDefinitionSchema } from '../game/schema';
 
 const cardArt = (fileName: string) => `${import.meta.env.BASE_URL}assets/cards/${fileName}`;
+const externalTargetGuard = { kind: 'custom', handler: 'cancelIfSelectedTargetExternalImmune' } as const;
 
 export const cardList = cardDefinitionSchema.array().parse([
   {
@@ -10,7 +11,10 @@ export const cardList = cardDefinitionSchema.array().parse([
     description: '指定一名己方組員，壓力 -2。統籌卡另使隊長承受 +1 外部壓力。',
     art: cardArt('soothe.svg'),
     target: { kind: 'member', relation: 'ally' },
-    effects: [{ kind: 'stress.change', target: 'selectedMember', amount: -2, source: '安撫' }],
+    effects: [
+      externalTargetGuard,
+      { kind: 'stress.change', target: 'selectedMember', amount: -2, source: '安撫' },
+    ],
     ai: { autoUse: true, priority: 10, when: 'allyStressAtLeast2' },
   },
   {
@@ -29,7 +33,10 @@ export const cardList = cardDefinitionSchema.array().parse([
     description: '重擲指定作品中最低的 3 顆既有骰。',
     art: cardArt('polish.svg'),
     target: { kind: 'work', relation: 'ally' },
-    effects: [{ kind: 'work.progress.rerollLowest', target: 'selectedWork', count: 3 }],
+    effects: [
+      externalTargetGuard,
+      { kind: 'work.progress.rerollLowest', target: 'selectedWork', count: 3 },
+    ],
   },
   {
     id: 'reconsider',
@@ -39,6 +46,7 @@ export const cardList = cardDefinitionSchema.array().parse([
     art: cardArt('reconsider.svg'),
     target: { kind: 'work', relation: 'ally' },
     effects: [
+      externalTargetGuard,
       { kind: 'work.length', target: 'selectedWork', amount: -2, min: 1 },
       { kind: 'stress.change', target: 'selectedWorkOwner', amount: 1, source: '重新考慮一下……' },
     ],
@@ -50,7 +58,10 @@ export const cardList = cardDefinitionSchema.array().parse([
     description: '用 1 點填滿指定作品所有空置進度。',
     art: cardArt('rush.svg'),
     target: { kind: 'work', relation: 'ally' },
-    effects: [{ kind: 'work.progress.fill', target: 'selectedWork', value: 1 }],
+    effects: [
+      externalTargetGuard,
+      { kind: 'work.progress.fill', target: 'selectedWork', value: 1 },
+    ],
   },
   {
     id: 'voice',
@@ -68,7 +79,10 @@ export const cardList = cardDefinitionSchema.array().parse([
     description: '指定一名對手組員，壓力 +3。',
     art: cardArt('overtime.svg'),
     target: { kind: 'member', relation: 'enemy' },
-    effects: [{ kind: 'stress.change', target: 'selectedMember', amount: 3, source: '突發加班', external: true }],
+    effects: [
+      externalTargetGuard,
+      { kind: 'stress.change', target: 'selectedMember', amount: 3, source: '突發加班', external: true },
+    ],
     ai: { autoUse: true, priority: 20, when: 'enemyLowestHeadroom' },
   },
   {
@@ -78,6 +92,9 @@ export const cardList = cardDefinitionSchema.array().parse([
     description: '指定對手；其下次工作若擲出 1 或 2，壓力 +2。',
     art: cardArt('writer-block.svg'),
     target: { kind: 'member', relation: 'enemy' },
-    effects: [{ kind: 'status.change', target: 'selectedMember', status: 'writerBlock', stacks: 1, stacking: 'replace' }],
+    effects: [
+      externalTargetGuard,
+      { kind: 'status.change', target: 'selectedMember', status: 'writerBlock', stacks: 1, stacking: 'replace' },
+    ],
   },
 ]);

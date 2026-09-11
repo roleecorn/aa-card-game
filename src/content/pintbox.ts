@@ -8,8 +8,8 @@ export const pintboxCharacter = characterDefinitionSchema.parse({
   affinities: ['謀'],
   skillIds: ['pintboxReview', 'pintboxAI'],
   tags: ['leader', 'review'],
-  portrait: '/assets/characters/portrait/pintbox.webp',
-  compactPortrait: '/assets/characters/compact/pintbox.webp',
+  portrait: 'assets/characters/portrait/pintbox.webp',
+  compactPortrait: 'assets/characters/compact/pintbox.webp',
   sourceNotes: [
     '2026-09-03 07:24:17：Design 2、AA 2、壓力上限 5。',
     'Text 未在目前整理紀錄中明確列出；prototype 暫用 0。',

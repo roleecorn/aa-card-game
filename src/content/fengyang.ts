@@ -8,8 +8,8 @@ export const fengyangCharacter = characterDefinitionSchema.parse({
   affinities: ['謀', '情'],
   skillIds: ['commercialAuthor'],
   tags: ['commercial-author'],
-  portrait: '/assets/characters/portrait/fengyang.webp',
-  compactPortrait: '/assets/characters/compact/fengyang.webp',
+  portrait: 'assets/characters/portrait/fengyang.webp',
+  compactPortrait: 'assets/characters/compact/fengyang.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
     '2026-09-03 07:29:20：Text 3、Design 3、壓力上限 2。',
