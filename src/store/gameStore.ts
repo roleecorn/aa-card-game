@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { DEFAULT_MATCH } from '../content/catalog';
-import { EngineSession, createInitialGame } from '../game/engine';
-import { GAMEPLAY_STATUS } from '../game/statuses';
+import { STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { EngineSession, applyLeaderStressBonuses, createInitialGame } from '../game/engine';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId } from '../game/schema';
 import { createTutorialGame, createTutorialSession, resetTutorialRuntime } from '../tutorial/runtime';
@@ -30,21 +29,11 @@ function moveLeaderFirst(memberIds: string[], leaderId: string | undefined): str
   return [leaderId, ...memberIds.filter((memberId) => memberId !== leaderId)];
 }
 
-function applyLeaderStressBonuses(game: GameState): void {
-  for (const team of [game.player, game.enemy]) {
-    const leader = team.members.find((member) => member.defId === team.leaderId);
-    if (!leader) continue;
-    leader.statuses[GAMEPLAY_STATUS.leaderStressCapBonus] = {
-      stacks: DEFAULT_MATCH.leaderStressBonus,
-    };
-  }
-}
-
 export function actionChoicesForCurrentStress(
   game: GameState,
   requestedChoices: Record<string, ActionChoice> = {},
 ): Record<string, ActionChoice> {
-  const engine = new EngineSession(game);
+  const engine = new EngineSession(game, Math.random, STANDARD_GAME_DEFINITION);
   return Object.fromEntries(game.player.members.map((member) => [
     member.defId,
     engine.isAtStressCap('player', member.defId) ? 'slack' : requestedChoices[member.defId] ?? 'work',
@@ -56,7 +45,9 @@ function defaultChoices(game: GameState): Record<string, ActionChoice> {
 }
 
 function session(game: GameState, mode: GameMode): EngineSession {
-  return mode === 'tutorial' ? createTutorialSession(game) : new EngineSession(game);
+  return mode === 'tutorial'
+    ? createTutorialSession(game)
+    : new EngineSession(game, Math.random, STANDARD_GAME_DEFINITION);
 }
 
 export const useGameStore = create<GameStore>()(
@@ -79,11 +70,11 @@ export const useGameStore = create<GameStore>()(
       const orderedPlayerMemberIds = moveLeaderFirst(playerMemberIds, selectedLeaderId);
 
       state.mode = 'standard';
-      state.game = createInitialGame(Math.random, undefined, {
+      state.game = createInitialGame(Math.random, STANDARD_GAME_DEFINITION, {
         playerMemberIds: orderedPlayerMemberIds,
         enemyMemberIds,
       });
-      applyLeaderStressBonuses(state.game as GameState);
+      applyLeaderStressBonuses(state.game as GameState, STANDARD_GAME_DEFINITION);
       state.actionChoices = defaultChoices(state.game as GameState);
     }),
     startTutorial: () => set((state) => {

@@ -1,4 +1,5 @@
 import type { GameContent } from '../game/contentRegistry';
+import type { GameDefinition } from '../game/gameDefinition';
 import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } from '../game/schema';
 import { akikageCharacter, akikageSkills } from './akikage';
 import { cardList } from './cards';
@@ -16,7 +17,7 @@ import { viceLeaderPowerSkill } from './viceLeaderSkill';
 import { weakzhiCharacter, weakzhiSkills } from './weakzhi';
 import { yamadaCharacter, yamadaSkills } from './yamada';
 export { BASE_DECK, DEFAULT_MATCH } from './match';
-import { BASE_DECK } from './match';
+import { BASE_DECK, DEFAULT_MATCH, STANDARD_EXCLUDED_CHARACTER_IDS } from './match';
 
 function toRecord<T extends { id: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map((item) => [item.id, item]));
@@ -79,6 +80,16 @@ export const DEFAULT_CONTENT: GameContent = {
   cards: CARDS,
 };
 
+export const STANDARD_GAME_DEFINITION: GameDefinition = {
+  id: 'standard',
+  content: DEFAULT_CONTENT,
+  rules: DEFAULT_MATCH,
+  deck: BASE_DECK,
+  roster: {
+    excludedCharacterIds: STANDARD_EXCLUDED_CHARACTER_IDS,
+  },
+};
+
 export function validateCatalog(): void {
   for (const character of allCharacters) {
     for (const tag of character.tags ?? []) {
@@ -90,8 +101,8 @@ export function validateCatalog(): void {
       if (!SKILLS[skillId]) throw new Error(`Character ${character.id} references missing skill ${skillId}`);
     }
   }
-  for (const cardId of BASE_DECK) {
-    if (!CARDS[cardId]) throw new Error(`BASE_DECK references missing card ${cardId}`);
+  for (const cardId of STANDARD_GAME_DEFINITION.deck) {
+    if (!CARDS[cardId]) throw new Error(`Game definition ${STANDARD_GAME_DEFINITION.id} references missing card ${cardId}`);
   }
 }
 

@@ -25,9 +25,10 @@ src/
     gameplayBoundarySkills.ts  Gameplay rules migrated out of legacy tags
     characters.ts           Character definitions
     cards.ts                Card definitions
-    match.ts                Default match / deck / roster config
+    match.ts                Standard match rules / deck / roster config
   game/
     contentRegistry.ts      Injectable GameContent interface
+    gameDefinition.ts       GameDefinition / MatchRules boundary
     schema.ts               Zod schemas + domain types
     statuses.ts             Named runtime status keys and helpers
     engine.ts               Turn flow and core invariants
@@ -88,9 +89,9 @@ SkillRuntime
 
 UI setup state 也不得透過 module-level mutable variable 傳遞。組長選擇由 `DrawPhaseScreen -> App -> gameStore.startGame()` 明確傳入。
 
-## Injectable GameContent
+## Injectable GameDefinition
 
-`EngineSession` 接受 `GameContent`：
+`GameContent` 只描述靜態卡牌／角色／技能 registry：
 
 ```ts
 interface GameContent {
@@ -100,14 +101,47 @@ interface GameContent {
 }
 ```
 
-預設 UI 使用 `DEFAULT_CONTENT`，但測試或未來 game mode 可以傳入另一份 registry。這代表：
+實際一局如何建立與執行，則由 `GameDefinition` 注入：
 
-- 可建立不同 card set。
-- 可建立 prototype-only skill pack。
-- 可做 balance test，不修改 global catalog。
-- 未來多人房間可依房間規則載入不同 content pack。
+```ts
+interface GameDefinition {
+  id: string;
+  content: GameContent;
+  rules: MatchRules;
+  deck: readonly string[];
+  roster: {
+    excludedCharacterIds: readonly string[];
+  };
+}
+```
 
-目前 deck / match constants 仍由 `content/match.ts` 提供；若開始實作多種房間規則，應再抽成 injectable `GameDefinition` / `MatchRules`，不要回到 global mutation。
+`MatchRules` 包含目前會影響 Engine 行為的 match constants，例如：
+
+- `maxRounds`
+- `teamSize`
+- `initialHandSize`
+- `cardsPerRound`
+- `handLimit`
+- `leaderStressBonus`
+- `workLength`
+- `missingWorkStatScore`
+- player / enemy team name
+
+Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard deck、Standard roster eligibility 與 `DEFAULT_MATCH`。`EngineSession` constructor 進來後會先把輸入正規化成 `GameDefinition`；之後 hand limit、抽牌數、計分、作品長度等規則只從 `gameDefinition` 讀取，不再直接讀 Standard constants。
+
+目前仍允許只傳 `GameContent` 作為 migration compatibility path；這會套用 Standard rules / deck / roster config，只替換 content registry。Production path 應優先明確傳入 `GameDefinition`。
+
+這個邊界讓測試或未來 game mode 可以建立不同的：
+
+- card / skill / character content pack
+- team size
+- round count
+- hand limit / draw rate
+- deck
+- work length / scoring defaults
+- roster eligibility
+
+不需要修改 `EngineSession`，也不需要 mutation global catalog。
 
 ## Skill definition model
 
@@ -250,11 +284,11 @@ interface GameContent {
 
 ## Standard roster / special resources
 
-- `selectStandardRosters()` 依 `content/match.ts` 的 Standard roster configuration 排除不參加一般模式的角色；不以角色 Tag 承載出場規則。
+- `selectStandardRosters()` 依注入的 `GameDefinition.roster` 排除不參加該 mode 的角色；Standard mode 的設定來源仍是 `content/match.ts`。
 - `CharacterState.resources` 可保存非 Stress resource；目前卡奧斯使用「體力」。
 - 卡奧斯的壓力免疫由 Skill 在 `gameStart` 套用 `stress-immune` status，不依角色 ID 或 Tag 特判。
 - 弱智的行動／統籌限制同樣由 Skill 在 `gameStart` 套用 runtime statuses。
-- 組長 Stress 上限加成保存在當局 `CharacterState`，不修改 `CHARACTERS`。
+- 組長 Stress 上限加成保存在當局 `CharacterState`，加成值由當局 `GameDefinition.rules.leaderStressBonus` 提供，不修改 `CHARACTERS`。
 - 目前 custom effect 例子：`addRandomCardsByKind`（高興）與 `changeOwnerResource`（卡奧斯）。
 - trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
 
