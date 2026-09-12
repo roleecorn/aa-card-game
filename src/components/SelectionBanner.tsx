@@ -10,8 +10,6 @@ interface Props {
 
 export function SelectionBanner({ title, instruction, onCancel }: Props) {
   const mode = useGameStore((state) => state.mode);
-  // Explicit selection instructions are tutorial scaffolding. Standard play keeps
-  // the same highlight/dim/cancel interaction without repeating the banner.
   if (mode !== 'tutorial') return null;
 
   return (
