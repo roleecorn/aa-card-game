@@ -119,11 +119,11 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
 
   if (!current) return null;
 
-  const title = current.kind === 'card' ? '使用卡牌' : '發動技能';
   const side = current.teamId === 'player' ? '我方' : '對手';
   const tone = presentationTone(current);
   const palette = tones[tone];
   const presentationKey = String(current.id);
+  const actionText = current.kind === 'card' ? `使用卡牌「${current.name}」` : `「${current.name}」`;
 
   return (
     <Box
@@ -133,7 +133,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
       data-presentation-tone={tone}
       role="dialog"
       aria-modal="true"
-      aria-label={`${current.actor}${title}${current.name}`}
+      aria-label={`${current.actor}${actionText}`}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -230,7 +230,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
           {current.actor}
         </Typography>
         <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.68)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
-          {title}「{current.name}」{current.incomplete ? '（未完整結算）' : ''}
+          {actionText}{current.incomplete ? '（未完整結算）' : ''}
         </Typography>
       </Stack>
 
