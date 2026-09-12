@@ -107,11 +107,11 @@ export function WorkCard({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${work.slots.length}, minmax(50px, 1fr))`,
-            gap: .5,
+            gridTemplateColumns: `repeat(${work.slots.length}, minmax(54px, 1fr))`,
+            gap: .55,
             overflowX: 'auto',
             px: 1.05,
-            py: 1,
+            py: 1.1,
           }}
         >
           {work.slots.map((slot, slotIndex) => (
@@ -200,8 +200,8 @@ function ProgressCell({
       sx={{
         position: 'relative',
         p: 0,
-        minWidth: 50,
-        minHeight: 132,
+        minWidth: 54,
+        minHeight: 148,
         overflow: 'visible',
         borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
         borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
@@ -216,16 +216,16 @@ function ProgressCell({
         transition: 'opacity .15s ease, border-color .15s ease, box-shadow .15s ease',
       }}
     >
-      <Box sx={{ bgcolor: '#f1f4f8', borderBottom: '1px solid #d8e1ed', py: .28 }}>
-        <Typography sx={{ fontSize: 10, textAlign: 'center', color: 'text.secondary', fontWeight: 900 }}>
+      <Box sx={{ bgcolor: '#f1f4f8', borderBottom: '1px solid #d8e1ed', py: .34 }}>
+        <Typography sx={{ fontSize: 10.5, textAlign: 'center', color: 'text.secondary', fontWeight: 900 }}>
           {index + 1}
         </Typography>
       </Box>
 
       <Stack
         justifyContent="space-evenly"
-        spacing={.35}
-        sx={{ px: .75, py: .55, minHeight: 105, boxSizing: 'border-box' }}
+        spacing={.45}
+        sx={{ px: .65, py: .75, minHeight: 120, boxSizing: 'border-box' }}
       >
         <ProgressMark
           icon={<LocalFireDepartmentIcon />}
@@ -284,8 +284,8 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
       direction="row"
       alignItems="center"
       justifyContent="center"
-      spacing={.35}
-      sx={{ width: '100%', minHeight: 28 }}
+      spacing={.45}
+      sx={{ width: '100%', minHeight: 34 }}
     >
       <Box
         sx={{
@@ -293,13 +293,13 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
           flexShrink: 0,
           color: filled ? tone : '#c8d0dc',
           opacity: filled ? 1 : .72,
-          '& svg': { fontSize: 24 },
+          '& svg': { fontSize: 28 },
           transition: 'color .15s ease, opacity .15s ease',
         }}
       >
         {icon}
       </Box>
-      {filled ? <DiceFace value={value} /> : <Box sx={{ width: 18, height: 18, flexShrink: 0 }} />}
+      {filled ? <DiceFace value={value} /> : <Box sx={{ width: 22, height: 22, flexShrink: 0 }} />}
     </Stack>
   );
 }
@@ -321,16 +321,16 @@ function DiceFace({ value }: { value: number }) {
       <Box
         aria-hidden
         sx={{
-          width: 18,
-          height: 18,
+          width: 22,
+          height: 22,
           flexShrink: 0,
-          borderRadius: '4px',
+          borderRadius: '5px',
           border: '1px solid #9da9b8',
           bgcolor: '#fff',
           display: 'grid',
           placeItems: 'center',
           color: '#394456',
-          fontSize: 9,
+          fontSize: 10,
           lineHeight: 1,
           fontWeight: 950,
           boxShadow: '0 1px 2px rgba(46,58,77,.12)',
@@ -345,11 +345,11 @@ function DiceFace({ value }: { value: number }) {
     <Box
       aria-hidden
       sx={{
-        width: 18,
-        height: 18,
+        width: 22,
+        height: 22,
         flexShrink: 0,
         p: '3px',
-        borderRadius: '4px',
+        borderRadius: '5px',
         border: '1px solid #9da9b8',
         bgcolor: '#fff',
         display: 'grid',
@@ -363,8 +363,8 @@ function DiceFace({ value }: { value: number }) {
         <Box
           key={position}
           sx={{
-            width: 3,
-            height: 3,
+            width: 3.5,
+            height: 3.5,
             borderRadius: '50%',
             bgcolor: pips.includes(position) ? '#394456' : 'transparent',
             placeSelf: 'center',
