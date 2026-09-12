@@ -123,7 +123,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
   const tone = presentationTone(current);
   const palette = tones[tone];
   const presentationKey = String(current.id);
-  const actionText = current.kind === 'card' ? `使用卡牌「${current.name}」` : `「${current.name}」`;
+  const actionText = `「${current.name}」`;
 
   return (
     <Box
