@@ -136,21 +136,21 @@ export function WorkCard({
           >
             <Stack spacing={.15} alignItems="center" sx={{ position: 'relative', zIndex: 1, color: tone.progress }}>
               <Box sx={{ display: 'flex', '& svg': { fontSize: 31 } }}>{genreIcons[work.type]}</Box>
-              <Typography sx={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>{work.type}類作品</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>作品 · {work.type}</Typography>
             </Stack>
           </Box>
 
           <Stack justifyContent="center" spacing={.55} sx={{ minWidth: 0 }}>
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>製作流程</Typography>
+              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>作品進度</Typography>
               <Typography sx={{ fontSize: 11.5, fontWeight: 900, mt: .1 }}>
                 Design → Text → AA
               </Typography>
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>目前進度</Typography>
+              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>完成度</Typography>
               <Typography sx={{ fontSize: 11.5, fontWeight: 900, mt: .1 }}>
-                {completed} / {work.slots.length} 個段落完成
+                {completed} / {work.slots.length}
               </Typography>
             </Box>
           </Stack>
@@ -200,7 +200,7 @@ export function WorkCard({
           </Typography>
           {score !== undefined && (
             <Chip
-              label={`分數 ${score}`}
+              label={`Score ${score}`}
               size="small"
               sx={{ height: 23, bgcolor: '#fff', border: '1px solid #d7e1ec', '& .MuiChip-label': { px: .75, fontSize: 10.5, fontWeight: 900 } }}
             />
@@ -287,7 +287,7 @@ function ProgressLine({ icon, value, tone, locked = false }: { icon: React.React
     return (
       <Stack direction="row" alignItems="center" justifyContent="center" spacing={.28} sx={{ minHeight: 19, color: '#c4ccd7' }}>
         <LockOutlinedIcon sx={{ fontSize: 12.5 }} />
-        <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: '#c4ccd7' }}>—</Typography>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: '#c4ccd7' }}>?</Typography>
       </Stack>
     );
   }
@@ -297,7 +297,7 @@ function ProgressLine({ icon, value, tone, locked = false }: { icon: React.React
     <Stack direction="row" alignItems="center" justifyContent="center" spacing={.28} sx={{ minHeight: 19, color: filled ? tone : '#c6d0de' }}>
       <Box sx={{ display: 'flex', fontSize: 14.5 }}>{icon}</Box>
       <Typography sx={{ fontSize: 11, fontWeight: 950, color: filled ? 'text.primary' : '#b9c4d2' }}>
-        {filled ? value : '—'}
+        {filled ? value : '?'}
       </Typography>
     </Stack>
   );
