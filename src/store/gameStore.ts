@@ -107,6 +107,8 @@ export const useGameStore = create<GameStore>()(
     }),
     startTutorial: () => set((state) => {
       const game = createTutorialGame();
+      // Scenario setup replaces the opening hand; do not replay discarded setup effects.
+      game.feedback = [];
       state.gameDefinition = castDraft(STANDARD_GAME_DEFINITION);
       state.mode = 'tutorial';
       state.tutorial = createTutorialRuntimeState();

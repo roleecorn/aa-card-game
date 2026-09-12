@@ -15,7 +15,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
-import { CARDS, CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, selectStandardRosters } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
@@ -28,6 +28,7 @@ import { CardHand } from '../components/CardHand';
 import { CardPlayDialog } from '../components/CardPlayDialog';
 import { SkillActivationDialog } from '../components/SkillActivationDialog';
 import { LogPanel } from '../components/LogPanel';
+import { ActionFeedback } from '../components/ActionFeedback';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { StartScreen } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
@@ -184,11 +185,10 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const handleCardConfirm = (target: SkillActivationTarget) => {
     if (!cardInstance) return;
     const cardId = cardInstance.cardId;
-    const card = CARDS[cardId];
     const ok = playCard('player', cardInstance.instanceId, target);
     tutorialEvent({ type: 'cardResolved', cardId, success: ok });
     setCardInstance(undefined);
-    setMessage(ok ? `已使用「${card?.name ?? cardId}」。` : '目前條件不允許使用這張牌。');
+    if (!ok) setMessage('目前條件不允許使用這張牌。');
   };
 
   const handleActivate = (memberId: string, skillId: string) => {
@@ -200,17 +200,16 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       return;
     }
     const ok = activateSkill('player', memberId, skillId, {});
-    setMessage(ok ? `已發動「${skill.name}」。` : '技能目前不能發動。');
+    if (!ok) setMessage('技能目前不能發動。');
   };
 
   const handleSkillConfirm = (target: SkillActivationTarget) => {
     if (!skillDialog) return;
     const { memberId, skillId } = skillDialog;
-    const skill = SKILLS[skillId];
     const ok = activateSkill('player', memberId, skillId, target);
     tutorialEvent({ type: 'skillResolved', memberId, skillId, success: ok });
     setSkillDialog(undefined);
-    setMessage(ok ? `已發動「${skill?.name ?? skillId}」。` : '技能目前不能發動，請檢查目標與使用次數。');
+    if (!ok) setMessage('技能目前不能發動，請檢查目標與使用次數。');
   };
 
   const handleCardDialogClose = () => {
@@ -281,6 +280,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
         onReset={handleRestart}
       />
       <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
+        <ActionFeedback events={game.feedback} />
         {game.phase === 'finished' && (
           <Alert severity={game.winner === 'player' ? 'success' : game.winner === 'draw' ? 'info' : 'warning'} sx={{ mb: 1.2 }}>
             遊戲結束：{game.winner === 'player' ? '我方勝利' : game.winner === 'enemy' ? '對手勝利' : '平手'}。比分 {playerScore} : {enemyScore}
@@ -336,7 +336,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
             </Paper>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
-              <Paper sx={panelSx}>
+              <Paper sx={panelSx} data-feedback-anchor="hand:player">
                 <Stack direction="row" spacing={.7} alignItems="center" sx={{ mb: .7 }}>
                   <HandshakeIcon sx={{ color: '#3bb8a5', fontSize: 19 }} />
                   <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>我的手牌</Typography>

@@ -262,17 +262,19 @@ export class SkillRuntime {
   }
 
   private applyEffects(effects: SkillEffect[], context: EffectContext): boolean {
-    let applied = false;
-    for (const effect of effects) {
-      try {
-        applied = builtInEffects.execute(effect, context, this.engine) || applied;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.engine.log(`技能「${context.definition.name}」效果執行失敗，已略過：${message}`);
+    return this.engine.feedback.capture(context, 'skill', () => {
+      let applied = false;
+      for (const effect of effects) {
+        try {
+          applied = builtInEffects.execute(effect, context, this.engine) || applied;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.engine.log(`技能「${context.definition.name}」效果執行失敗，已略過：${message}`);
+        }
+        if (context.event.cancelled) break;
       }
-      if (context.event.cancelled) break;
-    }
-    return applied;
+      return applied;
+    });
   }
 
   private usageKey(skillId: string, usage: { scope: 'round' | 'game'; key?: string }): string {
