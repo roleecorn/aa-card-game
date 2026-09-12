@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { FeedbackRecorder } from './actionFeedback';
 import { STANDARD_GAME_DEFINITION, WORK_TYPES } from '../content/catalog';
 import { builtInEffects } from './effectRegistry';
 import { executeCardHandler } from './cardHandlers';
@@ -107,6 +108,7 @@ export function selectStandardRosters(
 
 export class EngineSession {
   readonly skills: SkillRuntime;
+  readonly feedback = new FeedbackRecorder(this);
   readonly gameDefinition: GameDefinition;
   readonly content: GameContent;
 
@@ -519,8 +521,14 @@ export class EngineSession {
         if (!this.getCharacter(teamId, member.defId)) continue;
 
         if ((member.statuses.writerBlock?.stacks ?? 0) > 0 && batch.some((die) => die.value <= 2)) {
+          const feedbackSource = member.statuses.writerBlock.feedbackSource;
           delete member.statuses.writerBlock;
-          this.adjustStress(teamId, member.defId, 2, '卡文', true);
+          const resolve = () => { this.adjustStress(teamId, member.defId, 2, '卡文', true); return true; };
+          if (feedbackSource) {
+            this.feedback.capture({ ownerId: feedbackSource.ownerId, ownerTeamId: feedbackSource.ownerTeamId,
+              definition: { id: feedbackSource.id, name: `${feedbackSource.name}（延遲觸發）` },
+              event: { type: 'afterRollBatch', teamId, actorId: member.defId } }, feedbackSource.kind, resolve);
+          } else resolve();
           if (this.isGameFinished()) return;
           if (!this.getCharacter(teamId, member.defId)) continue;
         }
@@ -557,37 +565,40 @@ export class EngineSession {
     }
     if (!this.validateCardTarget(teamId, card, target)) return false;
 
-    let success = false;
-    if (card.effects?.length) {
-      const context: EffectContext = {
-        ownerId: actorId,
-        ownerTeamId: teamId,
-        definition: card,
-        event: { type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } },
-        activationTarget: target,
-      };
-      success = this.applyEffects(card.effects, context);
-    }
-    if (card.customHandler) {
-      try {
-        success = executeCardHandler(card.customHandler, team, card, target, this) || success;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.log(`卡牌「${card.name}」處理失敗，已取消本次使用：${message}`);
-        return false;
+    return this.feedback.capture({ ownerId: actorId, ownerTeamId: teamId, definition: card,
+      event: { type: 'cardPlayed', teamId, actorId }, activationTarget: target }, 'card', () => {
+      let success = false;
+      if (card.effects?.length) {
+        const context: EffectContext = {
+          ownerId: actorId,
+          ownerTeamId: teamId,
+          definition: card,
+          event: { type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } },
+          activationTarget: target,
+        };
+        success = this.applyEffects(card.effects, context);
       }
-    }
-    if (!success) return false;
+      if (card.customHandler) {
+        try {
+          success = executeCardHandler(card.customHandler, team, card, target, this) || success;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.log(`卡牌「${card.name}」處理失敗，已取消本次使用：${message}`);
+          return false;
+        }
+      }
+      if (!success) return false;
 
-    team.hand.splice(index, 1);
-    team.discard.push(card.id);
-    this.log(`${team.name} 使用「${card.name}」。`);
-    if (card.kind === 'coordination') {
-      const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
-      this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true, actorId);
-    }
-    this.skills.emit({ type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } });
-    return true;
+      team.hand.splice(index, 1);
+      team.discard.push(card.id);
+      this.log(`${team.name} 使用「${card.name}」。`);
+      if (card.kind === 'coordination') {
+        const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
+        this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true, actorId);
+      }
+      this.skills.emit({ type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } });
+      return true;
+    });
   }
 
   activateSkill(teamId: TeamId, memberId: string, skillId: string, target: SkillActivationTarget = {}): boolean {

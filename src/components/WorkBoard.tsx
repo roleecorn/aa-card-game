@@ -21,7 +21,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick }: Props) {
       }}
     >
       {works.map((work, index) => (
-        <Box key={work.id} data-tutorial={`work-${work.ownerId}`}>
+        <Box key={work.id} data-feedback-anchor={`work:${work.id}`} data-tutorial={`work-${work.ownerId}`}>
           <WorkCard
             work={work}
             index={index}

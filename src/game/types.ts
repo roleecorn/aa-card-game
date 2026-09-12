@@ -20,6 +20,7 @@ export interface TimedStatModifier {
 export interface StatusInstance {
   stacks: number;
   expiresAfterRound?: number;
+  feedbackSource?: { ownerId: string; ownerTeamId: TeamId; id: string; name: string; kind: 'skill' | 'card' };
 }
 
 export interface CharacterState {
@@ -74,6 +75,9 @@ export interface LogEntry {
 }
 
 export interface GameState {
+  /** Presentation history only; never used by game rules. */
+  feedback?: import('./actionFeedback').ActionFeedback[];
+  feedbackSequence?: number;
   round: number;
   maxRounds: number;
   phase: Phase;

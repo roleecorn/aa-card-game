@@ -18,7 +18,7 @@ interface Props {
 
 export function TeamColumn({ title, team, engine, showActions, actionChoices, onActionChange, onActivateSkill, side = 'player' }: Props) {
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} data-feedback-anchor={`hand:${side}`}>
       <Stack direction="row" spacing={.7} alignItems="center" sx={{ px: .3 }}>
         <AutoAwesomeIcon sx={{ color: side === 'player' ? '#f4ba45' : '#5ca9e8', fontSize: 19 }} />
         <Typography variant="h6" sx={{ fontSize: 17 }}>{title}</Typography>
@@ -30,7 +30,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
         const definition = CHARACTERS[member.defId];
         if (!definition) return null;
         return (
-          <Box key={member.defId} sx={{ transform: index % 2 ? 'rotate(.25deg)' : 'rotate(-.2deg)' }}>
+          <Box key={member.defId} data-feedback-anchor={`member:${member.defId}`} sx={{ transform: index % 2 ? 'rotate(.25deg)' : 'rotate(-.2deg)' }}>
             <CharacterCard
               definition={definition}
               state={member}
