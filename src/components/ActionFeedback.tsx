@@ -1,65 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, LinearProgress, Stack, Typography, useMediaQuery } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import type { ActionFeedback as Feedback, FeedbackImpact } from '../game/actionFeedback';
+import type { ActionFeedback as Feedback } from '../game/actionFeedback';
 import { resolvePublicAssetPath } from '../content/publicAssetPath';
 import { useGameStore } from '../store/gameStore';
 
 const PRESENTATION_MS = 2600;
+
 const tones = {
-  positive: { color: '#5fe1bd', label: '＋ 增益', background: 'rgba(9, 71, 60, .72)' },
-  negative: { color: '#ff6f91', label: '− 減益', background: 'rgba(91, 17, 39, .72)' },
-  neutral: { color: '#8fb6ff', label: '↔ 變化', background: 'rgba(31, 51, 92, .72)' },
-};
+  positive: { color: '#5fe1bd', glow: 'rgba(95,225,189,.28)', sweep: 'rgba(66,191,158,.24)' },
+  negative: { color: '#ff6f91', glow: 'rgba(255,111,145,.28)', sweep: 'rgba(178,42,83,.28)' },
+  neutral: { color: '#8fb6ff', glow: 'rgba(143,182,255,.24)', sweep: 'rgba(35,76,132,.22)' },
+  mixed: { color: '#ffd66f', glow: 'rgba(255,214,111,.24)', sweep: 'rgba(151,89,177,.25)' },
+} as const;
+
+type PresentationTone = keyof typeof tones;
 
 const EMPTY: Feedback[] = [];
 
-interface Beat {
-  event: Feedback;
-  impacts: FeedbackImpact[];
-  page: number;
-  pages: number;
+function presentationTone(event: Feedback): PresentationTone {
+  const hasPositive = event.impacts.some(impact => impact.tone === 'positive');
+  const hasNegative = event.impacts.some(impact => impact.tone === 'negative');
+  if (hasPositive && hasNegative) return 'mixed';
+  if (hasPositive) return 'positive';
+  if (hasNegative) return 'negative';
+  return 'neutral';
 }
 
-function beats(event: Feedback): Beat[] {
-  const pages = Math.max(1, Math.ceil(event.impacts.length / 3));
-  return Array.from({ length: pages }, (_, page) => ({
-    event,
-    impacts: event.impacts.slice(page * 3, page * 3 + 3),
-    page,
-    pages,
-  }));
-}
-
-function Impact({ impact }: { impact: FeedbackImpact }) {
-  const tone = tones[impact.tone];
-  return (
-    <Box
-      sx={{
-        borderLeft: `4px solid ${tone.color}`,
-        bgcolor: tone.background,
-        backdropFilter: 'blur(8px)',
-        px: { xs: 1.1, md: 1.5 },
-        py: { xs: .65, md: .8 },
-        borderRadius: .7,
-        boxShadow: '0 7px 24px rgba(0,0,0,.18)',
-      }}
-    >
-      <Typography sx={{ fontSize: { xs: 12, md: 14 }, color: '#fff', fontWeight: 900, overflowWrap: 'anywhere' }}>
-        <Box component="span" sx={{ color: tone.color }}>{tone.label}</Box>
-        {' · '}{impact.target} · {impact.part}　{impact.before} → {impact.after}
-      </Typography>
-    </Box>
-  );
-}
-
-/** Full-screen presentation gate. Game rules may already be settled, but input never reaches the game while this is visible. */
+/**
+ * Full-screen presentation gate.
+ *
+ * One feedback event is always one presentation, regardless of how many detailed impacts
+ * were captured by the rules engine. Impacts stay available for target highlighting and
+ * tone derivation, but presentation timing is never multiplied by impact count.
+ */
 export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
-  const [queue, setQueue] = useState<Beat[]>([]);
+  const [queue, setQueue] = useState<Feedback[]>([]);
   const seen = useRef(0);
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const current = queue[0];
-  const actor = useGameStore(state => current ? state.gameDefinition.content.characters[current.event.actorId] : undefined);
+  const actor = useGameStore(state => current ? state.gameDefinition.content.characters[current.actorId] : undefined);
   const portrait = resolvePublicAssetPath(actor?.portrait ?? actor?.compactPortrait);
 
   const skipCurrent = useCallback(() => {
@@ -70,7 +50,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
     const fresh = events.filter(event => event.id > seen.current);
     if (!fresh.length) return;
     seen.current = Math.max(...fresh.map(event => event.id));
-    setQueue(previous => [...previous, ...fresh.flatMap(beats)]);
+    setQueue(previous => [...previous, ...fresh]);
   }, [events]);
 
   useEffect(() => {
@@ -101,11 +81,15 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
     const animations: Animation[] = [];
     const nodes = document.querySelectorAll<HTMLElement>('[data-feedback-anchor]');
     const anchors = new Set([...nodes].map(node => node.dataset.feedbackAnchor));
+
     for (const node of nodes) {
       const anchor = node.dataset.feedbackAnchor;
-      const impact = current.impacts.find(item => item.anchor === anchor || (!anchors.has(item.anchor) && item.fallbackAnchor === anchor));
-      const source = anchor === `member:${current.event.actorId}`;
+      const impact = current.impacts.find(item => (
+        item.anchor === anchor || (!anchors.has(item.anchor) && item.fallbackAnchor === anchor)
+      ));
+      const source = anchor === `member:${current.actorId}`;
       if (!impact && !source) continue;
+
       const color = impact ? tones[impact.tone].color : '#ffd66f';
       animations.push(node.animate([
         { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1)' },
@@ -113,23 +97,27 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1)' },
       ], { duration: reducedMotion ? PRESENTATION_MS : 650, iterations: reducedMotion ? 1 : 4 }));
     }
+
     return () => animations.forEach(animation => animation.cancel());
   }, [current, reducedMotion]);
 
   if (!current) return null;
 
-  const title = current.event.kind === 'card' ? '使用卡牌' : '發動技能';
-  const side = current.event.teamId === 'player' ? '我方' : '對手';
-  const presentationKey = `${current.event.id}:${current.page}`;
+  const title = current.kind === 'card' ? '使用卡牌' : '發動技能';
+  const side = current.teamId === 'player' ? '我方' : '對手';
+  const tone = presentationTone(current);
+  const palette = tones[tone];
+  const presentationKey = String(current.id);
 
   return (
     <Box
       key={presentationKey}
       data-testid="action-feedback"
       data-presentation-key={presentationKey}
+      data-presentation-tone={tone}
       role="dialog"
       aria-modal="true"
-      aria-label={`${current.event.actor}${title}${current.event.name}`}
+      aria-label={`${current.actor}${title}${current.name}`}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -153,7 +141,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
           content: '""',
           position: 'absolute',
           inset: '-12% -8%',
-          background: 'linear-gradient(110deg, transparent 0 22%, rgba(35,76,132,.2) 33%, rgba(255,255,255,.12) 48%, rgba(178,42,83,.22) 62%, transparent 78%)',
+          background: `linear-gradient(110deg, transparent 0 22%, ${palette.sweep} 33%, rgba(255,255,255,.12) 48%, ${palette.glow} 62%, transparent 78%)`,
           transform: 'skewX(-10deg)',
           animation: reducedMotion ? 'none' : 'presentation-sweep 900ms ease-out both',
         },
@@ -175,7 +163,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         sx={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(circle at 24% 48%, rgba(255,214,111,.18), transparent 30%), radial-gradient(circle at 78% 36%, rgba(103,154,255,.18), transparent 34%)',
+          background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`,
           pointerEvents: 'none',
         }}
       />
@@ -194,7 +182,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
             maxHeight: '106vh',
             objectFit: 'contain',
             objectPosition: 'center bottom',
-            filter: 'drop-shadow(20px 12px 26px rgba(0,0,0,.42))',
+            filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.42)) drop-shadow(0 0 24px ${palette.glow})`,
             animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both',
             pointerEvents: 'none',
           }}
@@ -206,7 +194,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         sx={{
           position: 'absolute',
           right: { xs: 14, sm: '5vw', md: '7vw' },
-          top: { xs: '14vh', sm: '18vh', md: '22vh' },
+          top: { xs: '18vh', sm: '24vh', md: '29vh' },
           width: { xs: '62vw', sm: '53vw', md: '49vw' },
           maxWidth: 760,
           alignItems: 'flex-start',
@@ -214,27 +202,18 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         }}
       >
         <Stack direction="row" spacing={1} alignItems="center">
-          <AutoAwesomeIcon sx={{ color: '#ffd66f', fontSize: { xs: 22, md: 30 } }} />
+          <AutoAwesomeIcon sx={{ color: palette.color, fontSize: { xs: 22, md: 30 } }} />
           <Typography sx={{ color: '#d7e4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 } }}>
-            {side} · ROUND {current.event.round}{current.pages > 1 ? ` · ${current.page + 1}/${current.pages}` : ''}
+            {side} · ROUND {current.round}
           </Typography>
         </Stack>
 
         <Typography sx={{ color: '#fff', fontWeight: 950, lineHeight: .94, textShadow: '0 4px 18px rgba(0,0,0,.45)', fontSize: { xs: 25, sm: 38, md: 58 } }}>
-          {current.event.actor}
+          {current.actor}
         </Typography>
-        <Typography sx={{ color: '#ffd66f', fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.5)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
-          {title}「{current.event.name}」{current.event.incomplete ? '（未完整結算）' : ''}
+        <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.5)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
+          {title}「{current.name}」{current.incomplete ? '（未完整結算）' : ''}
         </Typography>
-
-        <Stack spacing={.65} sx={{ width: '100%', maxWidth: 680, mt: 1 }}>
-          {current.impacts.map((impact, index) => <Impact key={index} impact={impact} />)}
-          {!current.impacts.length && (
-            <Box sx={{ bgcolor: 'rgba(20,31,53,.72)', px: 1.5, py: .9, borderRadius: .7 }}>
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: { xs: 12, md: 14 } }}>效果已處理 · 沒有可見數值變化</Typography>
-            </Box>
-          )}
-        </Stack>
       </Stack>
 
       <Typography
@@ -267,7 +246,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
             height: 3,
             bgcolor: 'rgba(255,255,255,.16)',
             '& .MuiLinearProgress-bar': {
-              bgcolor: '#ffd66f',
+              bgcolor: palette.color,
               animation: `feedback-time ${PRESENTATION_MS}ms linear`,
               '@keyframes feedback-time': {
                 from: { transform: 'translateX(0)' },
