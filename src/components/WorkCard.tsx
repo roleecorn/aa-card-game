@@ -202,7 +202,7 @@ function ProgressCell({
         p: 0,
         minWidth: 50,
         minHeight: 132,
-        overflow: 'hidden',
+        overflow: 'visible',
         borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
         borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
         borderColor: targeting ? (allowed ? 'warning.main' : '#aeb8c5') : selectedDie ? 'primary.main' : '#d8e1ed',
@@ -261,9 +261,9 @@ function ProgressCell({
           }}
           sx={{
             position: 'absolute',
-            top: 5,
-            left: 5,
-            width: 'clamp(34px, 42%, 52px)',
+            top: -8,
+            right: -8,
+            width: 'clamp(38px, 45%, 56px)',
             height: 'auto',
             objectFit: 'contain',
             pointerEvents: 'none',
@@ -283,7 +283,8 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
       aria-label={`${label}${filled ? ` ${value}` : ' 尚未完成'}`}
       direction="row"
       alignItems="center"
-      justifyContent="space-between"
+      justifyContent="center"
+      spacing={.35}
       sx={{ width: '100%', minHeight: 28 }}
     >
       <Box
