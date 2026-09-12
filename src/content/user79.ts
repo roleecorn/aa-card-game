@@ -44,7 +44,7 @@ export const user79Skills = skillDefinitionSchema.array().parse([
     activation: 'active',
     status: 'implemented',
     activeHint: '選擇 79 自己尚未分配的 Text 骰。',
-    activeTarget: { kind: 'pendingDie', relation: 'self' },
+    activeTarget: { kind: 'pendingDie', relation: 'self', skill: 'text', maxValue: 5 },
     activeEffects: [
       { kind: 'stress.change', target: 'owner', amount: 1, source: '燃燒文字' },
       { kind: 'dice.modifySelected', add: 2 },

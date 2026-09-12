@@ -49,6 +49,7 @@ export interface DieToken {
   value: DieValue;
   round: number;
   origin: string;
+  placement?: 'normal' | 'anyAllyWork';
 }
 
 export interface CardInstance {

@@ -8,6 +8,9 @@ import { useGameStore } from '../store/gameStore';
 const PRESENTATION_MS = 2600;
 const IMPACT_CONFIRM_MS = 280;
 const TARGET_PADDING = 10;
+const ACTION_PRESENTATION_Z_INDEX = 2000;
+const TARGET_EFFECT_LAYER_Z_INDEX = 1;
+const PRESENTATION_CONTENT_Z_INDEX = 2;
 
 const tones = {
   positive: { color: '#5fe1bd', glow: 'rgba(95,225,189,.28)', sweep: 'rgba(66,191,158,.24)' },
@@ -43,7 +46,7 @@ function impactTone(tone: Feedback['impacts'][number]['tone']): PresentationTone
 
 function TargetEffectLayer({ targets, reducedMotion }: { targets: TargetEffect[]; reducedMotion: boolean }) {
   return (
-    <Box data-testid="action-feedback-target-effects" sx={{ position: 'fixed', inset: 0, zIndex: 1601, pointerEvents: 'none', overflow: 'hidden' }}>
+    <Box data-testid="action-feedback-target-effects" sx={{ position: 'fixed', inset: 0, zIndex: TARGET_EFFECT_LAYER_Z_INDEX, pointerEvents: 'none', overflow: 'hidden' }}>
       {targets.map(target => {
         const palette = tones[target.tone];
         const width = target.width + TARGET_PADDING * 2;
@@ -241,7 +244,8 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
       sx={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1600,
+        zIndex: ACTION_PRESENTATION_Z_INDEX,
+        isolation: 'isolate',
         overflow: 'hidden',
         cursor: 'pointer',
         touchAction: 'none',
@@ -251,6 +255,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         '&:before': {
           content: '""',
           position: 'absolute',
+          zIndex: PRESENTATION_CONTENT_Z_INDEX,
           inset: '-12% -8%',
           background: `linear-gradient(110deg, transparent 0 22%, ${palette.sweep} 33%, rgba(255,255,255,.1) 48%, ${palette.glow} 62%, transparent 78%)`,
           transform: 'skewX(-10deg)',
@@ -271,15 +276,15 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         },
       }}
     >
-      <Box sx={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`, opacity: .72, pointerEvents: 'none' }} />
+      <Box sx={{ position: 'absolute', inset: 0, zIndex: PRESENTATION_CONTENT_Z_INDEX, background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`, opacity: .72, pointerEvents: 'none' }} />
 
       <TargetEffectLayer targets={targets} reducedMotion={reducedMotion} />
 
       {portrait && (
-        <Box component="img" src={portrait} alt="" sx={{ position: 'absolute', left: { xs: '-14vw', sm: '-3vw', md: '3vw' }, bottom: { xs: '-9vh', md: '-14vh' }, width: { xs: '74vw', sm: '54vw', md: '40vw' }, maxWidth: 620, maxHeight: '106vh', objectFit: 'contain', objectPosition: 'center bottom', filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.38)) drop-shadow(0 0 24px ${palette.glow})`, animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }} />
+        <Box component="img" src={portrait} alt="" sx={{ position: 'absolute', zIndex: PRESENTATION_CONTENT_Z_INDEX, left: { xs: '-14vw', sm: '-3vw', md: '3vw' }, bottom: { xs: '-9vh', md: '-14vh' }, width: { xs: '74vw', sm: '54vw', md: '40vw' }, maxWidth: 620, maxHeight: '106vh', objectFit: 'contain', objectPosition: 'center bottom', filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.38)) drop-shadow(0 0 24px ${palette.glow})`, animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }} />
       )}
 
-      <Stack spacing={1.2} sx={{ position: 'absolute', right: { xs: 14, sm: '5vw', md: '7vw' }, top: { xs: '18vh', sm: '24vh', md: '29vh' }, width: { xs: '62vw', sm: '53vw', md: '49vw' }, maxWidth: 760, alignItems: 'flex-start', animation: reducedMotion ? 'none' : 'title-in 320ms 70ms ease-out both' }}>
+      <Stack spacing={1.2} sx={{ position: 'absolute', zIndex: PRESENTATION_CONTENT_Z_INDEX, right: { xs: 14, sm: '5vw', md: '7vw' }, top: { xs: '18vh', sm: '24vh', md: '29vh' }, width: { xs: '62vw', sm: '53vw', md: '49vw' }, maxWidth: 760, alignItems: 'flex-start', animation: reducedMotion ? 'none' : 'title-in 320ms 70ms ease-out both' }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <AutoAwesomeIcon sx={{ color: palette.color, fontSize: { xs: 22, md: 30 } }} />
           <Typography sx={{ color: '#eef4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 }, textShadow: '0 2px 8px rgba(0,0,0,.72)' }}>{side} · ROUND {current.round}</Typography>
@@ -288,10 +293,10 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.68)', fontSize: { xs: 20, sm: 31, md: 46 } }}>{actionText}{current.incomplete ? '（未完整結算）' : ''}</Typography>
       </Stack>
 
-      <Typography sx={{ position: 'absolute', left: 0, right: 0, bottom: { xs: 20, md: 28 }, textAlign: 'center', color: 'rgba(255,255,255,.92)', fontSize: { xs: 11, md: 13 }, fontWeight: 800, letterSpacing: '.08em', textShadow: '0 2px 8px #000', pointerEvents: 'none' }}>點擊畫面跳過動畫</Typography>
+      <Typography sx={{ position: 'absolute', zIndex: PRESENTATION_CONTENT_Z_INDEX, left: 0, right: 0, bottom: { xs: 20, md: 28 }, textAlign: 'center', color: 'rgba(255,255,255,.92)', fontSize: { xs: 11, md: 13 }, fontWeight: 800, letterSpacing: '.08em', textShadow: '0 2px 8px #000', pointerEvents: 'none' }}>點擊畫面跳過動畫</Typography>
 
       {!reducedMotion && (
-        <LinearProgress variant="determinate" value={0} sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, bgcolor: 'rgba(255,255,255,.16)', '& .MuiLinearProgress-bar': { bgcolor: palette.color, animation: `feedback-time ${PRESENTATION_MS}ms linear`, '@keyframes feedback-time': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-100%)' } } } }} />
+        <LinearProgress variant="determinate" value={0} sx={{ position: 'absolute', zIndex: PRESENTATION_CONTENT_Z_INDEX, left: 0, right: 0, bottom: 0, height: 3, bgcolor: 'rgba(255,255,255,.16)', '& .MuiLinearProgress-bar': { bgcolor: palette.color, animation: `feedback-time ${PRESENTATION_MS}ms linear`, '@keyframes feedback-time': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-100%)' } } } }} />
       )}
     </Box>
   );

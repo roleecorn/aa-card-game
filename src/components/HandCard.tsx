@@ -1,4 +1,4 @@
-import { Box, Card, CardActionArea, CardContent, CardMedia, Chip, Typography } from '@mui/material';
+import { Box, Card, CardActionArea, CardContent, CardMedia, Chip, Tooltip, Typography } from '@mui/material';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import type { CardDefinition } from '../game/schema';
@@ -9,13 +9,15 @@ export interface HandCardProps {
   card: CardDefinition;
   rotation?: number;
   onPlay?: (instance: CardInstance) => void;
+  disabledReason?: string;
 }
 
-export function HandCard({ instance, card, rotation = 0, onPlay }: HandCardProps) {
+export function HandCard({ instance, card, rotation = 0, onPlay, disabledReason }: HandCardProps) {
   const coordination = card.kind === 'coordination';
   const tone = coordination ? '#48c6b5' : '#ff6f8f';
+  const disabled = !onPlay || !!disabledReason;
 
-  return (
+  const body = (
     <Card
       sx={{
         minWidth: 150,
@@ -25,10 +27,11 @@ export function HandCard({ instance, card, rotation = 0, onPlay }: HandCardProps
         borderWidth: 2,
         bgcolor: coordination ? '#f5fffd' : '#fff7f9',
         transform: `rotate(${rotation}deg)`,
+        opacity: disabledReason ? .45 : 1,
       }}
     >
       <CardActionArea
-        disabled={!onPlay}
+        disabled={disabled}
         onClick={() => onPlay?.(instance)}
         sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
       >
@@ -105,4 +108,10 @@ export function HandCard({ instance, card, rotation = 0, onPlay }: HandCardProps
       </CardActionArea>
     </Card>
   );
+
+  return disabledReason ? (
+    <Tooltip title={disabledReason} arrow>
+      <Box component="span" sx={{ display: 'inline-block' }}>{body}</Box>
+    </Tooltip>
+  ) : body;
 }

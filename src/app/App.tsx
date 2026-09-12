@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -15,9 +15,18 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import CoffeeIcon from '@mui/icons-material/Coffee';
-import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { CARDS, CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, selectStandardRosters } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
+import {
+  getCardAvailability,
+  getCardMemberCandidates,
+  getCardWorkCandidates,
+  getDiePlacementLegality,
+  getSkillAvailability,
+  getSkillSelectionPlan,
+  type TargetCandidate,
+} from '../game/targeting';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { GameHeader } from '../components/GameHeader';
@@ -27,6 +36,8 @@ import { DiceTray } from '../components/DiceTray';
 import { CardHand } from '../components/CardHand';
 import { CardPlayDialog } from '../components/CardPlayDialog';
 import { SkillActivationDialog } from '../components/SkillActivationDialog';
+import { ActivationConfirmDialog } from '../components/ActivationConfirmDialog';
+import { SelectionBanner } from '../components/SelectionBanner';
 import { LogPanel } from '../components/LogPanel';
 import { ActionFeedback } from '../components/ActionFeedback';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
@@ -36,6 +47,11 @@ import { HandLimitDialog } from '../components/HandLimitDialog';
 import { TutorialGuide } from '../tutorial/TutorialGuide';
 
 type AppStage = 'start' | 'draw' | 'battle';
+
+type SelectionMode =
+  | { kind: 'die'; dieId: string }
+  | { kind: 'card'; instance: CardInstance }
+  | { kind: 'skill'; memberId: string; skillId: string; target: SkillActivationTarget };
 
 interface AppProps {
   gameDefinition?: GameDefinition;
@@ -74,6 +90,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const [selectedDieId, setSelectedDieId] = useState<string>();
   const [cardInstance, setCardInstance] = useState<CardInstance>();
   const [skillDialog, setSkillDialog] = useState<{ memberId: string; skillId: string }>();
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>();
   const [message, setMessage] = useState<string>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
@@ -91,10 +108,27 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       .map((character) => character.id);
   }, [gameDefinition]);
 
+  const cancelSelection = useCallback(() => {
+    setSelectionMode(undefined);
+    setSelectedDieId(undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!selectionMode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      cancelSelection();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [cancelSelection, selectionMode]);
+
   const clearTransientUi = () => {
     setSelectedDieId(undefined);
     setCardInstance(undefined);
     setSkillDialog(undefined);
+    setSelectionMode(undefined);
     setMessage(undefined);
   };
 
@@ -149,35 +183,60 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
 
   const handlePerformPlayerActions = () => {
     performPlayerActions();
-    setSelectedDieId(undefined);
+    cancelSelection();
     tutorialEvent({ type: 'playerActionsPerformed' });
   };
 
   const handleDieSelect = (dieId: string) => {
-    const die = game?.player.pendingDice.find((candidate) => candidate.id === dieId);
-    setSelectedDieId((current) => current === dieId ? undefined : dieId);
-    if (die) tutorialEvent({ type: 'dieSelected', ownerId: die.ownerId, skill: die.skill });
+    if (!game || !engine || game.phase !== 'player-assign') return;
+    if (selectionMode?.kind === 'die' && selectionMode.dieId === dieId) {
+      cancelSelection();
+      return;
+    }
+    const die = game.player.pendingDice.find((candidate) => candidate.id === dieId);
+    if (!die) return;
+    const hasLegalTarget = game.player.works.some((work) => work.slots.some((_, slotIndex) =>
+      getDiePlacementLegality(engine, 'player', die, work, slotIndex).allowed));
+    if (!hasLegalTarget) {
+      setMessage('這顆骰目前沒有可放置的位置。');
+      return;
+    }
+    setSelectedDieId(dieId);
+    setSelectionMode({ kind: 'die', dieId });
+    tutorialEvent({ type: 'dieSelected', ownerId: die.ownerId, skill: die.skill });
   };
 
   const handleSlotClick = (workId: string, slotIndex: number) => {
-    if (!selectedDie) return;
+    if (!selectedDie || !engine) return;
     const work = game?.player.works.find((candidate) => candidate.id === workId);
+    if (!work) return;
+    const legality = getDiePlacementLegality(engine, 'player', selectedDie, work, slotIndex);
+    if (!legality.allowed) {
+      cancelSelection();
+      return;
+    }
     const ok = placeDie(selectedDie.id, workId, slotIndex);
     if (ok) {
       tutorialEvent({
         type: 'diePlaced',
         ownerId: selectedDie.ownerId,
         skill: selectedDie.skill,
-        workOwnerId: work?.ownerId,
+        workOwnerId: work.ownerId,
       });
-      setSelectedDieId(undefined);
+      cancelSelection();
     } else {
-      setMessage('這顆骰不能放在該位置：請檢查 Design → Text → AA 順序、作品適性與既有骰值。');
+      cancelSelection();
+      setMessage('目前狀態已改變，這顆骰無法放在該位置。');
     }
   };
 
   const handleOpenCard = (instance: CardInstance) => {
-    if (game?.phase === 'finished') return;
+    if (!game || !engine || game.phase === 'finished') return;
+    const availability = getCardAvailability(engine, 'player', instance);
+    if (!availability.allowed) {
+      setMessage(availability.reason ?? '目前條件不允許使用這張牌。');
+      return;
+    }
     setCardInstance(instance);
     tutorialEvent({ type: 'cardDialogOpened', cardId: instance.cardId });
   };
@@ -191,25 +250,56 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     if (!ok) setMessage('目前條件不允許使用這張牌。');
   };
 
-  const handleActivate = (memberId: string, skillId: string) => {
-    const skill = SKILLS[skillId];
-    if (!skill) return;
-    if (skill.activeTarget?.kind && skill.activeTarget.kind !== 'none') {
-      setSkillDialog({ memberId, skillId });
-      tutorialEvent({ type: 'skillDialogOpened', memberId, skillId });
+  const handleBeginCardSelection = () => {
+    if (!cardInstance) return;
+    const card = CARDS[cardInstance.cardId];
+    if (!card) return;
+    if (card.target.kind === 'none') {
+      handleCardConfirm({});
       return;
     }
-    const ok = activateSkill('player', memberId, skillId, {});
-    if (!ok) setMessage('技能目前不能發動。');
+    setSelectionMode({ kind: 'card', instance: cardInstance });
+    setCardInstance(undefined);
+  };
+
+  const handleActivate = (memberId: string, skillId: string) => {
+    if (!engine) return;
+    const skill = SKILLS[skillId];
+    if (!skill) return;
+    const availability = getSkillAvailability(engine, memberId, skillId);
+    if (!availability.allowed) {
+      setMessage(availability.reason ?? '技能目前不能發動。');
+      return;
+    }
+    setSkillDialog({ memberId, skillId });
+    tutorialEvent({ type: 'skillDialogOpened', memberId, skillId });
+  };
+
+  const resolveSkill = (memberId: string, skillId: string, target: SkillActivationTarget) => {
+    const ok = activateSkill('player', memberId, skillId, target);
+    tutorialEvent({ type: 'skillResolved', memberId, skillId, success: ok });
+    setSkillDialog(undefined);
+    setSelectionMode(undefined);
+    if (!ok) setMessage('技能目前不能發動，請檢查目標與使用次數。');
   };
 
   const handleSkillConfirm = (target: SkillActivationTarget) => {
     if (!skillDialog) return;
+    resolveSkill(skillDialog.memberId, skillDialog.skillId, target);
+  };
+
+  const handleBeginSkillSelection = () => {
+    if (!skillDialog) return;
     const { memberId, skillId } = skillDialog;
-    const ok = activateSkill('player', memberId, skillId, target);
-    tutorialEvent({ type: 'skillResolved', memberId, skillId, success: ok });
+    const skill = SKILLS[skillId];
+    if (!skill) return;
+    const spec = skill.activeTarget ?? { kind: 'none' as const };
+    if (spec.kind === 'none') {
+      resolveSkill(memberId, skillId, {});
+      return;
+    }
+    setSelectionMode({ kind: 'skill', memberId, skillId, target: {} });
     setSkillDialog(undefined);
-    if (!ok) setMessage('技能目前不能發動，請檢查目標與使用次數。');
   };
 
   const handleCardDialogClose = () => {
@@ -228,7 +318,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
 
   const handleFinishPlayerAssignment = () => {
     finishPlayerAssignment();
-    setSelectedDieId(undefined);
+    cancelSelection();
     tutorialEvent({ type: 'playerAssignmentFinished' });
   };
 
@@ -263,6 +353,104 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     return <StartScreen onStart={handleStart} onStartTutorial={handleStartTutorial} onOpenRoster={() => setRosterOpen(true)} />;
   }
 
+  const pendingCard = cardInstance ? CARDS[cardInstance.cardId] : undefined;
+  const pendingSkill = skillDialog ? SKILLS[skillDialog.skillId] : undefined;
+  const useLegacyCardDialog = !!pendingCard && (
+    mode === 'tutorial'
+    || pendingCard.target.kind === 'voiceMode'
+    || (pendingCard.target.kind === 'member' && !!pendingCard.target.skillPicker)
+  );
+  const useLegacySkillDialog = mode === 'tutorial';
+
+  let memberCandidates: TargetCandidate[] | undefined;
+  let workCandidates: TargetCandidate[] | undefined;
+  let dieCandidates: TargetCandidate[] | undefined;
+  let selectionTitle = '選擇目標';
+  let selectionInstruction = '選擇高亮對象；點擊灰色區域或按 Esc 取消。';
+
+  if (selectionMode?.kind === 'card') {
+    const card = CARDS[selectionMode.instance.cardId];
+    if (card) {
+      selectionTitle = card.name;
+      if (card.target.kind === 'member') {
+        memberCandidates = getCardMemberCandidates(engine, 'player', card);
+        selectionInstruction = '選擇一名高亮角色。灰色角色或其他灰色區域會取消使用。';
+      } else if (card.target.kind === 'work') {
+        workCandidates = getCardWorkCandidates(engine, 'player', card);
+        selectionInstruction = '選擇一個高亮作品。灰色作品或其他灰色區域會取消使用。';
+      }
+    }
+  }
+
+  let skillPlan: ReturnType<typeof getSkillSelectionPlan> | undefined;
+  if (selectionMode?.kind === 'skill') {
+    const skill = SKILLS[selectionMode.skillId];
+    skillPlan = getSkillSelectionPlan(engine, selectionMode.memberId, selectionMode.skillId, selectionMode.target);
+    selectionTitle = skill?.name ?? '選擇技能目標';
+    if (skillPlan.stage === 'member') {
+      memberCandidates = skillPlan.candidates;
+      selectionInstruction = '選擇一名高亮角色。灰色角色或其他灰色區域會取消技能。';
+    } else if (skillPlan.stage === 'work') {
+      workCandidates = skillPlan.candidates;
+      selectionInstruction = '選擇一個高亮作品。灰色作品或其他灰色區域會取消技能。';
+    } else if (skillPlan.stage === 'sourceDie') {
+      dieCandidates = skillPlan.candidates;
+      selectionInstruction = 'Step 1/2：選擇一顆高亮來源骰。灰色區域會取消技能。';
+    } else if (skillPlan.stage === 'targetDie') {
+      dieCandidates = skillPlan.candidates;
+      selectionInstruction = selectionMode.target.sourceDieId
+        ? 'Step 2/2：選擇一顆高亮目標骰。灰色區域會取消技能。'
+        : '選擇一顆高亮骰子。灰色區域會取消技能。';
+    }
+  }
+
+  if (selectionMode?.kind === 'die') {
+    const die = game.player.pendingDice.find((candidate) => candidate.id === selectionMode.dieId);
+    selectionTitle = die ? `${CHARACTERS[die.ownerId]?.name ?? die.ownerId} · ${die.skill.toUpperCase()} ${die.value}` : '放置骰子';
+    selectionInstruction = '選擇一個高亮進度格。灰色進度格或其他灰色區域會取消放置。';
+  }
+
+  const handleMemberSelection = (memberId: string) => {
+    if (selectionMode?.kind === 'card') {
+      const card = CARDS[selectionMode.instance.cardId];
+      if (!card || card.target.kind !== 'member') return;
+      const ok = playCard('player', selectionMode.instance.instanceId, { memberId });
+      tutorialEvent({ type: 'cardResolved', cardId: selectionMode.instance.cardId, success: ok });
+      setSelectionMode(undefined);
+      if (!ok) setMessage('目前狀態已改變，這張牌無法指定該角色。');
+      return;
+    }
+    if (selectionMode?.kind === 'skill') {
+      resolveSkill(selectionMode.memberId, selectionMode.skillId, { ...selectionMode.target, memberId });
+    }
+  };
+
+  const handleWorkSelection = (workId: string) => {
+    if (selectionMode?.kind === 'card') {
+      const card = CARDS[selectionMode.instance.cardId];
+      if (!card || card.target.kind !== 'work') return;
+      const ok = playCard('player', selectionMode.instance.instanceId, { workId });
+      tutorialEvent({ type: 'cardResolved', cardId: selectionMode.instance.cardId, success: ok });
+      setSelectionMode(undefined);
+      if (!ok) setMessage('目前狀態已改變，這張牌無法指定該作品。');
+      return;
+    }
+    if (selectionMode?.kind === 'skill') {
+      resolveSkill(selectionMode.memberId, selectionMode.skillId, { ...selectionMode.target, workId });
+    }
+  };
+
+  const handleSkillDieSelection = (dieId: string) => {
+    if (selectionMode?.kind !== 'skill' || !skillPlan) return;
+    if (skillPlan.stage === 'sourceDie') {
+      setSelectionMode({ ...selectionMode, target: { ...selectionMode.target, sourceDieId: dieId } });
+      return;
+    }
+    if (skillPlan.stage === 'targetDie') {
+      resolveSkill(selectionMode.memberId, selectionMode.skillId, { ...selectionMode.target, targetDieId: dieId });
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -279,6 +467,18 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
         onOpenRoster={() => setRosterOpen(true)}
         onReset={handleRestart}
       />
+
+      {selectionMode && (
+        <>
+          <Box
+            aria-label="取消目標選擇"
+            onClick={cancelSelection}
+            sx={{ position: 'fixed', inset: 0, zIndex: 1100, bgcolor: 'rgba(25,32,44,.58)' }}
+          />
+          <SelectionBanner title={selectionTitle} instruction={selectionInstruction} onCancel={cancelSelection} />
+        </>
+      )}
+
       <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
         <ActionFeedback events={game.feedback} />
         {game.phase === 'finished' && (
@@ -297,6 +497,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
             actionChoices={actionChoices}
             onActionChange={handleActionChange}
             onActivateSkill={handleActivate}
+            selection={memberCandidates ? { candidates: memberCandidates, onSelect: handleMemberSelection, onCancel: cancelSelection } : undefined}
           />
 
           <Stack spacing={1.05} sx={{ minWidth: 0 }}>
@@ -324,7 +525,17 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
               </Stack>
             </Paper>
 
-            <WorkBoard works={game.player.works} selectedDie={selectedDie} onSlotClick={game.phase === 'player-assign' ? handleSlotClick : undefined} />
+            <WorkBoard
+              works={game.player.works}
+              selectedDie={selectedDie}
+              onSlotClick={game.phase === 'player-assign' ? handleSlotClick : undefined}
+              workSelection={workCandidates ? { candidates: workCandidates, onSelect: handleWorkSelection, onCancel: cancelSelection } : undefined}
+              slotSelection={selectionMode?.kind === 'die' && selectedDie ? {
+                getLegality: (work, slotIndex) => getDiePlacementLegality(engine, 'player', selectedDie, work, slotIndex),
+                onSelect: handleSlotClick,
+                onCancel: cancelSelection,
+              } : undefined}
+            />
 
             <Paper sx={panelSx}>
               <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
@@ -332,7 +543,12 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
                 <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
                 <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Dice</Typography>
               </Stack>
-              <DiceTray dice={game.player.pendingDice} selectedDieId={selectedDieId} onSelect={handleDieSelect} />
+              <DiceTray
+                dice={game.player.pendingDice}
+                selectedDieId={selectedDieId}
+                onSelect={handleDieSelect}
+                selection={dieCandidates ? { candidates: dieCandidates, onSelect: handleSkillDieSelection, onCancel: cancelSelection } : undefined}
+              />
             </Paper>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
@@ -342,7 +558,14 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
                   <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>我的手牌</Typography>
                   <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Hand Cards · {game.player.hand.length}</Typography>
                 </Stack>
-                <CardHand hand={game.player.hand} onPlay={handleOpenCard} />
+                <CardHand
+                  hand={game.player.hand}
+                  onPlay={handleOpenCard}
+                  getDisabledReason={mode === 'tutorial' ? undefined : (instance) => {
+                    const availability = getCardAvailability(engine, 'player', instance);
+                    return availability.allowed ? undefined : availability.reason;
+                  }}
+                />
               </Paper>
 
               <Paper sx={{ ...panelSx, bgcolor: '#fffef9' }}>
@@ -358,13 +581,45 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
             <LogPanel logs={game.logs} />
           </Stack>
 
-          <TeamColumn title="對手創作小隊" side="enemy" team={game.enemy} engine={engine} />
+          <TeamColumn
+            title="對手創作小隊"
+            side="enemy"
+            team={game.enemy}
+            engine={engine}
+            selection={memberCandidates ? { candidates: memberCandidates, onSelect: handleMemberSelection, onCancel: cancelSelection } : undefined}
+          />
         </Box>
       </Container>
 
       <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardCards('player', instanceIds)} />
-      <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={handleCardDialogClose} onConfirm={handleCardConfirm} />
-      <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={handleSkillDialogClose} onConfirm={handleSkillConfirm} />
+
+      {useLegacyCardDialog ? (
+        <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={handleCardDialogClose} onConfirm={handleCardConfirm} />
+      ) : pendingCard && cardInstance ? (
+        <ActivationConfirmDialog
+          open
+          title={pendingCard.name}
+          description={pendingCard.description}
+          confirmLabel={pendingCard.target.kind === 'none' ? '發動' : '選擇目標'}
+          onClose={handleCardDialogClose}
+          onConfirm={handleBeginCardSelection}
+        />
+      ) : null}
+
+      {useLegacySkillDialog ? (
+        <SkillActivationDialog open={!!skillDialog} memberId={skillDialog?.memberId} skillId={skillDialog?.skillId} game={game} onClose={handleSkillDialogClose} onConfirm={handleSkillConfirm} />
+      ) : pendingSkill && skillDialog ? (
+        <ActivationConfirmDialog
+          open
+          title={`${CHARACTERS[skillDialog.memberId]?.name ?? skillDialog.memberId}｜${pendingSkill.name}`}
+          description={pendingSkill.description}
+          hint={pendingSkill.activeHint}
+          confirmLabel={(pendingSkill.activeTarget?.kind ?? 'none') === 'none' ? '發動' : '選擇目標'}
+          onClose={handleSkillDialogClose}
+          onConfirm={handleBeginSkillSelection}
+        />
+      ) : null}
+
       <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
       {mode === 'tutorial' && tutorialStep && <TutorialGuide step={tutorialStep} onDismiss={dismissTutorial} />}
       <Snackbar open={!!message} autoHideDuration={3500} onClose={() => setMessage(undefined)}>
