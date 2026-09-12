@@ -26,9 +26,11 @@ interface Props {
 export function WorkBoard({ works, selectedDie, onSlotClick, workSelection, slotSelection }: Props) {
   const candidateMap = new Map(workSelection?.candidates.map((candidate) => [candidate.id, candidate]) ?? []);
   const targeting = !!workSelection || !!slotSelection;
+  const cancelSelection = workSelection?.onCancel ?? slotSelection?.onCancel;
 
   return (
     <Box
+      onClick={targeting ? cancelSelection : undefined}
       sx={{
         position: targeting ? 'relative' : undefined,
         zIndex: targeting ? 1210 : undefined,
@@ -72,7 +74,11 @@ export function WorkBoard({ works, selectedDie, onSlotClick, workSelection, slot
                 type="button"
                 aria-label={workHint}
                 title={workHint}
-                onClick={() => workAllowed ? workSelection.onSelect(work.id) : workSelection.onCancel()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (workAllowed) workSelection.onSelect(work.id);
+                  else workSelection.onCancel();
+                }}
                 sx={{
                   position: 'absolute',
                   inset: 0,
