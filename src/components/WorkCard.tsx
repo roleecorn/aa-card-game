@@ -7,7 +7,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import workSlotCompleteStamp from '../assets/work-slot-complete-stamp.svg';
 import { CHARACTERS } from '../content/catalog';
 import type { WorkType } from '../game/schema';
 import type { TargetLegality } from '../game/targeting';
@@ -197,6 +197,7 @@ function ProgressCell({
       }}
       variant="outlined"
       sx={{
+        position: 'relative',
         p: 0,
         minWidth: 50,
         minHeight: 132,
@@ -220,7 +221,11 @@ function ProgressCell({
         </Typography>
       </Box>
 
-      <Stack alignItems="center" spacing={.25} sx={{ px: .25, pt: .45 }}>
+      <Stack
+        justifyContent="space-evenly"
+        spacing={.35}
+        sx={{ px: .75, py: .55, minHeight: 105, boxSizing: 'border-box' }}
+      >
         <ProgressMark
           icon={<LocalFireDepartmentIcon />}
           value={slot.design}
@@ -241,13 +246,27 @@ function ProgressCell({
         />
       </Stack>
 
-      <Box sx={{ height: 20, display: 'grid', placeItems: 'center', mt: .1 }}>
-        {complete ? (
-          <CheckCircleRoundedIcon sx={{ fontSize: 17, color: '#ee6d92' }} />
-        ) : (
-          <Box sx={{ width: 14, borderTop: '1px dashed #d2dbe6' }} />
-        )}
-      </Box>
+      {complete && (
+        <Box
+          component="img"
+          src={workSlotCompleteStamp}
+          alt=""
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            left: '50%',
+            top: '54%',
+            width: '68%',
+            maxWidth: 78,
+            opacity: .72,
+            pointerEvents: 'none',
+            translate: '-50% -50%',
+            mixBlendMode: 'multiply',
+            filter: 'drop-shadow(0 1px 2px rgba(112,40,62,.10))',
+            zIndex: 2,
+          }}
+        />
+      )}
     </Paper>
   );
 }
@@ -260,9 +279,8 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
       aria-label={`${label}${filled ? ` ${value}` : ' 尚未完成'}`}
       direction="row"
       alignItems="center"
-      justifyContent="center"
-      spacing={.35}
-      sx={{ width: '100%', minHeight: 27 }}
+      justifyContent="space-between"
+      sx={{ width: '100%', minHeight: 28 }}
     >
       <Box
         sx={{
@@ -270,7 +288,7 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
           flexShrink: 0,
           color: filled ? tone : '#c8d0dc',
           opacity: filled ? 1 : .72,
-          '& svg': { fontSize: 23 },
+          '& svg': { fontSize: 24 },
           transition: 'color .15s ease, opacity .15s ease',
         }}
       >
