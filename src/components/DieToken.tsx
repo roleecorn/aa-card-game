@@ -25,6 +25,7 @@ export function DieToken({ die, selected = false, rotation = 0, onSelect }: DieT
     <Tooltip title={`${CHARACTERS[die.ownerId]?.name ?? die.ownerId} · ${die.origin}`} arrow>
       <Paper
         component="button"
+        data-feedback-anchor={`die:${die.id}`}
         type="button"
         onClick={() => onSelect?.(die.id)}
         elevation={0}

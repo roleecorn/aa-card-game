@@ -182,3 +182,14 @@ registerCustomSkillEffect('tradeSelectedOwnerTextForDesign', (_effect, context, 
   engine.log(`${context.definition.name}：消耗 1 顆 Text 骰，換取 1 顆額外 Design 骰。`);
   return true;
 });
+
+registerCustomSkillEffect('grantOwnerRescueDice', (_effect, context, engine) => {
+  let granted = 0;
+  for (const skill of ['design', 'text', 'aa'] as const) {
+    const die = engine.grantDice(context.ownerTeamId, context.ownerId, skill, 1, context.definition.name, true)[0];
+    if (!die) continue;
+    die.placement = 'anyAllyWork';
+    granted += 1;
+  }
+  return granted > 0;
+});

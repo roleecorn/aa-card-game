@@ -215,7 +215,7 @@ export class SkillRuntime {
       const team = this.engine.getTeam(teamId);
       const sources = team.pendingDice.filter((die) => die.ownerId !== memberId);
       const targets = team.pendingDice.filter((die) => die.ownerId === memberId);
-      return sources.length > 0 && targets.length > 0;
+      return sources.some((source) => targets.some((target) => source.value !== target.value));
     }
 
     const dice = spec.relation === 'enemy'
@@ -262,17 +262,19 @@ export class SkillRuntime {
   }
 
   private applyEffects(effects: SkillEffect[], context: EffectContext): boolean {
-    let applied = false;
-    for (const effect of effects) {
-      try {
-        applied = builtInEffects.execute(effect, context, this.engine) || applied;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.engine.log(`技能「${context.definition.name}」效果執行失敗，已略過：${message}`);
+    return this.engine.feedback.capture(context, 'skill', () => {
+      let applied = false;
+      for (const effect of effects) {
+        try {
+          applied = builtInEffects.execute(effect, context, this.engine) || applied;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.engine.log(`技能「${context.definition.name}」效果執行失敗，已略過：${message}`);
+        }
+        if (context.event.cancelled) break;
       }
-      if (context.event.cancelled) break;
-    }
-    return applied;
+      return applied;
+    });
   }
 
   private usageKey(skillId: string, usage: { scope: 'round' | 'game'; key?: string }): string {
@@ -325,17 +327,24 @@ export class SkillRuntime {
       const team = this.engine.getTeam(teamId);
       const source = team.pendingDice.find((die) => die.id === target.sourceDieId);
       const destination = team.pendingDice.find((die) => die.id === target.targetDieId);
-      return !!source && !!destination && source.ownerId !== memberId && destination.ownerId === memberId;
+      return !!source
+        && !!destination
+        && source.ownerId !== memberId
+        && destination.ownerId === memberId
+        && source.value !== destination.value;
     }
     if (!target.targetDieId) return false;
     const ownerTeam = this.engine.getTeam(teamId);
     const enemyTeam = this.engine.getTeam(this.engine.opponentId(teamId));
     const ownDie = ownerTeam.pendingDice.find((die) => die.id === target.targetDieId);
     const enemyDie = enemyTeam.pendingDice.find((die) => die.id === target.targetDieId);
-    if (spec.relation === 'enemy') return !!enemyDie;
-    if (!ownDie) return false;
-    if (spec.relation === 'self') return ownDie.ownerId === memberId;
-    if (spec.relation === 'otherAlly') return ownDie.ownerId !== memberId;
+    const die = spec.relation === 'enemy' ? enemyDie : ownDie;
+    if (!die) return false;
+    if (spec.relation === 'self' && die.ownerId !== memberId) return false;
+    if (spec.relation === 'otherAlly' && die.ownerId === memberId) return false;
+    if (spec.skill && die.skill !== spec.skill) return false;
+    if (spec.minValue !== undefined && die.value < spec.minValue) return false;
+    if (spec.maxValue !== undefined && die.value > spec.maxValue) return false;
     return true;
   }
 }

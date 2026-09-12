@@ -315,7 +315,13 @@ export const activeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('taggedMember'), tag: z.string().min(1), excludeSelf: z.boolean().default(false) }),
   z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy', 'owner']) }),
   z.object({ kind: z.literal('copyPendingDie'), source: z.literal('otherAlly'), target: z.literal('self') }),
-  z.object({ kind: z.literal('pendingDie'), relation: z.enum(['self', 'ally', 'otherAlly', 'enemy']) }),
+  z.object({
+    kind: z.literal('pendingDie'),
+    relation: z.enum(['self', 'ally', 'otherAlly', 'enemy']),
+    skill: skillStatSchema.optional(),
+    minValue: z.number().int().min(1).max(6).optional(),
+    maxValue: z.number().int().min(1).max(6).optional(),
+  }),
 ]);
 
 export const skillDefinitionSchema = z.object({

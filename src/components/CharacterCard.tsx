@@ -28,6 +28,7 @@ interface Props {
   onActionChange?: (action: ActionChoice) => void;
   onActivateSkill?: (skillId: string) => void;
   canActivateSkill?: (skillId: string) => boolean;
+  getSkillDisabledReason?: (skillId: string) => string | undefined;
 }
 
 export function CharacterCard({
@@ -40,6 +41,7 @@ export function CharacterCard({
   onActionChange,
   onActivateSkill,
   canActivateSkill,
+  getSkillDisabledReason,
 }: Props) {
   const effectiveMaxStress = definition.maxStress === null
     ? null
@@ -134,7 +136,7 @@ export function CharacterCard({
             )}
           </Box>
 
-          {!compact && <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} />}
+          {!compact && <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} getDisabledReason={getSkillDisabledReason} />}
           {showActions && (actionsDisabled ? (
             <Typography sx={{ mt: .4, py: .55, textAlign: 'center', fontSize: 11, fontWeight: 850, color: 'text.secondary' }}>
               此角色不能行動
@@ -156,7 +158,7 @@ export function CharacterCard({
       </Box>
       {compact && definition.skillIds.length > 0 && (
         <Box sx={{ borderTop: '1px dashed #d9e3ef', px: .8, py: .55, bgcolor: '#fffefb' }}>
-          <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} compact />
+          <SkillList character={definition} onActivate={onActivateSkill} canActivate={canActivateSkill} getDisabledReason={getSkillDisabledReason} compact />
         </Box>
       )}
     </Card>

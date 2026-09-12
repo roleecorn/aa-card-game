@@ -332,6 +332,9 @@ export const builtInEffects = new EffectRegistry()
       if (next <= 0) delete member.statuses[effect.status];
       else member.statuses[effect.status] = {
         stacks: next,
+        feedbackSource: { ownerId: context.ownerId, ownerTeamId: context.ownerTeamId,
+          id: context.definition.id, name: context.definition.name,
+          kind: engine.content.cards[context.definition.id] === context.definition ? 'card' : 'skill' },
         expiresAfterRound: effect.durationRounds ? engine.state.round + effect.durationRounds - 1 : undefined,
       };
     }

@@ -26,7 +26,7 @@ export const shennauSkills = skillDefinitionSchema.array().parse([
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
     activeHint: '選擇神惱自己一顆尚未分配的 Text 骰。',
-    activeTarget: { kind: 'pendingDie', relation: 'self' },
+    activeTarget: { kind: 'pendingDie', relation: 'self', skill: 'text' },
     activeEffects: [{ kind: 'custom', handler: 'tradeSelectedOwnerTextForDesign' }],
   },
   {

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, createInitialGame } from '../game/engine';
+import { placeDieWithLegality } from '../game/placement';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId } from '../game/schema';
@@ -107,6 +108,8 @@ export const useGameStore = create<GameStore>()(
     }),
     startTutorial: () => set((state) => {
       const game = createTutorialGame();
+      // Scenario setup replaces the opening hand; do not replay discarded setup effects.
+      game.feedback = [];
       state.gameDefinition = castDraft(STANDARD_GAME_DEFINITION);
       state.mode = 'tutorial';
       state.tutorial = createTutorialRuntimeState();
@@ -139,12 +142,13 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(
+          const engine = session(
             state.game as GameState,
             state.mode,
             state.tutorial as TutorialRuntimeState | null,
             state.gameDefinition as GameDefinition,
-          ).placeDie('player', dieId, workId, slotIndex);
+          );
+          result = placeDieWithLegality(engine, 'player', dieId, workId, slotIndex);
         }
       });
       return result;

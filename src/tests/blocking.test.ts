@@ -25,7 +25,7 @@ describe('blocking-safety guards', () => {
     expect(otherTriangleEngine.canUseActiveSkill('triangle', 'triangleRecovery')).toBe(true);
   });
 
-  it('only enables copy-die skills when both source and destination dice exist', () => {
+  it('only enables copy-die skills when a source and destination can produce a change', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['mashiro', 'pintbox', 'user79'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
@@ -33,9 +33,11 @@ describe('blocking-safety guards', () => {
     const engine = new EngineSession(game, fixedRng(0.5));
 
     expect(engine.canUseActiveSkill('mashiro', 'mashiroSynthesis')).toBe(false);
-    engine.grantDice('player', 'mashiro', 'design', 1, 'test', false);
+    engine.grantDice('player', 'mashiro', 'design', 1, 'test', false, 4);
     expect(engine.canUseActiveSkill('mashiro', 'mashiroSynthesis')).toBe(false);
-    engine.grantDice('player', 'pintbox', 'design', 1, 'test', false);
+    engine.grantDice('player', 'pintbox', 'design', 1, 'test', false, 4);
+    expect(engine.canUseActiveSkill('mashiro', 'mashiroSynthesis')).toBe(false);
+    engine.grantDice('player', 'pintbox', 'design', 1, 'test', false, 5);
     expect(engine.canUseActiveSkill('mashiro', 'mashiroSynthesis')).toBe(true);
   });
 
