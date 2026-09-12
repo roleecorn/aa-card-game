@@ -261,8 +261,8 @@ function ProgressCell({
           }}
           sx={{
             position: 'absolute',
-            top: -8,
-            right: -8,
+            top: -10,
+            right: -15,
             width: 'clamp(38px, 45%, 56px)',
             height: 'auto',
             objectFit: 'contain',
