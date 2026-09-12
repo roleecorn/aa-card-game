@@ -31,6 +31,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
     <Stack
       spacing={1}
       data-feedback-anchor={`hand:${side}`}
+      onClick={selection ? selection.onCancel : undefined}
       sx={selection ? { position: 'relative', zIndex: 1210 } : undefined}
     >
       <Stack direction="row" spacing={.7} alignItems="center" sx={{ px: .3 }}>
@@ -79,7 +80,11 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
                 type="button"
                 aria-label={hint}
                 title={hint}
-                onClick={() => allowed ? selection.onSelect(member.defId) : selection.onCancel()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (allowed) selection.onSelect(member.defId);
+                  else selection.onCancel();
+                }}
                 sx={{
                   position: 'absolute',
                   inset: 0,
