@@ -19,16 +19,18 @@ function createTargetingGame() {
 }
 
 describe('target legality', () => {
-  it('only exposes dice that satisfy active-skill target filters', () => {
+  it('only exposes and accepts dice that satisfy active-skill target filters', () => {
     const game = createTargetingGame();
     const engine = new EngineSession(game, rng);
 
-    engine.grantDice('player', 'grimm', 'text', 1, 'test', false, 4);
+    const grimmText = engine.grantDice('player', 'grimm', 'text', 1, 'test', false, 4)[0]!;
     expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: grimmText.id })).toBe(false);
 
     const grimmSix = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 6)[0]!;
     expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
       .find((candidate) => candidate.id === grimmSix.id)?.allowed).toBe(false);
+    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: grimmSix.id })).toBe(false);
 
     const grimmFive = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 5)[0]!;
     expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
@@ -38,6 +40,7 @@ describe('target legality', () => {
     const design79 = engine.grantDice('player', 'user79', 'design', 1, 'test', false, 5)[0]!;
     expect(getSkillSelectionPlan(engine, 'user79', 'burningText79').candidates
       .find((candidate) => candidate.id === design79.id)?.allowed).toBe(false);
+    expect(engine.activateSkill('player', 'user79', 'burningText79', { targetDieId: design79.id })).toBe(false);
     const text79 = engine.grantDice('player', 'user79', 'text', 1, 'test', false, 5)[0]!;
     expect(getSkillSelectionPlan(engine, 'user79', 'burningText79').candidates
       .find((candidate) => candidate.id === text79.id)?.allowed).toBe(true);
@@ -45,6 +48,7 @@ describe('target legality', () => {
     const shennauDesign = engine.grantDice('player', 'shennau', 'design', 1, 'test', false, 4)[0]!;
     expect(getSkillSelectionPlan(engine, 'shennau', 'shennauSettingManiac').candidates
       .find((candidate) => candidate.id === shennauDesign.id)?.allowed).toBe(false);
+    expect(engine.activateSkill('player', 'shennau', 'shennauSettingManiac', { targetDieId: shennauDesign.id })).toBe(false);
     const shennauText = engine.grantDice('player', 'shennau', 'text', 1, 'test', false, 4)[0]!;
     expect(getSkillSelectionPlan(engine, 'shennau', 'shennauSettingManiac').candidates
       .find((candidate) => candidate.id === shennauText.id)?.allowed).toBe(true);
