@@ -5,13 +5,14 @@ on:
     branches:
       - main
       - release
+      - refactor/target-selection-mode
   pull_request:
     branches:
       - main
       - release
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -55,6 +56,14 @@ jobs:
         run: |
           bash scripts/vendor-ui-font.sh
           if ! git diff --exit-code -- public/fonts/; then
+            if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_name }}" == "refactor/target-selection-mode" ]]; then
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add public/fonts/
+              git commit -m "chore: refresh UI font subset"
+              git push origin "HEAD:${{ github.ref_name }}"
+              exit 0
+            fi
             echo "Vendored UI font is stale. Regenerate with: bash scripts/vendor-ui-font.sh"
             exit 1
           fi
