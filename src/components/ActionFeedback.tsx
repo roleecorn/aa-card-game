@@ -6,6 +6,7 @@ import { resolvePublicAssetPath } from '../content/publicAssetPath';
 import { useGameStore } from '../store/gameStore';
 
 const PRESENTATION_MS = 2600;
+const IMPACT_CONFIRM_MS = 280;
 
 const tones = {
   positive: { color: '#5fe1bd', glow: 'rgba(95,225,189,.28)', sweep: 'rgba(66,191,158,.24)' },
@@ -79,6 +80,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
   useEffect(() => {
     if (!current) return;
     const animations: Animation[] = [];
+    const confirmTimers: number[] = [];
     const nodes = document.querySelectorAll<HTMLElement>('[data-feedback-anchor]');
     const anchors = new Set([...nodes].map(node => node.dataset.feedbackAnchor));
 
@@ -92,13 +94,27 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
 
       const color = impact ? tones[impact.tone].color : '#ffd66f';
       animations.push(node.animate([
-        { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1)' },
-        { outline: `4px solid ${color}`, outlineOffset: reducedMotion ? '3px' : '8px', filter: reducedMotion ? 'brightness(1)' : 'brightness(1.16)' },
-        { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1)' },
+        { outline: `2px solid ${color}`, outlineOffset: '2px', filter: 'brightness(1)' },
+        { outline: `4px solid ${color}`, outlineOffset: reducedMotion ? '3px' : '8px', filter: reducedMotion ? 'brightness(1.08)' : 'brightness(1.28) saturate(1.08)' },
+        { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1.12)' },
       ], { duration: reducedMotion ? PRESENTATION_MS : 650, iterations: reducedMotion ? 1 : 4 }));
+
+      if (impact && !reducedMotion) {
+        const confirmTimer = window.setTimeout(() => {
+          animations.push(node.animate([
+            { filter: 'brightness(1.12)', transform: 'scale(1)' },
+            { filter: 'brightness(1.55) saturate(1.18)', transform: 'scale(1.018)' },
+            { filter: 'brightness(1)', transform: 'scale(1)' },
+          ], { duration: IMPACT_CONFIRM_MS, easing: 'ease-out' }));
+        }, PRESENTATION_MS - IMPACT_CONFIRM_MS);
+        confirmTimers.push(confirmTimer);
+      }
     }
 
-    return () => animations.forEach(animation => animation.cancel());
+    return () => {
+      confirmTimers.forEach(timer => window.clearTimeout(timer));
+      animations.forEach(animation => animation.cancel());
+    };
   }, [current, reducedMotion]);
 
   if (!current) return null;
@@ -135,15 +151,16 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         cursor: 'pointer',
         touchAction: 'none',
         userSelect: 'none',
-        bgcolor: 'rgba(8, 15, 29, .46)',
-        backdropFilter: 'brightness(.72) saturate(.9)',
+        bgcolor: 'rgba(8, 15, 29, .18)',
+        backdropFilter: 'brightness(.9) saturate(.98)',
         '&:before': {
           content: '""',
           position: 'absolute',
           inset: '-12% -8%',
-          background: `linear-gradient(110deg, transparent 0 22%, ${palette.sweep} 33%, rgba(255,255,255,.12) 48%, ${palette.glow} 62%, transparent 78%)`,
+          background: `linear-gradient(110deg, transparent 0 22%, ${palette.sweep} 33%, rgba(255,255,255,.1) 48%, ${palette.glow} 62%, transparent 78%)`,
           transform: 'skewX(-10deg)',
           animation: reducedMotion ? 'none' : 'presentation-sweep 900ms ease-out both',
+          pointerEvents: 'none',
         },
         '@keyframes presentation-sweep': {
           from: { opacity: 0, transform: 'translateX(-12%) skewX(-10deg)' },
@@ -164,6 +181,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
           position: 'absolute',
           inset: 0,
           background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`,
+          opacity: .72,
           pointerEvents: 'none',
         }}
       />
@@ -182,7 +200,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
             maxHeight: '106vh',
             objectFit: 'contain',
             objectPosition: 'center bottom',
-            filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.42)) drop-shadow(0 0 24px ${palette.glow})`,
+            filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.38)) drop-shadow(0 0 24px ${palette.glow})`,
             animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both',
             pointerEvents: 'none',
           }}
@@ -203,15 +221,15 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
       >
         <Stack direction="row" spacing={1} alignItems="center">
           <AutoAwesomeIcon sx={{ color: palette.color, fontSize: { xs: 22, md: 30 } }} />
-          <Typography sx={{ color: '#d7e4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 } }}>
+          <Typography sx={{ color: '#eef4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 }, textShadow: '0 2px 8px rgba(0,0,0,.72)' }}>
             {side} · ROUND {current.round}
           </Typography>
         </Stack>
 
-        <Typography sx={{ color: '#fff', fontWeight: 950, lineHeight: .94, textShadow: '0 4px 18px rgba(0,0,0,.45)', fontSize: { xs: 25, sm: 38, md: 58 } }}>
+        <Typography sx={{ color: '#fff', fontWeight: 950, lineHeight: .94, textShadow: '0 4px 18px rgba(0,0,0,.62)', fontSize: { xs: 25, sm: 38, md: 58 } }}>
           {current.actor}
         </Typography>
-        <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.5)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
+        <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.68)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
           {title}「{current.name}」{current.incomplete ? '（未完整結算）' : ''}
         </Typography>
       </Stack>
@@ -223,7 +241,7 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
           right: 0,
           bottom: { xs: 20, md: 28 },
           textAlign: 'center',
-          color: 'rgba(255,255,255,.88)',
+          color: 'rgba(255,255,255,.92)',
           fontSize: { xs: 11, md: 13 },
           fontWeight: 800,
           letterSpacing: '.08em',
