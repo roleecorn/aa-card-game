@@ -56,6 +56,7 @@ export function WorkCard({
 
   return (
     <Card
+      onClick={getSlotLegality ? onCancelSelection : undefined}
       sx={{
         overflow: 'hidden',
         borderColor: tone.border,
@@ -167,7 +168,15 @@ function ProgressCell({
       component="button"
       type="button"
       title={hint}
-      onClick={() => targeting ? (allowed ? onClick() : onCancel?.()) : onClick()}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (targeting) {
+          if (allowed) onClick();
+          else onCancel?.();
+        } else {
+          onClick();
+        }
+      }}
       variant="outlined"
       sx={{
         p: .45,
