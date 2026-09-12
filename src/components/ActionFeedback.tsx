@@ -120,10 +120,13 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
 
   const title = current.event.kind === 'card' ? '使用卡牌' : '發動技能';
   const side = current.event.teamId === 'player' ? '我方' : '對手';
+  const presentationKey = `${current.event.id}:${current.page}`;
 
   return (
     <Box
+      key={presentationKey}
       data-testid="action-feedback"
+      data-presentation-key={presentationKey}
       role="dialog"
       aria-modal="true"
       aria-label={`${current.event.actor}${title}${current.event.name}`}
