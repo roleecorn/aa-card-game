@@ -199,7 +199,7 @@ function ProgressCell({
       sx={{
         p: 0,
         minWidth: 50,
-        minHeight: 150,
+        minHeight: 174,
         overflow: 'hidden',
         borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
         borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
@@ -220,7 +220,7 @@ function ProgressCell({
         </Typography>
       </Box>
 
-      <Stack alignItems="center" spacing={.55} sx={{ px: .35, pt: .55 }}>
+      <Stack alignItems="center" spacing={.25} sx={{ px: .35, pt: .45 }}>
         <ProgressMark
           icon={<LocalFireDepartmentIcon />}
           value={slot.design}
@@ -241,7 +241,7 @@ function ProgressCell({
         />
       </Stack>
 
-      <Box sx={{ height: 22, display: 'grid', placeItems: 'center', mt: .25 }}>
+      <Box sx={{ height: 22, display: 'grid', placeItems: 'center', mt: .15 }}>
         {complete ? (
           <CheckCircleRoundedIcon sx={{ fontSize: 17, color: '#ee6d92' }} />
         ) : (
@@ -256,52 +256,93 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
   const filled = value !== undefined;
 
   return (
-    <Box
+    <Stack
       aria-label={`${label}${filled ? ` ${value}` : ' 尚未完成'}`}
-      sx={{
-        width: 34,
-        minHeight: 31,
-        position: 'relative',
-        display: 'grid',
-        placeItems: 'center',
-      }}
+      alignItems="center"
+      spacing={.15}
+      sx={{ width: 36, minHeight: 42 }}
     >
-      {filled && (
-        <Typography
-          component="span"
-          sx={{
-            position: 'absolute',
-            top: -4,
-            right: -1,
-            minWidth: 15,
-            height: 15,
-            px: .2,
-            borderRadius: 7.5,
-            bgcolor: '#fff',
-            border: `1px solid ${tone}66`,
-            color: '#303645',
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: 9,
-            lineHeight: 1,
-            fontWeight: 950,
-            zIndex: 1,
-          }}
-        >
-          {value}
-        </Typography>
-      )}
+      {filled ? <DiceFace value={value} /> : <Box sx={{ width: 18, height: 18 }} />}
       <Box
         sx={{
           display: 'flex',
           color: filled ? tone : '#c8d0dc',
           opacity: filled ? 1 : .72,
-          '& svg': { fontSize: 26 },
+          '& svg': { fontSize: 25 },
           transition: 'color .15s ease, opacity .15s ease',
         }}
       >
         {icon}
       </Box>
+    </Stack>
+  );
+}
+
+const diePipPositions: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
+
+function DiceFace({ value }: { value: number }) {
+  const pips = diePipPositions[value];
+
+  if (!pips) {
+    return (
+      <Box
+        aria-hidden
+        sx={{
+          width: 18,
+          height: 18,
+          borderRadius: '4px',
+          border: '1px solid #9da9b8',
+          bgcolor: '#fff',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#394456',
+          fontSize: 9,
+          lineHeight: 1,
+          fontWeight: 950,
+          boxShadow: '0 1px 2px rgba(46,58,77,.12)',
+        }}
+      >
+        {value}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        width: 18,
+        height: 18,
+        p: '3px',
+        borderRadius: '4px',
+        border: '1px solid #9da9b8',
+        bgcolor: '#fff',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(3, 1fr)',
+        gap: '1px',
+        boxShadow: '0 1px 2px rgba(46,58,77,.12)',
+      }}
+    >
+      {Array.from({ length: 9 }, (_, position) => (
+        <Box
+          key={position}
+          sx={{
+            width: 3,
+            height: 3,
+            borderRadius: '50%',
+            bgcolor: pips.includes(position) ? '#394456' : 'transparent',
+            placeSelf: 'center',
+          }}
+        />
+      ))}
     </Box>
   );
 }
