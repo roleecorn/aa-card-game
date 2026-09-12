@@ -8,7 +8,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
 import workSlotCompleteStampFallback from '../assets/work-slot-complete-stamp.svg';
-import { CHARACTERS } from '../content/catalog';
 import type { WorkType } from '../game/schema';
 import type { TargetLegality } from '../game/targeting';
 import type { DieToken, ProgressSlot, WorkState } from '../game/types';
@@ -56,7 +55,6 @@ export function WorkCard({
   const tone = workCardTones[toneIndex % workCardTones.length];
   const slotLegalities = getSlotLegality ? work.slots.map((_, slotIndex) => getSlotLegality(slotIndex)) : undefined;
   const hasLegalSlot = slotLegalities?.some((legality) => legality.allowed) ?? true;
-  const ownerName = CHARACTERS[work.ownerId]?.name ?? work.ownerId;
 
   return (
     <Card
@@ -77,19 +75,14 @@ export function WorkCard({
       <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
         <Stack
           direction="row"
-          alignItems="flex-start"
+          alignItems="center"
           justifyContent="space-between"
           spacing={.7}
-          sx={{ px: 1.15, pt: 1.05, pb: .85, borderBottom: `1px solid ${tone.border}55` }}
+          sx={{ px: 1.15, py: .78, borderBottom: `1px solid ${tone.border}55` }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: 14.5, fontWeight: 950, lineHeight: 1.15 }} noWrap>
-              #{String(index + 1).padStart(2, '0')} {work.title}
-            </Typography>
-            <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .25 }} noWrap>
-              負責人：{ownerName}
-            </Typography>
-          </Box>
+          <Typography sx={{ fontSize: 14.5, fontWeight: 950, lineHeight: 1.15, minWidth: 0 }} noWrap>
+            #{String(index + 1).padStart(2, '0')} {work.title}
+          </Typography>
           <Chip
             icon={genreIcons[work.type] as React.ReactElement}
             label={work.type}
