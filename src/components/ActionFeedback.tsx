@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Box, LinearProgress, Stack, Typography, useMediaQuery } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import type { ActionFeedback as Feedback } from '../game/actionFeedback';
@@ -7,6 +7,7 @@ import { useGameStore } from '../store/gameStore';
 
 const PRESENTATION_MS = 2600;
 const IMPACT_CONFIRM_MS = 280;
+const TARGET_PADDING = 10;
 
 const tones = {
   positive: { color: '#5fe1bd', glow: 'rgba(95,225,189,.28)', sweep: 'rgba(66,191,158,.24)' },
@@ -16,6 +17,14 @@ const tones = {
 } as const;
 
 type PresentationTone = keyof typeof tones;
+type TargetEffect = {
+  key: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  tone: PresentationTone;
+};
 
 const EMPTY: Feedback[] = [];
 
@@ -28,15 +37,99 @@ function presentationTone(event: Feedback): PresentationTone {
   return 'neutral';
 }
 
+function impactTone(tone: Feedback['impacts'][number]['tone']): PresentationTone {
+  return tone === 'positive' || tone === 'negative' ? tone : 'neutral';
+}
+
+function TargetEffectLayer({ targets, reducedMotion }: { targets: TargetEffect[]; reducedMotion: boolean }) {
+  return (
+    <Box data-testid="action-feedback-target-effects" sx={{ position: 'fixed', inset: 0, zIndex: 1601, pointerEvents: 'none', overflow: 'hidden' }}>
+      {targets.map(target => {
+        const palette = tones[target.tone];
+        const width = target.width + TARGET_PADDING * 2;
+        const height = target.height + TARGET_PADDING * 2;
+        const corner = Math.min(28, Math.max(14, Math.min(width, height) * .16));
+        const stroke = 3;
+        const d = [
+          `M ${corner} ${stroke / 2} H ${stroke / 2} V ${corner}`,
+          `M ${width - corner} ${stroke / 2} H ${width - stroke / 2} V ${corner}`,
+          `M ${stroke / 2} ${height - corner} V ${height - stroke / 2} H ${corner}`,
+          `M ${width - corner} ${height - stroke / 2} H ${width - stroke / 2} V ${height - corner}`,
+        ].join(' ');
+
+        return (
+          <Box
+            key={target.key}
+            component="svg"
+            viewBox={`0 0 ${width} ${height}`}
+            aria-hidden="true"
+            sx={{
+              position: 'fixed',
+              left: target.x - TARGET_PADDING,
+              top: target.y - TARGET_PADDING,
+              width,
+              height,
+              overflow: 'visible',
+              filter: `drop-shadow(0 0 7px ${palette.color})`,
+              transformOrigin: 'center',
+              animation: reducedMotion ? 'none' : 'target-lock-in 280ms cubic-bezier(.2,.85,.2,1) both',
+              '@keyframes target-lock-in': {
+                from: { opacity: 0, transform: 'scale(1.14)' },
+                to: { opacity: 1, transform: 'scale(1)' },
+              },
+            }}
+          >
+            <path d={d} fill="none" stroke={palette.color} strokeWidth={stroke} strokeLinecap="square" />
+            <rect
+              x={stroke}
+              y={stroke}
+              width={Math.max(0, width - stroke * 2)}
+              height={Math.max(0, height - stroke * 2)}
+              rx="12"
+              fill="none"
+              stroke={palette.color}
+              strokeWidth="1.5"
+              strokeDasharray="7 9"
+              opacity=".62"
+            >
+              {!reducedMotion && <animate attributeName="stroke-dashoffset" values="0;-32" dur="1.2s" repeatCount="indefinite" />}
+            </rect>
+            {!reducedMotion && (
+              <rect
+                x={width * .12}
+                y={height * .12}
+                width={width * .76}
+                height={height * .76}
+                rx="18"
+                fill="none"
+                stroke={palette.color}
+                strokeWidth="3"
+                opacity="0"
+              >
+                <animate attributeName="x" values={`${width * .12};${-width * .08}`} begin={`${(PRESENTATION_MS - IMPACT_CONFIRM_MS) / 1000}s`} dur={`${IMPACT_CONFIRM_MS / 1000}s`} fill="freeze" />
+                <animate attributeName="y" values={`${height * .12};${-height * .08}`} begin={`${(PRESENTATION_MS - IMPACT_CONFIRM_MS) / 1000}s`} dur={`${IMPACT_CONFIRM_MS / 1000}s`} fill="freeze" />
+                <animate attributeName="width" values={`${width * .76};${width * 1.16}`} begin={`${(PRESENTATION_MS - IMPACT_CONFIRM_MS) / 1000}s`} dur={`${IMPACT_CONFIRM_MS / 1000}s`} fill="freeze" />
+                <animate attributeName="height" values={`${height * .76};${height * 1.16}`} begin={`${(PRESENTATION_MS - IMPACT_CONFIRM_MS) / 1000}s`} dur={`${IMPACT_CONFIRM_MS / 1000}s`} fill="freeze" />
+                <animate attributeName="opacity" values="0;.95;0" begin={`${(PRESENTATION_MS - IMPACT_CONFIRM_MS) / 1000}s`} dur={`${IMPACT_CONFIRM_MS / 1000}s`} fill="freeze" />
+              </rect>
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
 /**
  * Full-screen presentation gate.
  *
  * One feedback event is always one presentation, regardless of how many detailed impacts
- * were captured by the rules engine. Impacts stay available for target highlighting and
+ * were captured by the rules engine. Impacts stay available for target positioning and
  * tone derivation, but presentation timing is never multiplied by impact count.
  */
 export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
   const [queue, setQueue] = useState<Feedback[]>([]);
+  const [targets, setTargets] = useState<TargetEffect[]>([]);
   const seen = useRef(0);
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const current = queue[0];
@@ -77,45 +170,47 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
     };
   }, [current]);
 
-  useEffect(() => {
-    if (!current) return;
-    const animations: Animation[] = [];
-    const confirmTimers: number[] = [];
-    const nodes = document.querySelectorAll<HTMLElement>('[data-feedback-anchor]');
-    const anchors = new Set([...nodes].map(node => node.dataset.feedbackAnchor));
-
-    for (const node of nodes) {
-      const anchor = node.dataset.feedbackAnchor;
-      const impact = current.impacts.find(item => (
-        item.anchor === anchor || (!anchors.has(item.anchor) && item.fallbackAnchor === anchor)
-      ));
-      const source = anchor === `member:${current.actorId}`;
-      if (!impact && !source) continue;
-
-      const color = impact ? tones[impact.tone].color : '#ffd66f';
-      animations.push(node.animate([
-        { outline: `2px solid ${color}`, outlineOffset: '2px', filter: 'brightness(1)' },
-        { outline: `4px solid ${color}`, outlineOffset: reducedMotion ? '3px' : '8px', filter: reducedMotion ? 'brightness(1.08)' : 'brightness(1.28) saturate(1.08)' },
-        { outline: `3px solid ${color}`, outlineOffset: '3px', filter: 'brightness(1.12)' },
-      ], { duration: reducedMotion ? PRESENTATION_MS : 650, iterations: reducedMotion ? 1 : 4 }));
-
-      if (impact && !reducedMotion) {
-        const confirmTimer = window.setTimeout(() => {
-          animations.push(node.animate([
-            { filter: 'brightness(1.12)', transform: 'scale(1)' },
-            { filter: 'brightness(1.55) saturate(1.18)', transform: 'scale(1.018)' },
-            { filter: 'brightness(1)', transform: 'scale(1)' },
-          ], { duration: IMPACT_CONFIRM_MS, easing: 'ease-out' }));
-        }, PRESENTATION_MS - IMPACT_CONFIRM_MS);
-        confirmTimers.push(confirmTimer);
-      }
+  useLayoutEffect(() => {
+    if (!current) {
+      setTargets([]);
+      return;
     }
 
-    return () => {
-      confirmTimers.forEach(timer => window.clearTimeout(timer));
-      animations.forEach(animation => animation.cancel());
+    const updateTargets = () => {
+      const nodes = [...document.querySelectorAll<HTMLElement>('[data-feedback-anchor]')];
+      const availableAnchors = new Set(nodes.map(node => node.dataset.feedbackAnchor));
+      const nextTargets: TargetEffect[] = [];
+      const seenNodes = new Set<HTMLElement>();
+
+      for (const impact of current.impacts) {
+        const anchor = availableAnchors.has(impact.anchor) ? impact.anchor : impact.fallbackAnchor;
+        if (!anchor) continue;
+        for (const node of nodes) {
+          if (node.dataset.feedbackAnchor !== anchor || seenNodes.has(node)) continue;
+          seenNodes.add(node);
+          const rect = node.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) continue;
+          nextTargets.push({
+            key: `${current.id}:${anchor}:${nextTargets.length}`,
+            x: rect.left,
+            y: rect.top,
+            width: rect.width,
+            height: rect.height,
+            tone: impactTone(impact.tone),
+          });
+        }
+      }
+      setTargets(nextTargets);
     };
-  }, [current, reducedMotion]);
+
+    updateTargets();
+    window.addEventListener('resize', updateTargets);
+    window.addEventListener('scroll', updateTargets, true);
+    return () => {
+      window.removeEventListener('resize', updateTargets);
+      window.removeEventListener('scroll', updateTargets, true);
+    };
+  }, [current]);
 
   if (!current) return null;
 
@@ -176,103 +271,27 @@ export function ActionFeedback({ events = EMPTY }: { events?: Feedback[] }) {
         },
       }}
     >
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`,
-          opacity: .72,
-          pointerEvents: 'none',
-        }}
-      />
+      <Box sx={{ position: 'absolute', inset: 0, background: `radial-gradient(circle at 24% 48%, ${palette.glow}, transparent 31%), radial-gradient(circle at 78% 36%, ${palette.sweep}, transparent 35%)`, opacity: .72, pointerEvents: 'none' }} />
+
+      <TargetEffectLayer targets={targets} reducedMotion={reducedMotion} />
 
       {portrait && (
-        <Box
-          component="img"
-          src={portrait}
-          alt=""
-          sx={{
-            position: 'absolute',
-            left: { xs: '-14vw', sm: '-3vw', md: '3vw' },
-            bottom: { xs: '-9vh', md: '-14vh' },
-            width: { xs: '74vw', sm: '54vw', md: '40vw' },
-            maxWidth: 620,
-            maxHeight: '106vh',
-            objectFit: 'contain',
-            objectPosition: 'center bottom',
-            filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.38)) drop-shadow(0 0 24px ${palette.glow})`,
-            animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both',
-            pointerEvents: 'none',
-          }}
-        />
+        <Box component="img" src={portrait} alt="" sx={{ position: 'absolute', left: { xs: '-14vw', sm: '-3vw', md: '3vw' }, bottom: { xs: '-9vh', md: '-14vh' }, width: { xs: '74vw', sm: '54vw', md: '40vw' }, maxWidth: 620, maxHeight: '106vh', objectFit: 'contain', objectPosition: 'center bottom', filter: `drop-shadow(20px 12px 26px rgba(0,0,0,.38)) drop-shadow(0 0 24px ${palette.glow})`, animation: reducedMotion ? 'none' : 'portrait-in 360ms cubic-bezier(.2,.8,.2,1) both', pointerEvents: 'none' }} />
       )}
 
-      <Stack
-        spacing={1.2}
-        sx={{
-          position: 'absolute',
-          right: { xs: 14, sm: '5vw', md: '7vw' },
-          top: { xs: '18vh', sm: '24vh', md: '29vh' },
-          width: { xs: '62vw', sm: '53vw', md: '49vw' },
-          maxWidth: 760,
-          alignItems: 'flex-start',
-          animation: reducedMotion ? 'none' : 'title-in 320ms 70ms ease-out both',
-        }}
-      >
+      <Stack spacing={1.2} sx={{ position: 'absolute', right: { xs: 14, sm: '5vw', md: '7vw' }, top: { xs: '18vh', sm: '24vh', md: '29vh' }, width: { xs: '62vw', sm: '53vw', md: '49vw' }, maxWidth: 760, alignItems: 'flex-start', animation: reducedMotion ? 'none' : 'title-in 320ms 70ms ease-out both' }}>
         <Stack direction="row" spacing={1} alignItems="center">
           <AutoAwesomeIcon sx={{ color: palette.color, fontSize: { xs: 22, md: 30 } }} />
-          <Typography sx={{ color: '#eef4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 }, textShadow: '0 2px 8px rgba(0,0,0,.72)' }}>
-            {side} · ROUND {current.round}
-          </Typography>
+          <Typography sx={{ color: '#eef4ff', fontWeight: 900, letterSpacing: '.16em', fontSize: { xs: 11, md: 14 }, textShadow: '0 2px 8px rgba(0,0,0,.72)' }}>{side} · ROUND {current.round}</Typography>
         </Stack>
-
-        <Typography sx={{ color: '#fff', fontWeight: 950, lineHeight: .94, textShadow: '0 4px 18px rgba(0,0,0,.62)', fontSize: { xs: 25, sm: 38, md: 58 } }}>
-          {current.actor}
-        </Typography>
-        <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.68)', fontSize: { xs: 20, sm: 31, md: 46 } }}>
-          {actionText}{current.incomplete ? '（未完整結算）' : ''}
-        </Typography>
+        <Typography sx={{ color: '#fff', fontWeight: 950, lineHeight: .94, textShadow: '0 4px 18px rgba(0,0,0,.62)', fontSize: { xs: 25, sm: 38, md: 58 } }}>{current.actor}</Typography>
+        <Typography sx={{ color: palette.color, fontWeight: 950, lineHeight: 1.04, textShadow: '0 4px 18px rgba(0,0,0,.68)', fontSize: { xs: 20, sm: 31, md: 46 } }}>{actionText}{current.incomplete ? '（未完整結算）' : ''}</Typography>
       </Stack>
 
-      <Typography
-        sx={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: { xs: 20, md: 28 },
-          textAlign: 'center',
-          color: 'rgba(255,255,255,.92)',
-          fontSize: { xs: 11, md: 13 },
-          fontWeight: 800,
-          letterSpacing: '.08em',
-          textShadow: '0 2px 8px #000',
-          pointerEvents: 'none',
-        }}
-      >
-        點擊畫面跳過動畫
-      </Typography>
+      <Typography sx={{ position: 'absolute', left: 0, right: 0, bottom: { xs: 20, md: 28 }, textAlign: 'center', color: 'rgba(255,255,255,.92)', fontSize: { xs: 11, md: 13 }, fontWeight: 800, letterSpacing: '.08em', textShadow: '0 2px 8px #000', pointerEvents: 'none' }}>點擊畫面跳過動畫</Typography>
 
       {!reducedMotion && (
-        <LinearProgress
-          variant="determinate"
-          value={0}
-          sx={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 3,
-            bgcolor: 'rgba(255,255,255,.16)',
-            '& .MuiLinearProgress-bar': {
-              bgcolor: palette.color,
-              animation: `feedback-time ${PRESENTATION_MS}ms linear`,
-              '@keyframes feedback-time': {
-                from: { transform: 'translateX(0)' },
-                to: { transform: 'translateX(-100%)' },
-              },
-            },
-          }}
-        />
+        <LinearProgress variant="determinate" value={0} sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, bgcolor: 'rgba(255,255,255,.16)', '& .MuiLinearProgress-bar': { bgcolor: palette.color, animation: `feedback-time ${PRESENTATION_MS}ms linear`, '@keyframes feedback-time': { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-100%)' } } } }} />
       )}
     </Box>
   );
