@@ -28,6 +28,7 @@ export function DiceTray({ dice, selectedDieId, onSelect, selection }: Props) {
       direction="row"
       gap={.8}
       flexWrap="wrap"
+      onClick={selection ? selection.onCancel : undefined}
       sx={selection ? { position: 'relative', zIndex: 1210 } : undefined}
     >
       {dice.map((die, index) => {
@@ -39,6 +40,7 @@ export function DiceTray({ dice, selectedDieId, onSelect, selection }: Props) {
             key={die.id}
             data-tutorial={`die-${die.ownerId}-${die.skill}`}
             title={selection ? hint : undefined}
+            onClick={selection ? (event) => event.stopPropagation() : undefined}
             sx={{
               borderRadius: 2,
               opacity: selection && !allowed ? .3 : 1,
