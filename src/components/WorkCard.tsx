@@ -66,7 +66,7 @@ export function WorkCard({
         borderColor: tone.border,
         bgcolor: tone.bg,
         borderWidth: 1.5,
-        borderRadius: 2.25,
+        borderRadius: '8px',
         boxShadow: '0 4px 14px rgba(58,77,108,.07)',
         transform: index % 2 ? 'rotate(.1deg)' : 'rotate(-.08deg)',
         opacity: getSlotLegality && !hasLegalSlot ? .42 : 1,
