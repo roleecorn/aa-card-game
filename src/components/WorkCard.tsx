@@ -8,6 +8,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SubjectIcon from '@mui/icons-material/Subject';
 import LayersIcon from '@mui/icons-material/Layers';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import { CHARACTERS } from '../content/catalog';
 import type { WorkType } from '../game/schema';
 import type { TargetLegality } from '../game/targeting';
@@ -23,14 +25,15 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
 };
 
 export const workCardTones = [
-  { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599' },
-  { border: '#75b8ee', bg: '#f7fbff', progress: '#55a7e7' },
-  { border: '#b7c2d6', bg: '#fbfcfe', progress: '#9daec6' },
+  { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599', preview: '#fff0f5' },
+  { border: '#75b8ee', bg: '#f7fbff', progress: '#55a7e7', preview: '#edf7ff' },
+  { border: '#b7c2d6', bg: '#fbfcfe', progress: '#9daec6', preview: '#f1f4f8' },
 ] as const;
 
 export interface WorkCardProps {
   work: WorkState;
   index?: number;
+  score?: number;
   selectedDie?: DieToken;
   toneIndex?: number;
   onSlotClick?: (workId: string, slotIndex: number) => void;
@@ -41,18 +44,18 @@ export interface WorkCardProps {
 export function WorkCard({
   work,
   index = 0,
+  score,
   selectedDie,
   toneIndex = index,
   onSlotClick,
   getSlotLegality,
   onCancelSelection,
 }: WorkCardProps) {
-  const completed = work.slots.filter(
-    (slot) => slot.design !== undefined && slot.text !== undefined && slot.aa !== undefined,
-  ).length;
+  const completed = work.slots.filter(isSlotComplete).length;
   const tone = workCardTones[toneIndex % workCardTones.length];
   const slotLegalities = getSlotLegality ? work.slots.map((_, slotIndex) => getSlotLegality(slotIndex)) : undefined;
   const hasLegalSlot = slotLegalities?.some((legality) => legality.allowed) ?? true;
+  const ownerName = CHARACTERS[work.ownerId]?.name ?? work.ownerId;
 
   return (
     <Card
@@ -62,51 +65,107 @@ export function WorkCard({
         borderColor: tone.border,
         bgcolor: tone.bg,
         borderWidth: 1.5,
-        transform: index % 2 ? 'rotate(.15deg)' : 'rotate(-.12deg)',
+        borderRadius: 2.25,
+        boxShadow: '0 4px 14px rgba(58,77,108,.07)',
+        transform: index % 2 ? 'rotate(.1deg)' : 'rotate(-.08deg)',
         opacity: getSlotLegality && !hasLegalSlot ? .42 : 1,
         transition: 'opacity .15s ease',
       }}
     >
-      <CardContent sx={{ p: 1.15, '&:last-child': { pb: 1.15 } }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={.7} sx={{ mb: .8 }}>
+      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        <Stack
+          direction="row"
+          alignItems="flex-start"
+          justifyContent="space-between"
+          spacing={.7}
+          sx={{ px: 1.15, pt: 1.05, pb: .85, borderBottom: `1px solid ${tone.border}55` }}
+        >
           <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 950, lineHeight: 1.1 }} noWrap>
+            <Typography sx={{ fontSize: 14.5, fontWeight: 950, lineHeight: 1.15 }} noWrap>
               #{String(index + 1).padStart(2, '0')} {work.title}
             </Typography>
-            <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .2 }}>
-              負責人：{CHARACTERS[work.ownerId]?.name ?? work.ownerId}
+            <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .25 }} noWrap>
+              負責人：{ownerName}
             </Typography>
           </Box>
           <Chip
             icon={genreIcons[work.type] as React.ReactElement}
             label={work.type}
             size="small"
-            sx={{ height: 23, bgcolor: '#fff', border: '1px solid #dce6f2' }}
+            sx={{
+              height: 24,
+              flexShrink: 0,
+              bgcolor: '#fff',
+              border: `1px solid ${tone.border}88`,
+              '& .MuiChip-label': { fontWeight: 900 },
+            }}
           />
         </Stack>
 
         <Box
           sx={{
-            minHeight: 76,
-            border: '1px dashed #dce4ef',
-            borderRadius: 1.5,
-            bgcolor: 'rgba(255,255,255,.72)',
-            p: .8,
-            mb: .9,
+            display: 'grid',
+            gridTemplateColumns: '92px minmax(0,1fr)',
+            gap: .9,
+            px: 1.05,
+            py: .9,
+            bgcolor: 'rgba(255,255,255,.38)',
           }}
         >
-          <Typography sx={{ fontSize: 11, color: '#687895', lineHeight: 1.45 }}>
-            這是一部正在製作中的作品。把 Design、Text、AA 逐步填滿，完成共同創作。
-          </Typography>
+          <Box
+            sx={{
+              minHeight: 72,
+              borderRadius: 1.5,
+              border: `1px solid ${tone.border}66`,
+              bgcolor: tone.preview,
+              display: 'grid',
+              placeItems: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                width: 54,
+                height: 54,
+                borderRadius: '50%',
+                border: `1px dashed ${tone.border}88`,
+                right: -18,
+                top: -18,
+              },
+            }}
+          >
+            <Stack spacing={.15} alignItems="center" sx={{ position: 'relative', zIndex: 1, color: tone.progress }}>
+              <Box sx={{ display: 'flex', '& svg': { fontSize: 31 } }}>{genreIcons[work.type]}</Box>
+              <Typography sx={{ fontSize: 10, fontWeight: 950, letterSpacing: '.08em' }}>{work.type}類作品</Typography>
+            </Stack>
+          </Box>
+
+          <Stack justifyContent="center" spacing={.55} sx={{ minWidth: 0 }}>
+            <Box>
+              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>製作流程</Typography>
+              <Typography sx={{ fontSize: 11.5, fontWeight: 900, mt: .1 }}>
+                Design → Text → AA
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 9.5, color: 'text.secondary', fontWeight: 800 }}>目前進度</Typography>
+              <Typography sx={{ fontSize: 11.5, fontWeight: 900, mt: .1 }}>
+                {completed} / {work.slots.length} 個段落完成
+              </Typography>
+            </Box>
+          </Stack>
         </Box>
 
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${work.slots.length}, minmax(54px, 1fr))`,
-            gap: .55,
+            gridTemplateColumns: `repeat(${work.slots.length}, minmax(62px, 1fr))`,
+            gap: .5,
             overflowX: 'auto',
-            pb: .25,
+            px: 1.05,
+            py: .9,
+            borderTop: '1px solid rgba(202,214,228,.65)',
+            borderBottom: '1px solid rgba(202,214,228,.65)',
           }}
         >
           {work.slots.map((slot, slotIndex) => (
@@ -122,8 +181,8 @@ export function WorkCard({
           ))}
         </Box>
 
-        <Stack direction="row" alignItems="center" spacing={.8} sx={{ mt: .85 }}>
-          <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: 'text.secondary' }}>完成度</Typography>
+        <Stack direction="row" alignItems="center" spacing={.75} sx={{ px: 1.05, py: .8 }}>
+          <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: 'text.secondary', flexShrink: 0 }}>完成度</Typography>
           <LinearProgress
             variant="determinate"
             value={(completed / Math.max(1, work.slots.length)) * 100}
@@ -136,9 +195,16 @@ export function WorkCard({
               '& .MuiLinearProgress-bar': { bgcolor: tone.progress, borderRadius: 10 },
             }}
           />
-          <Typography sx={{ fontSize: 11, fontWeight: 950 }}>
+          <Typography sx={{ fontSize: 11, fontWeight: 950, minWidth: 28 }}>
             {completed}/{work.slots.length}
           </Typography>
+          {score !== undefined && (
+            <Chip
+              label={`分數 ${score}`}
+              size="small"
+              sx={{ height: 23, bgcolor: '#fff', border: '1px solid #d7e1ec', '& .MuiChip-label': { px: .75, fontSize: 10.5, fontWeight: 900 } }}
+            />
+          )}
         </Stack>
       </CardContent>
     </Card>
@@ -162,7 +228,9 @@ function ProgressCell({
 }) {
   const targeting = legality !== undefined;
   const allowed = legality?.allowed ?? false;
+  const complete = isSlotComplete(slot);
   const hint = legality?.warning ?? legality?.reason ?? (allowed ? '點擊以放置此骰' : undefined);
+
   return (
     <Paper
       component="button"
@@ -179,37 +247,62 @@ function ProgressCell({
       }}
       variant="outlined"
       sx={{
-        p: .45,
-        minWidth: 54,
-        minHeight: 83,
+        p: .42,
+        minWidth: 62,
+        minHeight: 112,
         borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
         borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
         borderColor: targeting ? (allowed ? 'warning.main' : '#aeb8c5') : selectedDie ? 'primary.main' : '#d8e1ed',
         cursor: targeting && allowed ? 'pointer' : targeting ? 'default' : selectedDie ? 'pointer' : 'default',
-        bgcolor: targeting && allowed ? '#fff8e8' : selectedDie ? '#f4faff' : '#fff',
+        bgcolor: targeting && allowed ? '#fff8e8' : '#fff',
         opacity: targeting && !allowed ? .38 : 1,
         textAlign: 'left',
+        color: 'text.primary',
+        font: 'inherit',
         boxShadow: targeting && allowed ? '0 0 0 3px rgba(255,180,59,.18)' : 'none',
         transition: 'opacity .15s ease, border-color .15s ease, box-shadow .15s ease',
       }}
     >
-      <Typography sx={{ fontSize: 9.5, textAlign: 'center', color: 'text.secondary' }}>{index + 1}</Typography>
-      <Stack spacing={.28} sx={{ mt: .25 }}>
+      <Typography sx={{ fontSize: 9.5, textAlign: 'center', color: 'text.secondary', fontWeight: 850, mb: .25 }}>
+        {index + 1}
+      </Typography>
+      <Stack spacing={.28}>
         <ProgressLine icon={<EditNoteIcon fontSize="inherit" />} value={slot.design} tone="#ff6f98" />
-        <ProgressLine icon={<SubjectIcon fontSize="inherit" />} value={slot.text} tone="#4f8fe6" />
-        <ProgressLine icon={<LayersIcon fontSize="inherit" />} value={slot.aa} tone="#3bb8a5" />
+        <ProgressLine icon={<SubjectIcon fontSize="inherit" />} value={slot.text} tone="#4f8fe6" locked={slot.design === undefined} />
+        <ProgressLine icon={<LayersIcon fontSize="inherit" />} value={slot.aa} tone="#3bb8a5" locked={slot.text === undefined} />
       </Stack>
+      <Box sx={{ height: 22, display: 'grid', placeItems: 'center', mt: .25 }}>
+        {complete ? (
+          <CheckCircleRoundedIcon sx={{ fontSize: 17, color: '#ee6d92' }} />
+        ) : (
+          <Box sx={{ width: 14, borderTop: '1px dashed #d2dbe6' }} />
+        )}
+      </Box>
     </Paper>
   );
 }
 
-function ProgressLine({ icon, value, tone }: { icon: React.ReactNode; value?: number; tone: string }) {
+function ProgressLine({ icon, value, tone, locked = false }: { icon: React.ReactNode; value?: number; tone: string; locked?: boolean }) {
+  if (locked && value === undefined) {
+    return (
+      <Stack direction="row" alignItems="center" justifyContent="center" spacing={.28} sx={{ minHeight: 19, color: '#c4ccd7' }}>
+        <LockOutlinedIcon sx={{ fontSize: 12.5 }} />
+        <Typography sx={{ fontSize: 10.5, fontWeight: 850, color: '#c4ccd7' }}>—</Typography>
+      </Stack>
+    );
+  }
+
+  const filled = value !== undefined;
   return (
-    <Stack direction="row" alignItems="center" justifyContent="center" spacing={.25} sx={{ color: value ? tone : '#c6d0de' }}>
-      <Box sx={{ display: 'flex', fontSize: 14 }}>{icon}</Box>
-      <Typography sx={{ fontSize: 11, fontWeight: 950, color: value ? 'text.primary' : '#b9c4d2' }}>
-        {value ?? '?'}
+    <Stack direction="row" alignItems="center" justifyContent="center" spacing={.28} sx={{ minHeight: 19, color: filled ? tone : '#c6d0de' }}>
+      <Box sx={{ display: 'flex', fontSize: 14.5 }}>{icon}</Box>
+      <Typography sx={{ fontSize: 11, fontWeight: 950, color: filled ? 'text.primary' : '#b9c4d2' }}>
+        {filled ? value : '—'}
       </Typography>
     </Stack>
   );
+}
+
+function isSlotComplete(slot: ProgressSlot): boolean {
+  return slot.design !== undefined && slot.text !== undefined && slot.aa !== undefined;
 }
