@@ -199,7 +199,7 @@ function ProgressCell({
       sx={{
         p: 0,
         minWidth: 50,
-        minHeight: 174,
+        minHeight: 132,
         overflow: 'hidden',
         borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
         borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
@@ -220,7 +220,7 @@ function ProgressCell({
         </Typography>
       </Box>
 
-      <Stack alignItems="center" spacing={.25} sx={{ px: .35, pt: .45 }}>
+      <Stack alignItems="center" spacing={.25} sx={{ px: .25, pt: .45 }}>
         <ProgressMark
           icon={<LocalFireDepartmentIcon />}
           value={slot.design}
@@ -241,7 +241,7 @@ function ProgressCell({
         />
       </Stack>
 
-      <Box sx={{ height: 22, display: 'grid', placeItems: 'center', mt: .15 }}>
+      <Box sx={{ height: 20, display: 'grid', placeItems: 'center', mt: .1 }}>
         {complete ? (
           <CheckCircleRoundedIcon sx={{ fontSize: 17, color: '#ee6d92' }} />
         ) : (
@@ -258,22 +258,25 @@ function ProgressMark({ icon, value, tone, label }: { icon: React.ReactNode; val
   return (
     <Stack
       aria-label={`${label}${filled ? ` ${value}` : ' 尚未完成'}`}
+      direction="row"
       alignItems="center"
-      spacing={.15}
-      sx={{ width: 36, minHeight: 42 }}
+      justifyContent="center"
+      spacing={.35}
+      sx={{ width: '100%', minHeight: 27 }}
     >
-      {filled ? <DiceFace value={value} /> : <Box sx={{ width: 18, height: 18 }} />}
       <Box
         sx={{
           display: 'flex',
+          flexShrink: 0,
           color: filled ? tone : '#c8d0dc',
           opacity: filled ? 1 : .72,
-          '& svg': { fontSize: 25 },
+          '& svg': { fontSize: 23 },
           transition: 'color .15s ease, opacity .15s ease',
         }}
       >
         {icon}
       </Box>
+      {filled ? <DiceFace value={value} /> : <Box sx={{ width: 18, height: 18, flexShrink: 0 }} />}
     </Stack>
   );
 }
@@ -297,6 +300,7 @@ function DiceFace({ value }: { value: number }) {
         sx={{
           width: 18,
           height: 18,
+          flexShrink: 0,
           borderRadius: '4px',
           border: '1px solid #9da9b8',
           bgcolor: '#fff',
@@ -320,6 +324,7 @@ function DiceFace({ value }: { value: number }) {
       sx={{
         width: 18,
         height: 18,
+        flexShrink: 0,
         p: '3px',
         borderRadius: '4px',
         border: '1px solid #9da9b8',
