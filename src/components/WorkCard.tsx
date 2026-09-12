@@ -7,7 +7,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
-import workSlotCompleteStamp from '../assets/work-slot-complete-stamp.svg';
+import workSlotCompleteStampFallback from '../assets/work-slot-complete-stamp.svg';
 import { CHARACTERS } from '../content/catalog';
 import type { WorkType } from '../game/schema';
 import type { TargetLegality } from '../game/targeting';
@@ -23,6 +23,7 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
 };
 
 const workProgressDescription = '這是一部正在製作中的作品。把 Design、Text、AA 逐步填滿，完成共同創作。';
+const workSlotCompleteStamp = '/assets/work-slot-complete-stamp.png';
 
 export const workCardTones = [
   { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599' },
@@ -252,18 +253,21 @@ function ProgressCell({
           src={workSlotCompleteStamp}
           alt=""
           aria-hidden
+          onError={(event) => {
+            const image = event.currentTarget;
+            if (image.dataset.fallbackApplied === 'true') return;
+            image.dataset.fallbackApplied = 'true';
+            image.src = workSlotCompleteStampFallback;
+          }}
           sx={{
             position: 'absolute',
-            left: '50%',
-            top: '54%',
-            width: '68%',
-            maxWidth: 78,
-            opacity: .72,
+            top: 5,
+            left: 5,
+            width: 'clamp(34px, 42%, 52px)',
+            height: 'auto',
+            objectFit: 'contain',
             pointerEvents: 'none',
-            translate: '-50% -50%',
-            mixBlendMode: 'multiply',
-            filter: 'drop-shadow(0 1px 2px rgba(112,40,62,.10))',
-            zIndex: 2,
+            zIndex: 3,
           }}
         />
       )}
