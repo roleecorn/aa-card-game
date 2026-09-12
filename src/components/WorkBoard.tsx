@@ -19,11 +19,12 @@ interface Props {
   works: WorkState[];
   selectedDie?: DieToken;
   onSlotClick?: (workId: string, slotIndex: number) => void;
+  getWorkScore?: (work: WorkState) => number;
   workSelection?: WorkSelection;
   slotSelection?: SlotSelection;
 }
 
-export function WorkBoard({ works, selectedDie, onSlotClick, workSelection, slotSelection }: Props) {
+export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workSelection, slotSelection }: Props) {
   const candidateMap = new Map(workSelection?.candidates.map((candidate) => [candidate.id, candidate]) ?? []);
   const targeting = !!workSelection || !!slotSelection;
   const cancelSelection = workSelection?.onCancel ?? slotSelection?.onCancel;
@@ -63,6 +64,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick, workSelection, slot
             <WorkCard
               work={work}
               index={index}
+              score={getWorkScore?.(work)}
               selectedDie={selectedDie}
               onSlotClick={slotSelection?.onSelect ?? onSlotClick}
               getSlotLegality={slotSelection ? (slotIndex) => slotSelection.getLegality(work, slotIndex) : undefined}
