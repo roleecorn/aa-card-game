@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, createInitialGame } from '../game/engine';
+import { placeDieWithLegality } from '../game/placement';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId } from '../game/schema';
@@ -141,12 +142,13 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (state.game) {
-          result = session(
+          const engine = session(
             state.game as GameState,
             state.mode,
             state.tutorial as TutorialRuntimeState | null,
             state.gameDefinition as GameDefinition,
-          ).placeDie('player', dieId, workId, slotIndex);
+          );
+          result = placeDieWithLegality(engine, 'player', dieId, workId, slotIndex);
         }
       });
       return result;

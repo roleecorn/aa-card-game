@@ -31,9 +31,7 @@ export const lemonSkills = skillDefinitionSchema.array().parse([
     activeTarget: { kind: 'none' },
     activeEffects: [
       { kind: 'stress.change', target: 'owner', amount: 1, source: '火場救援' },
-      { kind: 'dice.grant', target: 'owner', skill: 'design', count: 1, origin: '火場救援', extra: true },
-      { kind: 'dice.grant', target: 'owner', skill: 'text', count: 1, origin: '火場救援', extra: true },
-      { kind: 'dice.grant', target: 'owner', skill: 'aa', count: 1, origin: '火場救援', extra: true },
+      { kind: 'custom', handler: 'grantOwnerRescueDice' },
     ],
     tags: ['support', 'stress-tradeoff'],
   },

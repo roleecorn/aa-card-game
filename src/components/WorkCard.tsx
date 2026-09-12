@@ -10,6 +10,7 @@ import SubjectIcon from '@mui/icons-material/Subject';
 import LayersIcon from '@mui/icons-material/Layers';
 import { CHARACTERS } from '../content/catalog';
 import type { WorkType } from '../game/schema';
+import type { TargetLegality } from '../game/targeting';
 import type { DieToken, ProgressSlot, WorkState } from '../game/types';
 
 const genreIcons: Record<WorkType, React.ReactNode> = {
@@ -33,6 +34,8 @@ export interface WorkCardProps {
   selectedDie?: DieToken;
   toneIndex?: number;
   onSlotClick?: (workId: string, slotIndex: number) => void;
+  getSlotLegality?: (slotIndex: number) => TargetLegality;
+  onCancelSelection?: () => void;
 }
 
 export function WorkCard({
@@ -41,11 +44,15 @@ export function WorkCard({
   selectedDie,
   toneIndex = index,
   onSlotClick,
+  getSlotLegality,
+  onCancelSelection,
 }: WorkCardProps) {
   const completed = work.slots.filter(
     (slot) => slot.design !== undefined && slot.text !== undefined && slot.aa !== undefined,
   ).length;
   const tone = workCardTones[toneIndex % workCardTones.length];
+  const slotLegalities = getSlotLegality ? work.slots.map((_, slotIndex) => getSlotLegality(slotIndex)) : undefined;
+  const hasLegalSlot = slotLegalities?.some((legality) => legality.allowed) ?? true;
 
   return (
     <Card
@@ -55,6 +62,8 @@ export function WorkCard({
         bgcolor: tone.bg,
         borderWidth: 1.5,
         transform: index % 2 ? 'rotate(.15deg)' : 'rotate(-.12deg)',
+        opacity: getSlotLegality && !hasLegalSlot ? .42 : 1,
+        transition: 'opacity .15s ease',
       }}
     >
       <CardContent sx={{ p: 1.15, '&:last-child': { pb: 1.15 } }}>
@@ -105,7 +114,9 @@ export function WorkCard({
               slot={slot}
               index={slotIndex}
               selectedDie={selectedDie}
+              legality={slotLegalities?.[slotIndex]}
               onClick={() => onSlotClick?.(work.id, slotIndex)}
+              onCancel={onCancelSelection}
             />
           ))}
         </Box>
@@ -137,30 +148,40 @@ function ProgressCell({
   slot,
   index,
   selectedDie,
+  legality,
   onClick,
+  onCancel,
 }: {
   slot: ProgressSlot;
   index: number;
   selectedDie?: DieToken;
+  legality?: TargetLegality;
   onClick: () => void;
+  onCancel?: () => void;
 }) {
+  const targeting = legality !== undefined;
+  const allowed = legality?.allowed ?? false;
+  const hint = legality?.warning ?? legality?.reason ?? (allowed ? '點擊以放置此骰' : undefined);
   return (
     <Paper
       component="button"
       type="button"
-      onClick={onClick}
+      title={hint}
+      onClick={() => targeting ? (allowed ? onClick() : onCancel?.()) : onClick()}
       variant="outlined"
       sx={{
         p: .45,
         minWidth: 54,
         minHeight: 83,
-        borderWidth: selectedDie ? 2 : 1,
-        borderStyle: selectedDie ? 'dashed' : 'solid',
-        borderColor: selectedDie ? 'primary.main' : '#d8e1ed',
-        cursor: selectedDie ? 'pointer' : 'default',
-        bgcolor: selectedDie ? '#f4faff' : '#fff',
+        borderWidth: targeting ? (allowed ? 3 : 1) : selectedDie ? 2 : 1,
+        borderStyle: targeting && allowed ? 'solid' : selectedDie ? 'dashed' : 'solid',
+        borderColor: targeting ? (allowed ? 'warning.main' : '#aeb8c5') : selectedDie ? 'primary.main' : '#d8e1ed',
+        cursor: targeting && allowed ? 'pointer' : targeting ? 'default' : selectedDie ? 'pointer' : 'default',
+        bgcolor: targeting && allowed ? '#fff8e8' : selectedDie ? '#f4faff' : '#fff',
+        opacity: targeting && !allowed ? .38 : 1,
         textAlign: 'left',
-        boxShadow: 'none',
+        boxShadow: targeting && allowed ? '0 0 0 3px rgba(255,180,59,.18)' : 'none',
+        transition: 'opacity .15s ease, border-color .15s ease, box-shadow .15s ease',
       }}
     >
       <Typography sx={{ fontSize: 9.5, textAlign: 'center', color: 'text.secondary' }}>{index + 1}</Typography>
