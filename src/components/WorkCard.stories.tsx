@@ -23,6 +23,7 @@ const meta = {
   args: {
     work,
     index: 0,
+    score: 3,
   },
 } satisfies Meta<typeof WorkCard>;
 
