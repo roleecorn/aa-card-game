@@ -1,5 +1,6 @@
 import CloseIcon from '@mui/icons-material/Close';
 import { IconButton, Paper, Stack, Typography } from '@mui/material';
+import { useGameStore } from '../store/gameStore';
 
 interface Props {
   title: string;
@@ -8,6 +9,9 @@ interface Props {
 }
 
 export function SelectionBanner({ title, instruction, onCancel }: Props) {
+  const mode = useGameStore((state) => state.mode);
+  if (mode !== 'tutorial') return null;
+
   return (
     <Paper
       elevation={8}
