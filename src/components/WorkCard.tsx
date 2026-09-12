@@ -24,6 +24,8 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
   怪: <AutoAwesomeIcon fontSize="small" />,
 };
 
+const workProgressDescription = '這是一部正在製作中的作品。把 Design、Text、AA 逐步填滿，完成共同創作。';
+
 export const workCardTones = [
   { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599', preview: '#fff0f5' },
   { border: '#75b8ee', bg: '#f7fbff', progress: '#55a7e7', preview: '#edf7ff' },
@@ -59,6 +61,7 @@ export function WorkCard({
 
   return (
     <Card
+      aria-label={`${work.title}。${workProgressDescription}`}
       onClick={getSlotLegality ? onCancelSelection : undefined}
       sx={{
         overflow: 'hidden',
