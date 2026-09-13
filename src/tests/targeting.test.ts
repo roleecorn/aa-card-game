@@ -19,23 +19,9 @@ function createTargetingGame() {
 }
 
 describe('target legality', () => {
-  it('only exposes and accepts dice that satisfy active-skill target filters', () => {
+  it('only exposes and accepts pending dice that satisfy active-skill target filters', () => {
     const game = createTargetingGame();
     const engine = new EngineSession(game, rng);
-
-    const grimmText = engine.grantDice('player', 'grimm', 'text', 1, 'test', false, 4)[0]!;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: grimmText.id })).toBe(false);
-
-    const grimmSix = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 6)[0]!;
-    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
-      .find((candidate) => candidate.id === grimmSix.id)?.allowed).toBe(false);
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: grimmSix.id })).toBe(false);
-
-    const grimmFive = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 5)[0]!;
-    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
-      .find((candidate) => candidate.id === grimmFive.id)?.allowed).toBe(true);
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(true);
 
     const design79 = engine.grantDice('player', 'user79', 'design', 1, 'test', false, 5)[0]!;
     expect(getSkillSelectionPlan(engine, 'user79', 'burningText79').candidates
@@ -52,6 +38,42 @@ describe('target legality', () => {
     const shennauText = engine.grantDice('player', 'shennau', 'text', 1, 'test', false, 4)[0]!;
     expect(getSkillSelectionPlan(engine, 'shennau', 'shennauSettingManiac').candidates
       .find((candidate) => candidate.id === shennauText.id)?.allowed).toBe(true);
+  });
+
+  it('Grimm 對托內利可的愛 only works on a 情 work with placed dice and is once per round', () => {
+    const game = createTargetingGame();
+    const engine = new EngineSession(game, rng);
+    const work = game.player.works.find((candidate) => candidate.ownerId === 'grimm')!;
+    const grimm = engine.getCharacter('player', 'grimm')!;
+
+    work.type = '燃';
+    work.slots[0]!.design = 5;
+    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+
+    work.type = '情';
+    work.slots[0]!.design = undefined;
+    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+
+    work.slots[0]!.design = 5;
+    work.slots[0]!.text = 4;
+    grimm.stress = 2;
+
+    const plan = getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame');
+    expect(plan.candidates.find((candidate) => candidate.id === work.id)?.allowed).toBe(true);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(true);
+
+    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+      workId: work.id,
+      targetDieId: '0:design',
+    })).toBe(true);
+    expect(work.slots[0]!.design).toBe(3);
+    expect(grimm.stress).toBe(1);
+
+    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+      workId: work.id,
+      targetDieId: '0:text',
+    })).toBe(false);
+    expect(work.slots[0]!.text).toBe(4);
   });
 
   it('marks non-improving placement slots as illegal before execution', () => {
