@@ -41,7 +41,7 @@ import { SelectionBanner } from '../components/SelectionBanner';
 import { LogPanel } from '../components/LogPanel';
 import { ActionFeedback } from '../components/ActionFeedback';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
-import { StartScreen } from '../components/StartScreen';
+import { StartScreen, type TeamSizeOption } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
 import { HandLimitDialog } from '../components/HandLimitDialog';
 import { TutorialGuide } from '../tutorial/TutorialGuide';
@@ -55,6 +55,12 @@ type SelectionMode =
 
 interface AppProps {
   gameDefinition?: GameDefinition;
+}
+
+interface DraftRoster {
+  player: string[];
+  enemy: string[];
+  gameDefinition: GameDefinition;
 }
 
 const panelSx = {
@@ -94,7 +100,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const [message, setMessage] = useState<string>();
   const [rosterOpen, setRosterOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
-  const [draftRoster, setDraftRoster] = useState<{ player: string[]; enemy: string[] }>();
+  const [draftRoster, setDraftRoster] = useState<DraftRoster>();
   const tutorialStep = tutorial?.step;
 
   const selectedDie = game?.player.pendingDice.find((die) => die.id === selectedDieId);
@@ -132,12 +138,20 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     setMessage(undefined);
   };
 
-  const handleStart = () => {
+  const handleStart = (teamSize: TeamSizeOption) => {
     reset();
-    const selected = selectStandardRosters(Math.random, gameDefinition);
+    const selectedGameDefinition: GameDefinition = {
+      ...gameDefinition,
+      rules: {
+        ...gameDefinition.rules,
+        teamSize,
+      },
+    };
+    const selected = selectStandardRosters(Math.random, selectedGameDefinition);
     setDraftRoster({
       player: selected.playerMemberIds,
       enemy: selected.enemyMemberIds,
+      gameDefinition: selectedGameDefinition,
     });
     clearTransientUi();
     setAppStage('draw');
@@ -159,13 +173,13 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       if (!replacement) return current;
       const player = [...current.player];
       player[index] = replacement;
-      return { player, enemy: current.enemy };
+      return { ...current, player };
     });
   }, [playableIds]);
 
   const handleConfirmRoster = (leaderId: string) => {
     if (!draftRoster) return;
-    startGame(draftRoster.player, draftRoster.enemy, leaderId, gameDefinition);
+    startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition);
     setAppStage('battle');
   };
 
@@ -333,14 +347,14 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
 
   if (appStage === 'draw' && draftRoster) {
     const drawnCharacters = draftRoster.player.flatMap((memberId) => {
-      const character = gameDefinition.content.characters[memberId];
+      const character = draftRoster.gameDefinition.content.characters[memberId];
       return character ? [character] : [];
     });
     return (
       <>
         <DrawPhaseScreen
           characters={drawnCharacters}
-          leaderStressBonus={gameDefinition.rules.leaderStressBonus}
+          leaderStressBonus={draftRoster.gameDefinition.rules.leaderStressBonus}
           onReroll={handleReroll}
           onConfirm={handleConfirmRoster}
         />

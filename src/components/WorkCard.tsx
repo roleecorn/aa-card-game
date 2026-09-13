@@ -36,6 +36,7 @@ export interface WorkCardProps {
   score?: number;
   selectedDie?: DieToken;
   toneIndex?: number;
+  compactSlots?: boolean;
   onSlotClick?: (workId: string, slotIndex: number) => void;
   getSlotLegality?: (slotIndex: number) => TargetLegality;
   onCancelSelection?: () => void;
@@ -47,6 +48,7 @@ export function WorkCard({
   score,
   selectedDie,
   toneIndex = index,
+  compactSlots = false,
   onSlotClick,
   getSlotLegality,
   onCancelSelection,
@@ -100,7 +102,10 @@ export function WorkCard({
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: `repeat(${work.slots.length}, minmax(54px, 1fr))`,
+            gridTemplateColumns: compactSlots
+              ? `repeat(${work.slots.length}, 66px)`
+              : `repeat(${work.slots.length}, minmax(54px, 1fr))`,
+            justifyContent: compactSlots ? 'center' : undefined,
             gap: .55,
             overflowX: 'auto',
             px: 1.05,
