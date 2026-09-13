@@ -24,7 +24,8 @@ describe('2026-09 character card calibration', () => {
     expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(3);
     expect(CHARACTERS.patrick?.affinities).toEqual(['謀']);
-    expect(CHARACTERS.patrick?.skillIds).toEqual([]);
+    expect(CHARACTERS.patrick?.skillIds).toEqual(['patrickHelp']);
+    expect(SKILLS.patrickHelp?.status).toBe('implemented');
   });
 
   it('moves 虛之會圈 from 79 to 藍風', () => {
