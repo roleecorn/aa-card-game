@@ -17,5 +17,12 @@ export function getStatusStacks(member: CharacterState, status: GameplayStatus):
 }
 
 export function hasGameplayStatus(member: CharacterState, status: GameplayStatus): boolean {
-  return getStatusStacks(member, status) > 0;
+  if (getStatusStacks(member, status) > 0) return true;
+  // 神隱 is a shared gameplay state: a hidden character cannot act and cannot
+  // be selected by coordination effects. Keep that semantic centralized so
+  // callers do not need character-specific hidden checks.
+  if (getStatusStacks(member, GAMEPLAY_STATUS.hidden) > 0) {
+    return status === GAMEPLAY_STATUS.actionBlocked || status === GAMEPLAY_STATUS.coordinationUntargetable;
+  }
+  return false;
 }
