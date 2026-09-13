@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import appSource from '../app/App.tsx?raw';
 import drawPhaseSource from '../components/DrawPhaseScreen.tsx?raw';
 import startScreenSource from '../components/StartScreen.tsx?raw';
+import workBoardSource from '../components/WorkBoard.tsx?raw';
+import workCardSource from '../components/WorkCard.tsx?raw';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, selectStandardRosters } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
@@ -59,5 +61,13 @@ describe('three and five member match modes', () => {
     expect(drawPhaseSource).toContain("'repeat(6, minmax(0,1fr))'");
     expect(drawPhaseSource).toContain("'& > :nth-of-type(4)': { gridColumn: { xs: 'auto', md: '2 / span 2' } }");
     expect(drawPhaseSource).toContain("'& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } }");
+  });
+
+  it('keeps work pages compact only when five works are on the board', () => {
+    expect(workBoardSource).toContain('compactSlots={works.length === 5}');
+    expect(workCardSource).toContain('compactSlots?: boolean;');
+    expect(workCardSource).toContain('`repeat(${work.slots.length}, 66px)`');
+    expect(workCardSource).toContain("justifyContent: compactSlots ? 'center' : undefined");
+    expect(workCardSource).toContain('`repeat(${work.slots.length}, minmax(54px, 1fr))`');
   });
 });
