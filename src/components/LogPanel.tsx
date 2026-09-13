@@ -73,10 +73,7 @@ export function LogPanel({ logs }: { logs: LogEntry[] }) {
         fullWidth
         maxWidth="lg"
         aria-labelledby="game-log-dialog-title"
-        onClose={(_, reason) => {
-          if (reason === 'backdropClick') return;
-          closeDialog();
-        }}
+        onClose={closeDialog}
         PaperProps={{
           sx: {
             height: { xs: '86vh', md: '78vh' },
