@@ -44,7 +44,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
               md: `repeat(${Math.min(3, Math.max(1, works.length))}, minmax(0,1fr))`,
             },
         flexWrap: compactLayout ? { md: 'wrap' } : undefined,
-        justifyContent: compactLayout ? { md: 'center' } : undefined,
+        justifyContent: compactLayout ? { md: 'space-between' } : undefined,
         gap: 1.15,
       }}
     >
