@@ -120,7 +120,10 @@ export function DrawPhaseScreen({ characters, leaderStressBonus, onReroll, onCon
     setPhase('selection');
   };
 
-  const desktopColumns = `repeat(${Math.min(Math.max(characters.length, 1), 4)}, minmax(0,1fr))`;
+  const fiveMemberLayout = characters.length === 5;
+  const desktopColumns = fiveMemberLayout
+    ? 'repeat(6, minmax(0,1fr))'
+    : `repeat(${Math.min(Math.max(characters.length, 1), 3)}, minmax(0,1fr))`;
 
   return (
     <Box
@@ -151,7 +154,19 @@ export function DrawPhaseScreen({ characters, leaderStressBonus, onReroll, onCon
           </Typography>
         </Stack>
 
-        <Box sx={{ width: 'min(1280px, 100%)', display: 'grid', gridTemplateColumns: { xs: '1fr', md: desktopColumns }, gap: { xs: 1.4, md: 2.2 } }}>
+        <Box
+          sx={{
+            width: 'min(1280px, 100%)',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: desktopColumns },
+            gap: { xs: 1.4, md: 2.2 },
+            ...(fiveMemberLayout ? {
+              '& > *': { gridColumn: { xs: 'auto', md: 'span 2' } },
+              '& > :nth-of-type(4)': { gridColumn: { xs: 'auto', md: '2 / span 2' } },
+              '& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } },
+            } : {}),
+          }}
+        >
           {characters.map((character, index) => {
             const isRerolling = phase === 'rerolling' && rerollIndex === index;
             const fullyRevealed = phase === 'selection' || phase === 'leader-selection' || phase === 'confirmed' || phase === 'rerolling';
