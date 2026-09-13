@@ -1,8 +1,19 @@
 # AA Group Card Game Prototype
 
-基於 Discord 討論內容整理出的 TypeScript Web 卡牌遊戲 Prototype。規則主要以 Pintbox（Discord user id `706774301805903892`）的討論為基礎；尚未定案的部分以 prototype assumption 處理。
+基於 Discord 討論內容整理出的 TypeScript Web 卡牌遊戲 Prototype。規則主要以 Pintbox 的討論為基礎；尚未定案的部分以 prototype assumption 處理。
 
 目前版本：**v0.4.0**
+
+## 目前可玩的內容
+
+- Standard 對局固定 5 回合。
+- 開始遊戲後可選 **3 人模式**或 **5 人模式**。
+- 隊伍角色數與作品數相同：3 人模式每隊 3 部作品，5 人模式每隊 5 部作品。
+- 目前 runtime catalog 共 **39 名角色**；卡奧斯由 Standard match configuration 排除，因此 Standard 可抽取 **38 名角色**。
+- 支援角色主動／被動／觸發技能、統籌卡與事件卡、Stress、作品適性、作品進度、組長接任、hidden／神隱等 runtime mechanic。
+- 另有固定 roster / 固定抽牌 / deterministic RNG 的教學關卡。
+
+目前程式實際規則以 [`GAME_RULES.md`](./GAME_RULES.md) 為準；玩家向完整說明見 [`GAME_MANUAL.md`](./GAME_MANUAL.md)。
 
 ## 技術棧
 
@@ -34,6 +45,7 @@ npm run typecheck
 npm run test
 npm run build
 npm run verify
+npm run test:tutorial
 npm run art:normalize
 npm run art:validate
 npm run image:inspect -- <file>
@@ -47,25 +59,17 @@ npm run storybook
 
 這個 Web app **不假設部署在網站根目錄 `/`**。正式 release 目前由 GitHub Pages 掛在 repository 子路徑，因此 Vite build 會使用類似 `/aa-card-game/` 的 `base`。
 
-### Branch / release policy
-
-- `main` 是 application source、deployment workflow 與 release UI behavior 的唯一 source-of-truth。
-- `release` 只代表「目前部署中的版本」，不應直接維護任何只存在於 `release` 的 source code、workflow 或 UI 差異。
-- GitHub Pages workflow 可以存在於 `main`，但只在 `release` branch push 時觸發部署；一般 `main` 更新只跑 CI，不會布版。
-- 發布時直接建立 `main -> release` PR，通過 `CI / verify` 後必須使用 **Merge commit**；不要使用 Squash 或 Rebase，也不要直接在 `release` 上開發功能。
-- `main` 與 `release` 應使用分開的 branch ruleset：`main` 可要求 up-to-date 並只允許 Squash；`release` 不要求 up-to-date，且只允許 Merge commit。
-- 完整發布流程見 [`docs/release-flow.md`](./docs/release-flow.md)。
-
-Repository 自帶的 `public/` 資源必須以 repository-relative reference 表示，例如：
+Repository 自帶的 `public/` 資源使用 repository-relative reference，例如：
 
 ```text
 assets/characters/portrait/example.webp
+assets/characters/compact/example.webp
 assets/cards/guide.svg
 ```
 
-不要在 content 或 component 中把 `/assets/...` 當成正式路徑。`/assets/...` 會指向 domain root，當應用部署在 `/aa-card-game/`、preview subpath、reverse proxy prefix 等環境時會請求到錯誤位置。
+不要在 content 或 component 中把 `/assets/...` 當成正式路徑。Browser runtime URL 應經由 Vite `import.meta.env.BASE_URL` 或專案共用 `resolvePublicAssetPath` 解析。
 
-Browser runtime URL 應經由 Vite `import.meta.env.BASE_URL` 或專案共用 resolver 產生。例如 deployment base 為 `/aa-card-game/` 時：
+例如 deployment base 為 `/aa-card-game/` 時：
 
 ```text
 assets/characters/portrait/example.webp
@@ -74,63 +78,76 @@ assets/characters/portrait/example.webp
 
 涉及 public asset path 的修改應包含 non-root base regression test，不能只在 Vite dev server 的 `/` 環境驗證。
 
-## 圖片工具
+## Branch / release policy
 
-Repository 內建通用圖片工具，避免手動轉檔後才在 runtime 發現尺寸或 WebP 損壞：
+- `main` 是 application source、deployment workflow 與 release UI behavior 的 source of truth。
+- `release` 代表目前部署中的版本，不應直接維護只存在於 `release` 的 source code、workflow 或 UI 差異。
+- GitHub Pages workflow 可存在於 `main`，但由 `release` branch push 觸發部署；一般 `main` 更新只跑 CI。
+- 發布時建立 `main -> release` PR；實際 merge 前仍必須依 repository policy 完成人工測試與人工確認。
+- 完整流程見 [`docs/release-flow.md`](./docs/release-flow.md)。
+
+## 圖片工具與角色美術
+
+Runtime 角色圖片分成：
+
+```text
+public/assets/characters/portrait/<character-id>.webp
+public/assets/characters/compact/<character-id>.webp
+```
+
+正式 portrait 規格為 3:4、768 × 1024 WebP；compact slot 為 384 × 320 WebP。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+
+Repository 內建圖片工具：
 
 - `npm run image:inspect -- <file> [file...]`：顯示格式、尺寸、frame/page 數、色彩空間與檔案大小。
-- `npm run image:check -- <file> --width N --height N --format webp --single-page --srgb`：檢查資源是否符合指定規格，失敗時回傳 non-zero exit code。
-- `npm run image:webp -- <input> <output> [--width N --height N --fit cover|contain|fill --quality 82]`：轉成 sRGB WebP；指定尺寸時使用 Sharp resize。
-- `npm run art:validate`：檢查所有角色 portrait / compact 是否完整配對，並驗證 WebP container、尺寸、單幀與 sRGB。
-- `npm run test:image-tools`：只執行圖片工具測試；一般 `npm test` 也會自動包含這些測試。
+- `npm run image:check -- <file> ...`：檢查單一資源規格。
+- `npm run image:webp -- <input> <output> ...`：轉成 sRGB WebP。
+- `npm run art:normalize`：正規化 portrait，並從 canonical portrait 重建 compact。
+- `npm run art:validate`：檢查 portrait / compact 配對、WebP container、尺寸、單幀與 sRGB。
 
-角色圖正式規格仍以 `CHARACTER_CARD_ART.md` 為準。通用工具刻意不綁角色路徑，因此 cards、UI 素材或後續其他 WebP 也可使用。
+角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)。
 
-## v0.4 重點
+## 規則與內容架構
 
-### 角色卡美術重新整理
-
-舊版角色圖來自 concept board 的不規則裁切，容易出現頭部、卡框文字或安全區域錯位。v0.4 改成固定規格：
-
-- 3:4 portrait
-- 3:4 WebP；正式 runtime 規格為 768 x 1024
-- runtime asset 不包含名稱、數值、技能文字與卡框
-- 角色資訊由 React/MUI 統一 render
-- `CharacterCard` 不再把 portrait 拉伸到整張資訊卡高度
-
-目前 10 張 runtime portrait 都已規範化為 768 x 1024 WebP，並由 `npm run art:validate` 檢查尺寸、單幀與 WebP RIFF 完整性。Pintbox、79、真白、銀櫻、藍風、旁白的來源仍屬 legacy-quality，因此格式已統一不代表細節被重新生成。完整狀態見 `PROJECT_STATUS.md`。
-
-詳細規格：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
-
-### 可擴充 Skill System
-
-角色技能不應散落成 GameEngine 裡的角色特判。主要流程為：
+角色技能不應散落成 `GameEngine` 裡的角色特判。主要流程為：
 
 ```text
 Game Event
   -> SkillRuntime
   -> Conditions
-  -> EffectRegistry
+  -> EffectRegistry / customEffects
   -> Game State
 ```
 
-角色與卡牌可共用 generic effects。詳細內容：
+角色採 per-character package：
+
+```text
+src/content/<character-id>.ts
+```
+
+同一 package 保存該角色的 `CharacterDefinition` 與角色專屬 `SkillDefinition`。`src/content/catalog.ts` 只負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。
+
+詳細內容：
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - [`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
 
-## Repository 規範
+## Repository 文件
 
 - AI / coding agent：[`AGENTS.md`](./AGENTS.md)
-- 相容入口：[`Agent.md`](./Agent.md)
 - Contribution：[`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- Runtime 規則：[`GAME_RULES.md`](./GAME_RULES.md)
+- 玩家向遊戲說明：[`GAME_MANUAL.md`](./GAME_MANUAL.md)
+- 實作狀態 / Known gaps：[`PROJECT_STATUS.md`](./PROJECT_STATUS.md)
+- 架構：[`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
+- Character authoring：[`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
-- 上一輪驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
-- 目前 runtime 規則：[`GAME_RULES.md`](./GAME_RULES.md)
-- 實作與 Known gaps：[`PROJECT_STATUS.md`](./PROJECT_STATUS.md)
+- 歷史驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
 - Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
+- Release workflow：[`docs/release-flow.md`](./docs/release-flow.md)
 - Repository-local agent skills：[`skills/README.md`](./skills/README.md)
 
 ## 目錄
@@ -139,36 +156,37 @@ Game Event
 aa-card-game/
 ├─ public/
 │  └─ assets/
-│     ├─ characters/     # canonical 768x1024 WebP runtime portraits
+│     ├─ characters/
+│     │  ├─ portrait/
+│     │  └─ compact/
 │     └─ cards/
 ├─ src/
 │  ├─ app/
 │  ├─ components/
-│  ├─ content/           # characters / skills / cards / match
+│  ├─ content/           # per-character packages / cards / match / catalog
 │  ├─ game/              # engine / skill runtime / effect registry
 │  ├─ store/
+│  ├─ tutorial/
 │  └─ tests/
 ├─ docs/
-│  └─ art/               # compressed design references; not runtime
 ├─ AGENTS.md
-├─ CHARACTER_CARD_ART.md
-├─ CONTRIBUTING.md
-├─ ARCHITECTURE.md
-├─ SKILL_AUTHORING.md
-├─ VALIDATION.md
-└─ discussion-notes.md
+├─ GAME_RULES.md
+├─ GAME_MANUAL.md
+├─ PROJECT_STATUS.md
+└─ README.md
 ```
 
-## 目前 Prototype 規則概要
+## Prototype rule summary
 
-- 5 回合
-- 雙方各 3 名組員
-- 作品 progress 依 `Design -> Text -> AA`
-- 角色能力值決定工作骰數量
-- 高骰可以覆蓋同類型低骰
-- 工作增加 Stress；摸魚降低 Stress
-- 作品具有 `燃 / 謀 / 笑 / 情 / 色 / 怪` 適性
-- 角色被動、主動技能與卡牌效果透過同一套 effect pipeline 執行
-- 目前 catalog 有 10 個 CharacterDefinition；卡奧斯帶 not-standard-playable，不進一般 3v3
+- 5 回合。
+- 3 人或 5 人小隊。
+- 每名角色各有一部作品。
+- Progress 依 `Design -> Text -> AA`。
+- 角色能力值決定工作骰數量。
+- 高骰可以覆蓋同類型低骰。
+- Work 通常增加 Stress；Slack 降低 Stress。
+- 作品類型為 `燃 / 謀 / 笑 / 情 / 色 / 怪`。
+- 角色技能與卡牌效果共用 data-driven effect pipeline。
+- Standard roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
 
 這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。
