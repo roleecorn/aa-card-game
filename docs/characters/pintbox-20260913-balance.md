@@ -1,27 +1,44 @@
 # PintBox character balance batch — 2026-09-13
 
-This branch is intentionally **WIP / not mergeable yet**.
+This branch remains **WIP / Draft** while engineering verification is still in progress. The three character-design questions that originally blocked the PR are now resolved.
 
 Resolution rule: PintBox direct statements > statements explicitly accepted by PintBox > existing prototype; for the same character, later explicit settings override earlier ones.
 
-## Merge blockers
+## Resolved character decisions
 
-The following three character topics are deliberately unresolved and must remain blockers before this PR can become Ready for review:
+### 格林 — `對托內利可的愛`
 
-- 格林 `對托內利可的愛`: two alternatives were discussed and no final choice was made.
-- 三角希 / triangle-creature global Stress effect: PintBox later said `先放著吧`; do not finalize it yet.
-- 弱智 final-fill algorithm tied to remaining Stress: discussion remained unresolved; keep the last confirmed behavior for now.
+Final rule:
 
-Do **not** mark this PR Ready or merge it until these three items have explicit final settings.
+- Only while Grimm's own work is type `（情）`.
+- Once per round.
+- Choose any already-placed Design / Text / AA die in that work and set its value to `3`.
+- Then Grimm's Stress `-1`.
 
-## Scope being completed in parallel
+The runtime keeps the existing skill id `grimmBurningFrame` for compatibility, but the visible skill name and behavior are `對托內利可的愛`.
 
-- Existing-character balance changes other than the three blockers above.
-- 13 new character definitions and their skills.
-- Shared runtime support for hidden status, roll restrictions, rerolls, fixed dice and work-progress effects.
-- Tests and catalog registration.
-- Candidate portrait assets prepared separately for manual upload, in accordance with `CHARACTER_CARD_ART.md` (the agent does not upload image binaries).
+### 三角希 — triangle-creature Stress behavior
 
-## Art handoff
+Do **not** add or replace the current global Stress behavior. Keep the currently implemented triangle-creature Stress effects unchanged.
 
-The 13 candidate portraits are prepared separately as 768×1024 3:4 WebP files. Until the user manually uploads those binaries, new character definitions should resolve to an existing valid fallback so runtime references stay parseable. After manual upload, switch each character to `public/assets/characters/portrait/<character-id>.webp` and the matching compact asset, then run `npm run art:normalize` / `npm run art:validate`.
+### 弱智 — final fill
+
+Do **not** apply the proposed rule that changes the number of final filled slots based on remaining Stress. Keep the currently implemented `最後三天趕稿` behavior unchanged: before final scoring, every empty Design / Text / AA progress cell in Weakzhi's own work independently rolls `1d6` and is filled.
+
+These three items are no longer design blockers.
+
+## Remaining WIP scope
+
+- Finish runtime regression coverage for the newly added / adjusted characters.
+- Verify shared hidden-status behavior and targeting restrictions.
+- Verify fixed work-progress initialization such as 鈴嵐.
+- Run the complete test / build pipeline and resolve any unrelated repository CI blockers.
+
+## Character art behavior
+
+The user has uploaded the character images. Character definitions must point directly to their own expected asset paths under:
+
+- `public/assets/characters/portrait/<character-id>.webp`
+- `public/assets/characters/compact/<character-id>.webp`
+
+Do not redirect missing character assets to `narrator.webp` or another fallback character. If an expected file is missing, a development-time `404` is intentional because it exposes the integration error instead of hiding it.
