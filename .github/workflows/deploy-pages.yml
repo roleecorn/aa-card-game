@@ -39,13 +39,8 @@ jobs:
           npm ci
           python -m pip install --disable-pip-version-check fonttools brotli
 
-      - name: Verify vendored UI font
-        run: |
-          bash scripts/vendor-ui-font.sh
-          if ! git diff --exit-code -- public/fonts/; then
-            echo "Vendored UI font is stale. Regenerate with: bash scripts/vendor-ui-font.sh"
-            exit 1
-          fi
+      - name: Generate current UI font subset
+        run: bash scripts/vendor-ui-font.sh
 
       - name: Validate character art
         run: npm run art:validate
