@@ -89,6 +89,9 @@ npm run build
 
 - GitHub repository `roleecorn/aa-card-game` 是此專案的 authoritative source。
 - 只要對**文字、程式碼、測試或設定**做了實際修改，就必須把對應修改提交到 GitHub；不可只修改暫存工作目錄。
+- **任何 PR 在 merge 前都必須由人工完成實際測試並明確確認測試通過。** `CI / verify`、unit/integration test、build、source-level check、automated browser check、AI/agent runtime check 等自動驗證都不能取代人工測試；未取得人工確認前，PR 必須維持 open。
+- **AI coding agent 不得把 CI 綠燈或自動測試通過視為 merge 授權。** 即使人工測試已通過，merge 仍是獨立操作，必須由使用者另外明確指示；沒有明確 merge 指示時，agent 必須停在 PR / validation reporting 階段。
+- 人工測試應針對該修改實際影響的行為，在適當的 runtime 或部署環境中驗證；純文件或其他非 runtime 修改，也至少需要人工 review 結果後才可 merge。詳細流程見 `docs/release-flow.md`。
 - **圖片 binary 是例外：Chat / AI agent 不負責上傳圖片到 GitHub。** 需要新增或替換圖片時，將已準備好的圖片或 ZIP 交給使用者，並標示目標路徑，由使用者手動上傳。
 - 不 commit `node_modules/`、`dist/`、coverage、IDE cache、環境 secret 或 release ZIP。
 - commit 應聚焦單一目的，message 使用簡短 imperative / conventional style 皆可。

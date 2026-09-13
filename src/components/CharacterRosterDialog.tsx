@@ -16,6 +16,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { CHARACTERS, SKILLS } from '../content/catalog';
 import { getCharacterTagName } from '../content/characterTags';
+import { CharacterAffinities } from './CharacterAffinities';
 
 export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const characters = Object.values(CHARACTERS);
@@ -82,6 +83,10 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
                       <Stat label="AA" value={character.stats.aa} tone="#43c6b4" />
                     </Stack>
 
+                    <Box sx={{ mt: .85 }}>
+                      <CharacterAffinities affinities={character.affinities} />
+                    </Box>
+
                     <Stack direction="row" spacing={.6} sx={{ mt: .9 }} flexWrap="wrap" useFlexGap>
                       {character.resource ? (
                         <>
@@ -92,12 +97,6 @@ export function CharacterRosterDialog({ open, onClose }: { open: boolean; onClos
                         <Chip size="small" label={`Stress ${character.maxStress === null ? '∞' : character.maxStress}`} />
                       )}
                     </Stack>
-
-                    {character.affinities.length > 0 && (
-                      <Typography sx={{ mt: .7, fontSize: 11, color: 'text.secondary' }}>
-                        適性：{character.affinities.join(' / ')}
-                      </Typography>
-                    )}
                   </CardContent>
                 </Box>
 

@@ -16,6 +16,7 @@ import LayersIcon from '@mui/icons-material/Layers';
 import type { CharacterDefinition } from '../game/schema';
 import { SKILLS } from '../content/catalog';
 import { getCharacterTagName } from '../content/characterTags';
+import { CharacterAffinities } from './CharacterAffinities';
 
 export type DrawPhase =
   | 'intro'
@@ -328,6 +329,7 @@ function DrawCard({
               <StatChip icon={<SubjectIcon />} label="Text" value={character.stats.text} />
               <StatChip icon={<LayersIcon />} label="AA" value={character.stats.aa} />
             </Stack>
+            <CharacterAffinities affinities={character.affinities} />
             {!!character.tags?.length && (
               <Box>
                 <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .55 }}>標籤</Typography>

@@ -1,4 +1,5 @@
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Paper, Stack, Typography } from '@mui/material';
+import { CHARACTERS } from '../content/catalog';
 import type { TargetCandidate } from '../game/targeting';
 import type { DieToken as DieTokenModel } from '../game/types';
 import { DieToken } from './DieToken';
@@ -22,44 +23,80 @@ export function DiceTray({ dice, selectedDieId, onSelect, selection }: Props) {
   }
 
   const candidateMap = new Map(selection?.candidates.map((candidate) => [candidate.id, candidate]) ?? []);
+  const diceGroups = Array.from(dice.reduce((groups, die) => {
+    const existing = groups.get(die.ownerId);
+    if (existing) existing.push(die);
+    else groups.set(die.ownerId, [die]);
+    return groups;
+  }, new Map<string, DieTokenModel[]>()));
 
   return (
     <Stack
       direction="row"
-      gap={.8}
+      gap={1}
       flexWrap="wrap"
       onClick={selection ? selection.onCancel : undefined}
       sx={selection ? { position: 'relative', zIndex: 1210 } : undefined}
     >
-      {dice.map((die, index) => {
-        const candidate = selection ? candidateMap.get(die.id) : undefined;
-        const allowed = !!candidate?.allowed;
-        const hint = candidate?.warning ?? candidate?.reason ?? (allowed ? '點擊以指定此骰' : '不可指定；點擊取消');
-        return (
-          <Box
-            key={die.id}
-            data-tutorial={`die-${die.ownerId}-${die.skill}`}
-            title={selection ? hint : undefined}
-            onClick={selection ? (event) => event.stopPropagation() : undefined}
+      {diceGroups.map(([ownerId, ownerDice]) => (
+        <Paper
+          key={ownerId}
+          variant="outlined"
+          data-dice-owner={ownerId}
+          sx={{
+            p: .8,
+            borderRadius: '8px',
+            borderColor: '#d8e1ed',
+            bgcolor: '#fbfcfe',
+            minWidth: 88,
+          }}
+        >
+          <Typography
             sx={{
-              borderRadius: 2,
-              opacity: selection && !allowed ? .3 : 1,
-              outline: selection && allowed ? '4px solid rgba(255,180,59,.95)' : '4px solid transparent',
-              outlineOffset: 2,
-              transition: 'opacity .15s ease, outline-color .15s ease',
+              mb: .65,
+              px: .15,
+              fontSize: 11.5,
+              fontWeight: 950,
+              color: 'text.secondary',
+              lineHeight: 1.1,
             }}
           >
-            <DieToken
-              die={die}
-              selected={die.id === selectedDieId}
-              rotation={index % 2 ? 2 : -2}
-              onSelect={selection
-                ? () => allowed ? selection.onSelect(die.id) : selection.onCancel()
-                : onSelect}
-            />
-          </Box>
-        );
-      })}
+            {CHARACTERS[ownerId]?.name ?? ownerId}
+          </Typography>
+
+          <Stack direction="row" gap={.8} flexWrap="wrap">
+            {ownerDice.map((die, index) => {
+              const candidate = selection ? candidateMap.get(die.id) : undefined;
+              const allowed = !!candidate?.allowed;
+              const hint = candidate?.warning ?? candidate?.reason ?? (allowed ? '點擊以指定此骰' : '不可指定；點擊取消');
+              return (
+                <Box
+                  key={die.id}
+                  data-tutorial={`die-${die.ownerId}-${die.skill}`}
+                  title={selection ? hint : undefined}
+                  onClick={selection ? (event) => event.stopPropagation() : undefined}
+                  sx={{
+                    borderRadius: 2,
+                    opacity: selection && !allowed ? .3 : 1,
+                    outline: selection && allowed ? '4px solid rgba(255,180,59,.95)' : '4px solid transparent',
+                    outlineOffset: 2,
+                    transition: 'opacity .15s ease, outline-color .15s ease',
+                  }}
+                >
+                  <DieToken
+                    die={die}
+                    selected={die.id === selectedDieId}
+                    rotation={index % 2 ? 2 : -2}
+                    onSelect={selection
+                      ? () => allowed ? selection.onSelect(die.id) : selection.onCancel()
+                      : onSelect}
+                  />
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      ))}
     </Stack>
   );
 }

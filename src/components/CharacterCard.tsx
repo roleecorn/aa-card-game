@@ -16,6 +16,7 @@ import type { ActionChoice, CharacterState } from '../game/types';
 import type { CharacterDefinition } from '../game/schema';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from '../game/statuses';
 import { getCharacterTagName } from '../content/characterTags';
+import { CharacterAffinities } from './CharacterAffinities';
 import { SkillList } from './SkillList';
 
 interface Props {
@@ -84,6 +85,7 @@ export function CharacterCard({
           <Stat icon={<EditNoteIcon />} label="Design" value={stats.design} tone="#ff6f98" compact={compact} />
           <Stat icon={<SubjectIcon />} label="Text" value={stats.text} tone="#4f8fe6" compact={compact} />
           <Stat icon={<LayersIcon />} label="AA" value={stats.aa} tone="#3bb8a5" compact={compact} />
+          <CharacterAffinities affinities={definition.affinities} compact={compact} />
 
           {!!definition.tags?.length && (
             <Stack direction="row" spacing={.45} flexWrap="wrap" useFlexGap>
