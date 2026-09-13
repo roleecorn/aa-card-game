@@ -66,6 +66,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
               index={index}
               score={getWorkScore?.(work)}
               selectedDie={selectedDie}
+              compactSlots={works.length === 5}
               onSlotClick={slotSelection?.onSelect ?? onSlotClick}
               getSlotLegality={slotSelection ? (slotIndex) => slotSelection.getLegality(work, slotIndex) : undefined}
               onCancelSelection={slotSelection?.onCancel}
