@@ -4,6 +4,16 @@
 
 `release` is only the deployment pointer for the version currently published to GitHub Pages. It must not carry source code, workflow, or UI changes that do not also exist in `main`.
 
+## Mandatory human merge gate
+
+**No pull request may be merged before a human has manually tested the affected behavior and explicitly confirmed that the test passed.**
+
+- `CI / verify`, unit tests, integration tests, build checks, source-level checks, automated browser checks, AI/agent runtime checks, and other automated validation are prerequisites or supporting evidence only. They do **not** replace human testing.
+- Human testing must exercise the behavior affected by the change in an appropriate runtime or deployed environment. For documentation-only or other non-runtime changes, a human must still review the resulting change before merge.
+- Until that human confirmation exists, the pull request must remain open even when all automated checks are green.
+- A human test confirmation is not itself permission for an AI coding agent to merge. **Merge is a separate action and requires an explicit user instruction to merge.**
+- AI coding agents must stop after preparing the pull request and reporting validation status unless the user separately authorizes the merge after the human-test gate has been satisfied.
+
 ## Development flow
 
 Normal development never deploys GitHub Pages:
@@ -11,7 +21,8 @@ Normal development never deploys GitHub Pages:
 1. Create a feature/fix branch.
 2. Open a pull request to `main`.
 3. Pass `CI / verify`.
-4. Merge to `main` with **Squash merge**.
+4. Have a human manually test the affected behavior and explicitly confirm that it passed.
+5. After an explicit merge instruction, merge to `main` with **Squash merge**.
 
 A push to `main` runs CI, but `Deploy Release to GitHub Pages` does not run because that workflow only listens to `release`.
 
@@ -21,9 +32,10 @@ When the current `main` is ready to publish:
 
 1. Open a pull request with **head `main` and base `release`**.
 2. Pass `CI / verify`.
-3. Merge the pull request with **Create a merge commit**.
-4. The resulting push to `release` triggers `Deploy Release to GitHub Pages`.
-5. The deployment workflow records the release timestamp and publishes the built artifact.
+3. Confirm that the release candidate has completed the required human testing and has explicit human approval.
+4. After an explicit merge instruction, merge the pull request with **Create a merge commit**.
+5. The resulting push to `release` triggers `Deploy Release to GitHub Pages`.
+6. The deployment workflow records the release timestamp and publishes the built artifact.
 
 Do **not** Squash merge or Rebase merge a `main -> release` promotion. The release merge commit must retain the promoted `main` commit as an ancestor; otherwise `main` and `release` will diverge again even when their file contents look the same.
 
@@ -38,6 +50,7 @@ Use separate rulesets because `main` and `release` have different merge semantic
 - Require a pull request before merging.
 - Require `verify` to pass.
 - Require the branch to be up to date before merging.
+- Require the mandatory human merge gate described above.
 - Allow **Squash merge** only.
 - Block force pushes and deletion.
 
@@ -45,6 +58,7 @@ Use separate rulesets because `main` and `release` have different merge semantic
 
 - Require a pull request before merging.
 - Require `verify` to pass.
+- Require the mandatory human merge gate described above.
 - **Do not** require the PR head to be up to date with `release`.
 - Allow **Merge commit** only.
 - Block force pushes and deletion.
