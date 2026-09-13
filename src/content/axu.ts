@@ -1,0 +1,7 @@
+import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+export const axuCharacter = characterDefinitionSchema.parse({ id: 'axu', name: '阿須', stats: { design: 1, text: 1, aa: 1 }, maxStress: 5, affinities: ['情', '燃'], skillIds: ['axuConfidenceText', 'axuConfidenceDesign', 'axuTextOnlyDelivery'], portrait: 'assets/characters/portrait/axu.webp', compactPortrait: 'assets/characters/compact/axu.webp', sourceNotes: ['2026-09-12 PintBox：1/1/1，壓力5，適性（情）（燃）；可把自身AA骰轉成同點Text或Design；結算用4填空AA。'] });
+export const axuSkills = skillDefinitionSchema.array().parse([
+  { id: 'axuConfidenceText', name: '對文字的自信・轉Text', description: '將自身一顆 AA pending die 轉成同點數 Text。', activation: 'active', status: 'implemented', activeTarget: { kind: 'pendingDie', relation: 'self', skill: 'aa' }, activeEffects: [{ kind: 'custom', handler: 'convertSelectedOwnerDie', args: { toSkill: 'text' } }] },
+  { id: 'axuConfidenceDesign', name: '對文字的自信・轉Design', description: '將自身一顆 AA pending die 轉成同點數 Design。', activation: 'active', status: 'implemented', activeTarget: { kind: 'pendingDie', relation: 'self', skill: 'aa' }, activeEffects: [{ kind: 'custom', handler: 'convertSelectedOwnerDie', args: { toSkill: 'design' } }] },
+  { id: 'axuTextOnlyDelivery', name: '純文字交稿', description: '最終結算前，用 4 填滿自己作品仍空著的 AA 進度。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'roundEnd', condition: { kind: 'round', op: 'eq', value: 5 }, effects: [{ kind: 'custom', handler: 'fillOwnerWorkSkills', args: { skills: ['aa'], value: 4 } }] }] },
+]);

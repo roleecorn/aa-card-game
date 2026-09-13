@@ -43,13 +43,11 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
 
   const tutorialTarget = mode !== 'tutorial'
     ? undefined
-    : skillId === 'grimmBurningFrame'
-      ? TUTORIAL_SKILL_TARGETS.grimmBurningFrame
-      : skillId === 'mashiroSynthesis'
-        ? TUTORIAL_SKILL_TARGETS.mashiroSynthesis
-        : skillId === 'triangleRecovery'
-          ? TUTORIAL_SKILL_TARGETS.triangleRecovery
-          : undefined;
+    : skillId === 'mashiroSynthesis'
+      ? TUTORIAL_SKILL_TARGETS.mashiroSynthesis
+      : skillId === 'triangleRecovery'
+        ? TUTORIAL_SKILL_TARGETS.triangleRecovery
+        : undefined;
 
   useEffect(() => {
     setSelectedMemberId('');
@@ -59,6 +57,7 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   }, [memberId, skillId]);
 
   const spec = skill?.activeTarget ?? { kind: 'none' as const };
+  const isGrimmTonelico = skillId === 'grimmBurningFrame';
 
   const memberOptions = useMemo(() => {
     if (!memberId) return [];
@@ -83,10 +82,27 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
 
   const workOptions = useMemo(() => {
     if (!memberId || spec.kind !== 'work') return [];
-    if (spec.relation === 'enemy') return game.enemy.works;
-    if (spec.relation === 'owner') return game.player.works.filter((work) => work.ownerId === memberId);
-    return game.player.works;
-  }, [game, memberId, spec]);
+    let works = spec.relation === 'enemy'
+      ? game.enemy.works
+      : spec.relation === 'owner'
+        ? game.player.works.filter((work) => work.ownerId === memberId)
+        : game.player.works;
+    if (isGrimmTonelico) {
+      works = works.filter((work) => work.type === '情' && work.slots.some((slot) =>
+        slot.design !== undefined || slot.text !== undefined || slot.aa !== undefined));
+    }
+    return works;
+  }, [game, isGrimmTonelico, memberId, spec]);
+
+  const selectedWorkProgress = useMemo(() => {
+    if (!isGrimmTonelico || !selectedWorkId) return [];
+    const work = game.player.works.find((candidate) => candidate.id === selectedWorkId);
+    if (!work) return [];
+    return work.slots.flatMap((slot, slotIndex) => (['design', 'text', 'aa'] as const).flatMap((progressSkill) => {
+      const value = slot[progressSkill];
+      return value === undefined ? [] : [{ id: `${slotIndex}:${progressSkill}`, slotIndex, skill: progressSkill, value }];
+    }));
+  }, [game.player.works, isGrimmTonelico, selectedWorkId]);
 
   const sourceDice = useMemo(() => {
     const candidates = game.player.pendingDice.filter((die) => memberId && die.ownerId !== memberId);
@@ -111,11 +127,8 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
     else if (spec.relation === 'self') candidates = game.player.pendingDice.filter((die) => die.ownerId === memberId);
     else if (spec.relation === 'otherAlly') candidates = game.player.pendingDice.filter((die) => die.ownerId !== memberId);
     else candidates = game.player.pendingDice;
-    if (mode === 'tutorial' && skillId === 'grimmBurningFrame') {
-      return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.grimmBurningFrame.targetDie);
-    }
     return candidates;
-  }, [game, memberId, mode, skillId, spec]);
+  }, [game, memberId, spec]);
 
   if (!skill || !memberId) return null;
 
@@ -128,18 +141,16 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
 
   const valid = spec.kind === 'none'
     || ((spec.kind === 'member' || spec.kind === 'taggedMember') && !!selectedMemberId)
-    || (spec.kind === 'work' && !!selectedWorkId)
+    || (spec.kind === 'work' && !!selectedWorkId && (!isGrimmTonelico || !!targetDieId))
     || (spec.kind === 'copyPendingDie' && !!sourceDieId && !!targetDieId)
     || (spec.kind === 'pendingDie' && !!targetDieId);
 
   const tutorialTargetLabel = mode === 'tutorial'
-    ? skillId === 'grimmBurningFrame'
-      ? '格林的第一顆 AA 骰'
-      : skillId === 'mashiroSynthesis'
-        ? '來源：格林的第一顆 Text 骰／目標：真白的第一顆 AA 骰'
-        : skillId === 'triangleRecovery'
-          ? '八代'
-          : undefined
+    ? skillId === 'mashiroSynthesis'
+      ? '來源：格林的第一顆 Text 骰／目標：真白的第一顆 AA 骰'
+      : skillId === 'triangleRecovery'
+        ? '八代'
+        : undefined
     : undefined;
 
   return (
@@ -169,8 +180,28 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
           {spec.kind === 'work' && (
             <FormControl fullWidth>
               <InputLabel>目標作品</InputLabel>
-              <Select value={selectedWorkId} label="目標作品" onChange={(event) => setSelectedWorkId(event.target.value)}>
+              <Select
+                value={selectedWorkId}
+                label="目標作品"
+                onChange={(event) => {
+                  setSelectedWorkId(event.target.value);
+                  setTargetDieId('');
+                }}
+              >
                 {workOptions.map((work) => <MenuItem key={work.id} value={work.id}>{work.title} · {work.type}</MenuItem>)}
+              </Select>
+            </FormControl>
+          )}
+
+          {spec.kind === 'work' && isGrimmTonelico && selectedWorkId && (
+            <FormControl fullWidth>
+              <InputLabel>作品中的骰子</InputLabel>
+              <Select value={targetDieId} label="作品中的骰子" onChange={(event) => setTargetDieId(event.target.value)}>
+                {selectedWorkProgress.map((progress) => (
+                  <MenuItem key={progress.id} value={progress.id}>
+                    第 {progress.slotIndex + 1} 格 · {progress.skill.toUpperCase()} {progress.value}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           )}

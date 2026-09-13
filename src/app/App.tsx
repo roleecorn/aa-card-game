@@ -360,7 +360,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     || pendingCard.target.kind === 'voiceMode'
     || (pendingCard.target.kind === 'member' && !!pendingCard.target.skillPicker)
   );
-  const useLegacySkillDialog = mode === 'tutorial';
+  const useLegacySkillDialog = mode === 'tutorial' || pendingSkill?.id === 'grimmBurningFrame';
 
   let memberCandidates: TargetCandidate[] | undefined;
   let workCandidates: TargetCandidate[] | undefined;

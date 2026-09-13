@@ -43,6 +43,15 @@ export function createTutorialGame(): GameState {
     enemyMemberIds: [...TUTORIAL_ENEMY_ROSTER],
   });
 
+  // The tutorial demonstrates Grimm's current active skill. Keep its required
+  // emotion work and one existing progress die explicit instead of depending
+  // on affinity randomization or a later tutorial placement step.
+  const grimmWork = game.player.works.find((work) => work.ownerId === 'grimm');
+  if (grimmWork) {
+    grimmWork.type = '情';
+    if (grimmWork.slots[0]) grimmWork.slots[0].design = 2;
+  }
+
   // createInitialGame has already emitted gameStart. Preserve cards granted by
   // startup Skills while replacing only the randomly drawn fixture hand/deck.
   const playerStartupCards = startupHandAdditions(game.player);

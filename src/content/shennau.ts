@@ -5,15 +5,14 @@ export const shennauCharacter = characterDefinitionSchema.parse({
   name: '神惱',
   stats: { design: 1, text: 1, aa: 0 },
   maxStress: 2,
-  affinities: [],
+  affinities: ['謀'],
   skillIds: ['shennauSettingManiac', 'shennauDoItMyself'],
   portrait: 'assets/characters/portrait/shennau.webp',
   compactPortrait: 'assets/characters/compact/shennau.webp',
   sourceNotes: [
     '2026-09-10：卡奧斯提出神惱卡；PintBox 明確認可原案。',
-    '設定狂：每回合一次，可以少 1 顆 Text 骰換取額外 1 顆 Design 骰。',
-    '自己做：仍可被技能／卡牌指定；若效果來源為其他角色技能、事件卡或統籌卡，該效果對神惱無效。「無效」不代表「不能指定」。',
-    '討論沒有明確定義作品適性，因此不自行補適性。',
+    '2026-09-11：卡奧斯提出神惱適性（謀），PintBox 以👌認可。',
+    '2026-09-13：PintBox 確認維持「仍可被指定，但外部效果不生效」的現行語意。',
   ],
 });
 

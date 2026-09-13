@@ -248,12 +248,17 @@ export function getSkillSelectionPlan(
       stage: 'work',
       candidates: [...ownTeam.works, ...enemyTeam.works].map((work): TargetCandidate => {
         const isOwnTeam = ownTeam.works.some((candidate) => candidate.id === work.id);
-        const ok = spec.relation === 'owner'
+        const relationOk = spec.relation === 'owner'
           ? isOwnTeam && work.ownerId === ownerId
           : spec.relation === 'ally'
             ? isOwnTeam
             : !isOwnTeam;
-        return { id: work.id, ...(ok ? allowed() : blocked('此作品不符合技能的目標條件。')) };
+        if (!relationOk) return { id: work.id, ...blocked('此作品不符合技能的目標條件。') };
+        if (skillId === 'grimmBurningFrame') {
+          if (work.type !== '情') return { id: work.id, ...blocked('「對托內利可的愛」只能在（情）作品上使用。') };
+          if (!workHasProgress(work)) return { id: work.id, ...blocked('作品中還沒有可改成 3 的既有骰。') };
+        }
+        return { id: work.id, ...allowed() };
       }),
     };
   }
