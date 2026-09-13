@@ -63,8 +63,13 @@ describe('three and five member match modes', () => {
     expect(drawPhaseSource).toContain("'& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } }");
   });
 
-  it('keeps work pages compact only when five works are on the board', () => {
-    expect(workBoardSource).toContain('compactSlots={works.length === 5}');
+  it('shrinks both work slots and their outer cards in five-work mode', () => {
+    expect(workBoardSource).toContain('const compactLayout = works.length === 5;');
+    expect(workBoardSource).toContain("display: compactLayout ? { xs: 'grid', md: 'flex' } : 'grid'");
+    expect(workBoardSource).toContain("justifyContent: compactLayout ? { md: 'center' } : undefined");
+    expect(workBoardSource).toContain("width: compactLayout ? { xs: '100%', md: 'max-content' } : undefined");
+    expect(workBoardSource).toContain("flex: compactLayout ? { md: '0 0 auto' } : undefined");
+    expect(workBoardSource).toContain('compactSlots={compactLayout}');
     expect(workCardSource).toContain('compactSlots?: boolean;');
     expect(workCardSource).toContain('`repeat(${work.slots.length}, 66px)`');
     expect(workCardSource).toContain("justifyContent: compactSlots ? 'center' : undefined");
