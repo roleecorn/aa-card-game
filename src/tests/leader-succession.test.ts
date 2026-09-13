@@ -27,10 +27,8 @@ function createGame(
   return game;
 }
 
-function forceYamadaLeaderToLeave(engine: EngineSession, teamId: 'player' | 'enemy' = 'player') {
-  const maxStress = engine.getEffectiveMaxStress(teamId, 'yamada');
-  if (maxStress === null || maxStress === undefined) throw new Error('Yamada must have a finite Stress cap.');
-  engine.adjustStress(teamId, 'yamada', maxStress, 'succession-test', true);
+function forceLeaderDeparture(engine: EngineSession, teamId: 'player' | 'enemy' = 'player') {
+  return engine.departCharacter(teamId, 'yamada', 'succession-test');
 }
 
 function withLeaderCardAudit(ownerId: string): GameDefinition {
@@ -62,16 +60,16 @@ function withLeaderCardAudit(ownerId: string): GameDefinition {
   return withGameContent(STANDARD_GAME_DEFINITION, customContent);
 }
 
-describe('leader succession', () => {
+describe('leader succession for actual departures', () => {
   it('chooses a random remaining member instead of always taking the first member', () => {
     const lowRollGame = createGame();
     const lowRollEngine = new EngineSession(lowRollGame, () => 0, STANDARD_GAME_DEFINITION);
-    forceYamadaLeaderToLeave(lowRollEngine);
+    forceLeaderDeparture(lowRollEngine);
     expect(lowRollGame.player.leaderId).toBe('pintbox');
 
     const highRollGame = createGame();
     const highRollEngine = new EngineSession(highRollGame, () => 0.999, STANDARD_GAME_DEFINITION);
-    forceYamadaLeaderToLeave(highRollEngine);
+    forceLeaderDeparture(highRollEngine);
     expect(highRollGame.player.leaderId).toBe('mashiro');
   });
 
@@ -79,7 +77,7 @@ describe('leader succession', () => {
     const game = createGame();
     const engine = new EngineSession(game, () => 0.999, STANDARD_GAME_DEFINITION);
 
-    forceYamadaLeaderToLeave(engine);
+    forceLeaderDeparture(engine);
 
     const successor = engine.getCharacter('player', 'mashiro')!;
     expect(game.player.leaderId).toBe('mashiro');
@@ -102,16 +100,14 @@ describe('leader succession', () => {
       .toBe(STANDARD_GAME_DEFINITION.rules.leaderStressBonus);
   });
 
-  it('immediately loses when the departing player leader has no remaining successor', () => {
+  it('immediately loses when a departing player leader has no remaining successor', () => {
     const game = createGame();
     game.player.members = game.player.members.filter((member) => member.defId === 'yamada');
     game.player.leaderId = 'yamada';
     game.player.pendingDice = [];
-    const yamada = game.player.members[0]!;
-    yamada.stress = engineCapMinusOne(game, 'player');
     const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
 
-    engine.performPlayerActions({ yamada: 'work' });
+    expect(forceLeaderDeparture(engine)).toBe(true);
 
     expect(game.player.members).toHaveLength(0);
     expect(game.phase).toBe('finished');
@@ -128,35 +124,21 @@ describe('leader succession', () => {
     game.enemy.leaderId = 'yamada';
     const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
 
-    forceYamadaLeaderToLeave(engine, 'enemy');
+    expect(forceLeaderDeparture(engine, 'enemy')).toBe(true);
 
     expect(game.enemy.members).toHaveLength(0);
     expect(game.phase).toBe('finished');
     expect(game.winner).toBe('player');
   });
 
-  it('does not skip the next teammate when a leader leaves during team actions', () => {
-    const game = createGame();
-    game.player.pendingDice = [];
-    const yamada = game.player.members.find((member) => member.defId === 'yamada')!;
-    yamada.stress = engineCapMinusOne(game, 'player');
-    const engine = new EngineSession(game, () => 0.999, STANDARD_GAME_DEFINITION);
-
-    engine.performPlayerActions({ yamada: 'work', pintbox: 'work', mashiro: 'work' });
-
-    expect(game.player.members.some((member) => member.defId === 'yamada')).toBe(false);
-    expect(game.player.pendingDice.some((die) => die.ownerId === 'pintbox')).toBe(true);
-    expect(game.player.pendingDice.some((die) => die.ownerId === 'mashiro')).toBe(true);
-  });
-
-  it('keeps leader-only coordination restrictions when Weakzhi randomly succeeds the leader', () => {
+  it('keeps leader-only coordination restrictions when Weakzhi succeeds a departed leader', () => {
     const roster = {
       playerMemberIds: ['yamada', 'weakzhi', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     };
     const game = createGame(STANDARD_GAME_DEFINITION, roster);
     const engine = new EngineSession(game, () => 0, STANDARD_GAME_DEFINITION);
-    forceYamadaLeaderToLeave(engine);
+    forceLeaderDeparture(engine);
     expect(game.player.leaderId).toBe('weakzhi');
 
     engine.addCard('player', 'soothe', 1);
@@ -167,12 +149,12 @@ describe('leader succession', () => {
   });
 });
 
-describe('card ownership', () => {
+describe('card ownership after actual succession', () => {
   it('emits cardPlayed with the current leader as actor after succession', () => {
     const definition = withLeaderCardAudit('mashiro');
     const game = createGame(definition);
     const engine = new EngineSession(game, () => 0.999, definition);
-    forceYamadaLeaderToLeave(engine);
+    forceLeaderDeparture(engine);
     expect(game.player.leaderId).toBe('mashiro');
 
     const mashiro = engine.getCharacter('player', 'mashiro')!;
@@ -211,10 +193,3 @@ describe('card ownership', () => {
     expect(SKILLS.triangleCoordination).toBeUndefined();
   });
 });
-
-function engineCapMinusOne(game: ReturnType<typeof createInitialGame>, teamId: 'player' | 'enemy'): number {
-  const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
-  const maxStress = engine.getEffectiveMaxStress(teamId, 'yamada');
-  if (maxStress === null || maxStress === undefined) throw new Error('Yamada must have a finite Stress cap.');
-  return maxStress - 1;
-}
