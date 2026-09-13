@@ -45,7 +45,7 @@ export function DiceTray({ dice, selectedDieId, onSelect, selection }: Props) {
           data-dice-owner={ownerId}
           sx={{
             p: .8,
-            borderRadius: 2,
+            borderRadius: '8px',
             borderColor: '#d8e1ed',
             bgcolor: '#fbfcfe',
             minWidth: 88,
