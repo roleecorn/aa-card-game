@@ -537,6 +537,20 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
               } : undefined}
             />
 
+            <Paper sx={panelSx}>
+              <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
+                <AutoAwesomeIcon sx={{ color: '#f4ba45', fontSize: 19 }} />
+                <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
+                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Dice</Typography>
+              </Stack>
+              <DiceTray
+                dice={game.player.pendingDice}
+                selectedDieId={selectedDieId}
+                onSelect={handleDieSelect}
+                selection={dieCandidates ? { candidates: dieCandidates, onSelect: handleSkillDieSelection, onCancel: cancelSelection } : undefined}
+              />
+            </Paper>
+
             <Paper data-feedback-anchor="works:enemy" sx={{ ...panelSx, py: .75, borderColor: '#8abfe8', bgcolor: '#f7fbff' }}>
               <Stack direction="row" spacing={.75} alignItems="center">
                 <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: '#fff', border: '1.5px solid #b9d9f2', display: 'grid', placeItems: 'center', transform: 'rotate(4deg)' }}>
@@ -553,20 +567,6 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
               works={game.enemy.works}
               workSelection={workCandidates ? { candidates: workCandidates, onSelect: handleWorkSelection, onCancel: cancelSelection } : undefined}
             />
-
-            <Paper sx={panelSx}>
-              <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
-                <AutoAwesomeIcon sx={{ color: '#f4ba45', fontSize: 19 }} />
-                <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
-                <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Dice</Typography>
-              </Stack>
-              <DiceTray
-                dice={game.player.pendingDice}
-                selectedDieId={selectedDieId}
-                onSelect={handleDieSelect}
-                selection={dieCandidates ? { candidates: dieCandidates, onSelect: handleSkillDieSelection, onCancel: cancelSelection } : undefined}
-              />
-            </Paper>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
               <Paper sx={panelSx} data-feedback-anchor="hand:player">
