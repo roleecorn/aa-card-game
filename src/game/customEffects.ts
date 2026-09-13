@@ -193,3 +193,26 @@ registerCustomSkillEffect('grantOwnerRescueDice', (_effect, context, engine) => 
   }
   return granted > 0;
 });
+
+registerCustomSkillEffect('grimmLoveForTonelico', (_effect, context, engine) => {
+  const workId = context.activationTarget?.workId;
+  const progressTarget = context.activationTarget?.targetDieId;
+  if (!workId || !progressTarget) return false;
+
+  const team = engine.getTeam(context.ownerTeamId);
+  const work = team.works.find((candidate) => candidate.id === workId && candidate.ownerId === context.ownerId);
+  if (!work || work.type !== '情') return false;
+
+  const [slotText, skillText] = progressTarget.split(':');
+  const slotIndex = Number(slotText);
+  if (!Number.isInteger(slotIndex) || !['design', 'text', 'aa'].includes(skillText)) return false;
+  const skill = skillText as 'design' | 'text' | 'aa';
+  const slot = work.slots[slotIndex];
+  if (!slot || slot[skill] === undefined) return false;
+
+  const before = slot[skill];
+  slot[skill] = 3;
+  engine.log(`${context.definition.name}：${work.title} 第 ${slotIndex + 1} 格 ${skill.toUpperCase()} ${before} → 3。`);
+  engine.adjustStress(context.ownerTeamId, context.ownerId, -1, context.definition.name);
+  return true;
+});
