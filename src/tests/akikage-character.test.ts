@@ -13,7 +13,7 @@ describe('秋影 complete character package', () => {
     const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     expect(CHARACTERS.akikage?.stats).toEqual({ design: 1, text: 2, aa: 1 });
     expect(CHARACTERS.akikage?.maxStress).toBe(3);
-    expect(CHARACTERS.akikage?.affinities).toEqual([]);
+    expect(CHARACTERS.akikage?.affinities).toEqual(['情']);
     expect(CHARACTERS.akikage?.portrait).toBe('/assets/characters/portrait/akikage.webp');
     expect(SKILLS.akikageDeadlineWarrior?.status).toBe('implemented');
     expect(game.player.members.find((member) => member.defId === 'akikage')?.stress).toBe(3);
