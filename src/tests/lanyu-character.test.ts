@@ -16,7 +16,7 @@ describe('嵐羽 complete character package', () => {
   it('uses the PintBox-approved stats and implemented skills', () => {
     expect(CHARACTERS.lanyu?.stats).toEqual({ design: 1, text: 1, aa: 1 });
     expect(CHARACTERS.lanyu?.maxStress).toBe(3);
-    expect(CHARACTERS.lanyu?.affinities).toEqual([]);
+    expect(CHARACTERS.lanyu?.affinities).toEqual(['情']);
     expect(CHARACTERS.lanyu?.portrait).toBe('/assets/characters/portrait/lanyu.webp');
     expect(CHARACTERS.lanyu?.compactPortrait).toBe('/assets/characters/compact/lanyu.webp');
     expect(SKILLS.lanyuCommunication?.status).toBe('implemented');

@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 
-describe('2026-09-10 character card calibration', () => {
-  it('uses the calibrated affinities and base stats', () => {
+describe('2026-09 character card calibration', () => {
+  it('uses the latest calibrated affinities and base stats', () => {
     expect(CHARACTERS.pintbox?.affinities).toEqual(['謀']);
     expect(CHARACTERS.ginsakura?.affinities).toEqual(['燃']);
     expect(CHARACTERS.bluewind?.affinities).toEqual(['情']);
     expect(CHARACTERS.happy?.affinities).toEqual(['怪']);
     expect(CHARACTERS.chaos?.affinities).toEqual(['情', '謀', '笑']);
     expect(CHARACTERS.meteor?.affinities).toEqual(['燃']);
-    expect(CHARACTERS.yashiro?.affinities).toEqual(['情']);
+    expect(CHARACTERS.yashiro?.affinities).toEqual(['情', '怪']);
     expect(CHARACTERS.lemon?.affinities).toEqual(['謀']);
     expect(CHARACTERS.emotion?.affinities).toEqual(['情']);
     expect(CHARACTERS.kitsu?.affinities).toEqual(['笑', '怪']);
@@ -19,12 +19,13 @@ describe('2026-09-10 character card calibration', () => {
     expect(CHARACTERS.grimm?.maxStress).toBe(4);
     expect(CHARACTERS.grimm?.affinities).toEqual(['情', '燃', '笑']);
     expect(CHARACTERS.pigeon?.affinities).toEqual(['燃', '謀', '笑', '情', '怪']);
-    expect(CHARACTERS.tanxi?.stats).toEqual({ design: 1, text: 0, aa: 0 });
-    expect(CHARACTERS.ghostshadow?.stats.aa).toBe(0);
+    expect(CHARACTERS.tanxi?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.ghostshadow?.stats.aa).toBe(1);
     expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(3);
-    expect(CHARACTERS.patrick?.affinities).toEqual([]);
-    expect(CHARACTERS.patrick?.skillIds).toEqual([]);
+    expect(CHARACTERS.patrick?.affinities).toEqual(['謀']);
+    expect(CHARACTERS.patrick?.skillIds).toEqual(['patrickHelp']);
+    expect(SKILLS.patrickHelp?.status).toBe('implemented');
   });
 
   it('moves 虛之會圈 from 79 to 藍風', () => {

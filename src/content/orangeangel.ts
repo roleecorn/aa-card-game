@@ -1,0 +1,9 @@
+import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+export const orangeangelCharacter = characterDefinitionSchema.parse({ id: 'orangeangel', name: '橘天使', stats: { design: 0, text: 1, aa: 0 }, maxStress: 2, affinities: ['情', '怪'], skillIds: ['orangeangelUnstable', 'orangeangelResonance'], portrait: 'assets/characters/portrait/orangeangel.webp', compactPortrait: 'assets/characters/compact/orangeangel.webp', sourceNotes: ['2026-09-12 PintBox：Text1/Design0/AA0，壓力2，適性（情）（怪）；工作與有組長權限使用統籌卡時額外+1壓力；壓力首次>=3時1d6填剩餘進度並將作品改為（怪）。'] });
+export const orangeangelSkills = skillDefinitionSchema.array().parse([
+  { id: 'orangeangelUnstable', name: '精神不穩', description: '工作時壓力額外 +1；擁有組長權限使用統籌卡時壓力額外 +1。', activation: 'triggered', status: 'implemented', triggers: [
+    { event: 'afterRollBatch', priority: 120, condition: { kind: 'all', conditions: [{ kind: 'relation', field: 'actorId', relation: 'self' }, { kind: 'sourceKind', value: 'work' }] }, effects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '精神不穩' }, { kind: 'custom', handler: 'orangeangelResonanceIfNeeded', args: { projectedStress: 1 } }] },
+    { event: 'cardPlayed', priority: 120, condition: { kind: 'all', conditions: [{ kind: 'relation', field: 'actorId', relation: 'self' }, { kind: 'sourceKind', value: 'coordination' }] }, effects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '精神不穩' }, { kind: 'custom', handler: 'orangeangelResonanceIfNeeded' }] },
+  ] },
+  { id: 'orangeangelResonance', name: '姆咪共鳴', description: '壓力首次到達 3 時，以獨立 1d6 填充自己作品剩餘進度，並把作品類型改為（怪）。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'afterExternalStress', priority: 120, condition: { kind: 'relation', field: 'targetId', relation: 'self' }, effects: [{ kind: 'custom', handler: 'orangeangelResonanceIfNeeded' }] }] },
+]);

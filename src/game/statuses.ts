@@ -6,6 +6,8 @@ export const GAMEPLAY_STATUS = {
   coordinationUntargetable: 'coordination-untargetable',
   coordinationDisabledAsLeader: 'coordination-disabled-as-leader',
   leaderStressCapBonus: 'leader-stress-cap-bonus',
+  actingLeaderStressCapBonus: 'acting-leader-stress-cap-bonus',
+  hidden: 'hidden',
 } as const;
 
 export type GameplayStatus = (typeof GAMEPLAY_STATUS)[keyof typeof GAMEPLAY_STATUS];
@@ -15,5 +17,12 @@ export function getStatusStacks(member: CharacterState, status: GameplayStatus):
 }
 
 export function hasGameplayStatus(member: CharacterState, status: GameplayStatus): boolean {
-  return getStatusStacks(member, status) > 0;
+  if (getStatusStacks(member, status) > 0) return true;
+  // 神隱 is a shared gameplay state: a hidden character cannot act and cannot
+  // be selected by coordination effects. Keep that semantic centralized so
+  // callers do not need character-specific hidden checks.
+  if (getStatusStacks(member, GAMEPLAY_STATUS.hidden) > 0) {
+    return status === GAMEPLAY_STATUS.actionBlocked || status === GAMEPLAY_STATUS.coordinationUntargetable;
+  }
+  return false;
 }

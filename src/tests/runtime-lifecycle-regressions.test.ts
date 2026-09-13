@@ -10,12 +10,11 @@ function fixedRng(value: number) {
 }
 
 describe('runtime lifecycle regressions', () => {
-  it('does not restore a departed Yamada work batch after writer block triggers vanish', () => {
+  it('does not restore a Yamada work batch after 神隱 triggers during the action', () => {
     const game = createInitialGame(fixedRng(0), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['yamada', 'pintbox', 'mashiro'],
       enemyMemberIds: STANDARD_ENEMY,
     });
-    // Isolate the mid-action departure regression from the separate startup-bonus regression.
     applyLeaderStressBonuses(game, STANDARD_GAME_DEFINITION);
     const engine = new EngineSession(game, fixedRng(0), STANDARD_GAME_DEFINITION);
     const yamada = game.player.members.find((member) => member.defId === 'yamada')!;
@@ -25,7 +24,8 @@ describe('runtime lifecycle regressions', () => {
 
     engine.performPlayerActions({ yamada: 'work', pintbox: 'slack', mashiro: 'slack' });
 
-    expect(game.player.members.some((member) => member.defId === 'yamada')).toBe(false);
+    expect(game.player.members.some((member) => member.defId === 'yamada')).toBe(true);
+    expect(yamada.statuses[GAMEPLAY_STATUS.hidden]?.stacks).toBe(1);
     expect(game.player.pendingDice.some((die) => die.ownerId === 'yamada')).toBe(false);
   });
 

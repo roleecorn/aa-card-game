@@ -11,7 +11,7 @@ describe('神惱 complete character package', () => {
   it('uses the PintBox-approved stats and skills', () => {
     expect(CHARACTERS.shennau?.stats).toEqual({ design: 1, text: 1, aa: 0 });
     expect(CHARACTERS.shennau?.maxStress).toBe(2);
-    expect(CHARACTERS.shennau?.affinities).toEqual([]);
+    expect(CHARACTERS.shennau?.affinities).toEqual(['謀']);
     expect(SKILLS.shennauSettingManiac?.status).toBe('implemented');
     expect(SKILLS.shennauDoItMyself?.status).toBe('implemented');
   });

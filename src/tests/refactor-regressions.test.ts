@@ -45,12 +45,13 @@ describe('refactor regression coverage', () => {
     const engine = new EngineSession(game, fixedRng(0.5), STANDARD_GAME_DEFINITION);
 
     expect(game.player.leaderId).toBe('yamada');
-    expect(engine.getEffectiveMaxStress('player', 'yamada')).toBe(4);
+    expect(engine.getEffectiveMaxStress('player', 'yamada')).toBe(6);
 
     engine.adjustStress('player', 'yamada', 2, 'regression-test', true, 'narrator');
 
     expect(game.player.members.some((member) => member.defId === 'yamada')).toBe(true);
     expect(game.player.members.find((member) => member.defId === 'yamada')?.stress).toBe(2);
+    expect(game.player.members.find((member) => member.defId === 'yamada')?.statuses[GAMEPLAY_STATUS.hidden]).toBeUndefined();
   });
 
   it('Tutorial applies the same leader Stress bonus as a normal match', () => {
@@ -71,14 +72,16 @@ describe('refactor regression coverage', () => {
     );
   });
 
-  it('Tutorial fixed decks do not erase gameStart card effects', () => {
+  it('Tutorial fixed decks do not erase gameStart and roundStart card effects', () => {
     useGameStore.getState().startTutorial();
     const game = useGameStore.getState().game!;
 
     expect(game.enemy.members.some((member) => member.defId === 'happy')).toBe(true);
+    expect(game.enemy.members.some((member) => member.defId === 'yashiro')).toBe(true);
     expect(game.enemy.hand.slice(0, 2).map((card) => card.cardId)).toEqual(TUTORIAL_ENEMY_DECK.slice(0, 2));
-    expect(game.enemy.hand).toHaveLength(STANDARD_GAME_DEFINITION.rules.initialHandSize + 3);
+    expect(game.enemy.hand).toHaveLength(STANDARD_GAME_DEFINITION.rules.initialHandSize + 5);
     expect(game.enemy.hand.slice(2).every((card) => CARDS[card.cardId]?.kind === 'coordination')).toBe(true);
+    expect(game.enemy.hand.filter((card) => card.cardId === 'guide').length).toBeGreaterThanOrEqual(2);
   });
 
   it('Shennau external immunity makes a targeted work card ineffective without making the work untargetable', () => {
