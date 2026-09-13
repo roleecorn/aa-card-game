@@ -1,89 +1,144 @@
 # Project Status
 
-本文件記錄目前 `main` 的實作狀態與已知缺口。
+本文件記錄目前 `main` 的實作狀態與已知缺口。角色數值與能力的 authoritative source 是 `src/content/<character-id>.ts`；本文件只保存專案層級狀態，避免維護另一份容易漂移的完整角色資料表。
 
-## Runtime roster
+## Current snapshot
 
-| id | 顯示名稱 | Standard 3v3 | Portrait | 主要狀態 |
-| --- | --- | --- | --- | --- |
-| pintbox | Pintbox | Yes | 768×1024 | AI 已實裝；審稿 partial |
-| mashiro | 真白 | Yes | 768×1024 | 全適性、骰值複製已實裝 |
-| user79 | 79 | Yes | 768×1024 | 共鳴、燃燒文字已實裝 |
-| narrator | 旁白 | Yes | 768×1024 | 主要技能 planned |
-| ginsakura | 銀櫻 | Yes | 768×1024 | 主要技能 planned |
-| bluewind | 藍風 | Yes | 768×1024 | 妄想全開、虛之會圈已實裝 |
-| triangle | 三角希＆有希 | Yes | 768×1024 | 雙人卡；回復、全適性、副組長力已實裝 |
-| fengyang | 風揚 | Yes | 768×1024 | 商業作者已實裝 |
-| happy | 高興 | Yes | 768×1024 | 高興、編輯長已實裝 |
-| chaos | 卡奧斯 | No | 768×1024 | Boss resource / Stress immunity skill / roll floor 已實裝；Boss mode 未完成 |
+- 版本：`v0.4.0`。
+- Standard 對局：5 回合。
+- 隊伍模式：**3 人 / 5 人可選**。
+- 每名上場角色對應一部作品，因此每隊作品數為 3 或 5。
+- Runtime catalog：**39 名角色**。
+- Standard 可出戰：**38 名角色**。
+- Standard 排除：`chaos`；eligibility 由 `src/content/match.ts` 管理，不由 Character Tag 控制。
+- 基礎牌庫：12 張；手牌上限 8。
+- Tutorial：固定 roster、固定抽牌與 deterministic RNG 的教學流程已存在。
+
+`DEFAULT_MATCH.teamSize` 仍為 3，作為 Standard definition 的基準；開始畫面選擇 5 人模式時會建立該局專用的 `GameDefinition`，不修改全域 catalog。
+
+## Runtime roster status
+
+目前 `src/content/catalog.ts` 聚合 39 個 per-character package。2026-09-13 的 PintBox balance batch 已加入：
+
+- `tiantichilun` — 天體齒輪
+- `ta` — TA
+- `ingrid` — Ingrid
+- `orangeangel` — 橘天使
+- `e` — E
+- `linlan` — 鈴嵐
+- `eryang` — 二氧
+- `pray` — Pray
+- `adao` — 阿道
+- `zhise` — 滯澀
+- `axu` — 阿須
+- `enki` — Enki
+- `chidori` — 千鳥
+
+同批也更新了多名既有角色的數值、適性與技能語義，包括 Pintbox、風揚、流星、八代、格林、嘆息、鬼影、派大星、秋影、山田、嵐羽、神惱等。不要再以舊版 `PROJECT_STATUS.md` 的 10 人表或舊版 `GAME_MANUAL.md` 的 26 人表判斷目前角色資料。
+
+### 明確仍為 planned 的既有技能
+
+目前可直接確認仍標示 `planned` 的能力：
+
+- 旁白：`中國大阪人`、`超長發揮`。
+- 銀櫻：`起來`、`愉悅的支援者`。
+
+這些角色仍可進 Standard roster，但上述技能目前不產生完整 runtime behavior。
+
+## Recent rule changes now implemented
+
+### 3 / 5 player mode
+
+- Start screen 會在「開始遊戲」後要求選擇 3 人或 5 人模式。
+- `selectStandardRosters()`、`createInitialGame()` 與作品建立數量都依當局 `GameDefinition.rules.teamSize`。
+- 5 人模式雙方各抽 5 名不同角色，並各建立 5 部作品。
+
+### Pintbox
+
+- `審稿` 已是 implemented active skill，不再只是舊文件中的 partial 行為。
+- `這只是基本的要求……` 在 Pintbox Stress >= 3 時會自動處理低骰。
+- `AI` 維持每回合第一次降低其他來源正外部 Stress 的行為。
+
+### Shared hidden status
+
+共用 hidden / 神隱 runtime 已建立，供 Ingrid、Pray、山田、滯澀等角色使用。Hidden 角色在期間內不可作為一般行動角色；作品不會因此自動刪除。
+
+### Targeting / effect boundary
+
+- 「可指定但 effect 無效」與「不可指定」已分開。
+- 神惱屬於前者：仍可成為 target，但外部技能／卡牌對神惱本人的正負修改無效。
+- 弱智屬於後者的一部分：不能成為直接角色目標的統籌卡 target；若擔任組長也不能使用統籌卡。
+- UI / runtime 應只提供真正合法的 target；沒有任何合法 target 時，行動不應假裝可以正常發動。
 
 ## Character art status
 
-目前 runtime portrait 都必須通過 canonical validation：
+Runtime character art 使用：
 
-- WebP
-- 768×1024
-- 3:4
-- sRGB
-- single-frame
-- RIFF 宣告長度 = 實際 Git blob bytes
+```text
+public/assets/characters/portrait/<character-id>.webp
+public/assets/characters/compact/<character-id>.webp
+```
 
-2026-09-09 audit 曾發現 `happy / triangle / fengyang / chaos` 的 GitHub WebP blob 被截斷，因此檔案存在但無法預覽。現在 `scripts/character-art.ts` 與 CI 會直接拒絕這類 truncated WebP。
+正式規格：
 
-Pintbox、79、真白、銀櫻、旁白、藍風等既有 legacy-quality 素材可能是規範化 derivative；格式一致不代表 upscale 產生了新增高解析細節。
+- portrait：768 × 1024 WebP，3:4。
+- compact：384 × 320 WebP。
+- sRGB、single-frame、完整 RIFF container。
+
+`npm run art:normalize` 會以 canonical portrait 正規化資源並重建 compact；`npm run art:validate` 會檢查 portrait / compact 配對與 binary 完整性。
+
+2026-09-09 曾發生 WebP blob 被截斷但檔名仍存在的問題，因此「路徑存在」不能代替 binary validation。
 
 ## Gameplay state boundary
 
-- Character Tag 只作為 metadata 或 Skill selector / condition 的目標標示，不承載 gameplay effect。
-- 卡奧斯的 Stress immunity 直接列在角色 `skillIds`，由 Skill 在 `gameStart` 套用 runtime status。
-- 弱智的行動／統籌限制直接列在角色 `skillIds`，由 Skill 套用 runtime statuses。
-- 舊的 behavior-tag migration layer 已移除；authoring source 本身不得再保存 behavior tags。
-- `validateCatalog()` 仍保留 forbidden behavior-tag guard，避免新資料重新引入這種架構。
-- Standard roster eligibility 由 `content/match.ts` 管理，不使用 Character Tag。
-- Leader Stress 上限 +2 保存在當局 `CharacterState`，不修改全域 `CHARACTERS`。
-- Leader selection 透過 UI → Store 的明確參數傳遞，不使用 module-global selection state。
-- 所有卡牌的 actor 固定由當前 `TeamState.leaderId` 推導，不由 UI 或 caller 任意指定。
-- 組長離場後，由 Engine RNG 從剩餘組員隨機選出接任者並轉移 leader Stress bonus；若無人可接任則該隊立即判負。
-- `viceLeaderPower` 只轉移統籌卡的 +1 Stress cost，不改變 card actor identity。
+- Character Tag 只作為 metadata 或 Skill selector / condition，不承載 gameplay effect。
+- Standard roster eligibility 由 `content/match.ts` 管理。
+- Gameplay restriction / immunity 由 Skill、Effect 或 runtime status 實作。
+- Leader Stress 上限 +2 保存在當局 `CharacterState`。
+- 所有卡牌 actor 固定由當前 `TeamState.leaderId` 推導。
+- 組長離場後由 Engine RNG 從剩餘組員隨機選接任者；無人可接任則立即判負。
+- 副組長類能力可以改變統籌卡 Stress bearer，但不會改變 card actor identity。
 
 ## GameDefinition boundary
 
-- `EngineSession`、`createInitialGame()`、`selectStandardRosters()` 與 leader bonus setup 都接受完整 `GameDefinition`。
-- Engine 不再接受單獨 `GameContent` 並自動補 Standard rules / deck / roster。
-- 要使用替換 content 的測試或 game mode，先以 `withGameContent(definition, content)` 建立明確的 `GameDefinition`。
-- Standard mode 使用 `STANDARD_GAME_DEFINITION`；match constants、deck 與 roster eligibility 都由 definition 注入。
+- `EngineSession`、`createInitialGame()`、`selectStandardRosters()` 與 leader bonus setup 接受完整 `GameDefinition`。
+- Standard mode 使用 `STANDARD_GAME_DEFINITION`。
+- Match constants、deck、team size 與 roster eligibility 都由 definition 注入。
+- 測試或其他 mode 若要替換 content，應建立新的 definition，不 mutation global catalog。
 
 ## Tutorial state boundary
 
 - Tutorial progression 使用集中式 `TUTORIAL_SCENARIO` 與 semantic events。
 - `TutorialRuntimeState` 保存可序列化的 `step` 與 deterministic RNG `randomIndex`。
-- Tutorial RNG cursor 不再是 module-global mutable variable；不同 session 的 cursor 互相隔離。
-- `App.tsx` 只回報 Tutorial event，不自行決定下一個 step。
-- Tutorial guide copy、highlight selector 與 transition rule 共用同一份 scenario definition。
+- Tutorial RNG cursor 不使用 module-global mutable variable。
+- Gameplay / ability 修改仍必須把 tutorial deterministic tests 視為 regression baseline。
 
-## Known rules gaps
+## Known gaps
 
-- 銀櫻兩個技能的完整觸發限制 / 數值在來源裡不完整，因此維持 planned。
-- 旁白兩個技能尚未完整落成 runtime effect。
-- Boss mode 尚未建立；卡奧斯不進 Standard 3v3。
-- Standard match 的 3v3 隨機組隊是 Prototype decision，不是原始討論已定案規則。
-- 部分角色作品適性與未列能力值使用 prototype assumption，應查看各角色 `sourceNotes`。
+- 旁白兩個技能仍為 planned。
+- 銀櫻兩個技能仍為 planned。
+- Boss mode 尚未完成；卡奧斯目前仍排除於 Standard roster。
+- Standard 的隨機抽隊與 3 / 5 人模式屬 Prototype decision，不代表 Discord 原始討論已定案。
+- 部分早期角色的數值／適性仍包含 prototype assumption；需查看各角色 `sourceNotes`。
+- `discussion-notes.md` 與舊 validation / balance note 可能保留歷史狀態，不能當成最新 runtime snapshot。
 
 ## UI / design
 
 - Runtime UI：React + MUI。
 - Layout design：Figma。
-- Runtime state 預覽：Storybook。
-- 真正 UI 驗證：Vite + Chrome screenshot，不以 Figma screenshot 代替。
+- Runtime component preview：Storybook。
+- 真正 UI 驗證：Vite / deployed runtime；Figma screenshot 不等於 runtime test。
 
 ## Validation baseline
 
-CI 的 `verify` job 會執行：
+Gameplay / runtime 修改至少需要：
 
-- dependency install
-- tutorial regression
-- character art validation
-- Vitest
-- TypeScript / production Vite build
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
 
-因此 gameplay / runtime 修改必須以完整 CI `verify` 成功作為最低合併條件。
+CI / release workflow 另外會生成當前 UI font subset，並依流程執行角色美術 normalize / validation 與 tutorial regression。
+
+**CI 綠燈不是 merge 授權。** 依 `AGENTS.md` 與 `docs/release-flow.md`，任何 PR 在 merge 前都必須由人工實際 review / testing 並明確確認；AI agent 不自行 merge。
