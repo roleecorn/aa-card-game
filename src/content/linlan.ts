@@ -1,0 +1,7 @@
+import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+export const linlanCharacter = characterDefinitionSchema.parse({ id: 'linlan', name: '鈴嵐', stats: { design: 0, text: 0, aa: 2 }, maxStress: 2, affinities: ['情'], skillIds: ['linlanUseLyrics', 'linlanBeginner', 'linlanHeartWilling'], portrait: 'assets/characters/portrait/narrator.webp', compactPortrait: 'assets/characters/compact/narrator.webp', sourceNotes: ['2026-09-12 PintBox 初版AA1；後續明確說把補強點加在AA上整張牌才自洽，因此較新的設定覆蓋為AA2。', '遊戲開始獲得Text5/Design5與4張指導；結算移除未完成slot。'] });
+export const linlanSkills = skillDefinitionSchema.array().parse([
+  { id: 'linlanUseLyrics', name: '就用這首歌詞來寫', description: '遊戲開始時，將點數 5 的 Text 與 Design 各填入自己作品的一個可用位置。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'gameStart', effects: [{ kind: 'custom', handler: 'fillOwnerWorkFixedProgress', args: { skill: 'text', value: 5 } }, { kind: 'custom', handler: 'fillOwnerWorkFixedProgress', args: { skill: 'design', value: 5 } }] }] },
+  { id: 'linlanBeginner', name: '寫作新手', description: '遊戲開始時獲得 4 張「指導」。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'gameStart', effects: [{ kind: 'cards.add', cardId: 'guide', count: 4 }] }] },
+  { id: 'linlanHeartWilling', name: '心有餘而力不足', description: '最終結算前，自己作品中未同時完成 Design / Text / AA 的 slot 全部清空。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'roundEnd', condition: { kind: 'round', op: 'eq', value: 5 }, effects: [{ kind: 'custom', handler: 'clearIncompleteOwnerSlots' }] }] },
+]);
