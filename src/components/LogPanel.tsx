@@ -53,6 +53,7 @@ export function LogPanel({ logs }: { logs: LogEntry[] }) {
     >
       <Collapse in={open} unmountOnExit>
         <Paper
+          id="game-log-panel"
           variant="outlined"
           sx={{
             mb: .8,
