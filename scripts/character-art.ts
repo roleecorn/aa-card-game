@@ -37,6 +37,17 @@ function idsFrom(paths: string[], prefix: string): string[] {
   }).sort();
 }
 
+function assertMatchingAssets(portraits: string[], compacts: string[]): void {
+  const portraitIds = idsFrom(portraits, 'portrait');
+  const compactIds = idsFrom(compacts, 'compact');
+
+  if (portraitIds.join('\n') !== compactIds.join('\n')) {
+    const missing = portraitIds.filter((id) => !compactIds.includes(id));
+    const extra = compactIds.filter((id) => !portraitIds.includes(id));
+    throw new Error(`portrait/compact mismatch; missing compact: ${missing.join(', ') || 'none'}; extra compact: ${extra.join(', ') || 'none'}`);
+  }
+}
+
 async function validateOne(filePath: string, width: number, height: number): Promise<void> {
   await checkImage(filePath, {
     format: 'webp',
@@ -50,14 +61,7 @@ async function validateOne(filePath: string, width: number, height: number): Pro
 async function validate(): Promise<void> {
   const portraits = await configuredAssets('portrait');
   const compacts = await configuredAssets('compactPortrait');
-  const portraitIds = idsFrom(portraits, 'portrait');
-  const compactIds = idsFrom(compacts, 'compact');
-
-  if (portraitIds.join('\n') !== compactIds.join('\n')) {
-    const missing = portraitIds.filter((id) => !compactIds.includes(id));
-    const extra = compactIds.filter((id) => !portraitIds.includes(id));
-    throw new Error(`portrait/compact mismatch; missing compact: ${missing.join(', ') || 'none'}; extra compact: ${extra.join(', ') || 'none'}`);
-  }
+  assertMatchingAssets(portraits, compacts);
 
   for (const rel of portraits) await validateOne(path.join(ROOT, rel), PORTRAIT_WIDTH, PORTRAIT_HEIGHT);
   for (const rel of compacts) await validateOne(path.join(ROOT, rel), COMPACT_WIDTH, COMPACT_HEIGHT);
@@ -66,6 +70,13 @@ async function validate(): Promise<void> {
 
 async function normalize(): Promise<void> {
   const portraits = await configuredAssets('portrait');
+  const compacts = await configuredAssets('compactPortrait');
+  assertMatchingAssets(portraits, compacts);
+
+  const portraitById = new Map(
+    portraits.map((rel) => [path.basename(rel, '.webp'), rel] as const),
+  );
+
   for (const rel of portraits) {
     const filePath = path.join(ROOT, rel);
     await convertToWebp(filePath, filePath, {
@@ -77,6 +88,24 @@ async function normalize(): Promise<void> {
       effort: EFFORT,
     });
   }
+
+  // Compact art is a derived crop of the canonical portrait. Rebuild it here so
+  // newly added characters do not require a separately hand-resized binary just
+  // to satisfy CI/release validation.
+  for (const rel of compacts) {
+    const id = path.basename(rel, '.webp');
+    const portraitRel = portraitById.get(id);
+    if (!portraitRel) throw new Error(`Missing portrait source for compact asset: ${id}`);
+    await convertToWebp(path.join(ROOT, portraitRel), path.join(ROOT, rel), {
+      width: COMPACT_WIDTH,
+      height: COMPACT_HEIGHT,
+      fit: 'cover',
+      quality: QUALITY,
+      alphaQuality: ALPHA_QUALITY,
+      effort: EFFORT,
+    });
+  }
+
   await validate();
 }
 
