@@ -63,10 +63,10 @@ describe('three and five member match modes', () => {
     expect(drawPhaseSource).toContain("'& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } }");
   });
 
-  it('shrinks both work slots and their outer cards in five-work mode', () => {
+  it('shrinks five-work cards and distributes them edge to edge', () => {
     expect(workBoardSource).toContain('const compactLayout = works.length === 5;');
     expect(workBoardSource).toContain("display: compactLayout ? { xs: 'grid', md: 'flex' } : 'grid'");
-    expect(workBoardSource).toContain("justifyContent: compactLayout ? { md: 'center' } : undefined");
+    expect(workBoardSource).toContain("justifyContent: compactLayout ? { md: 'space-between' } : undefined");
     expect(workBoardSource).toContain("width: compactLayout ? { xs: '100%', md: 'max-content' } : undefined");
     expect(workBoardSource).toContain("flex: compactLayout ? { md: '0 0 auto' } : undefined");
     expect(workBoardSource).toContain('compactSlots={compactLayout}');
