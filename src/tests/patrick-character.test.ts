@@ -5,7 +5,7 @@ describe('派大星 complete character package', () => {
   it('uses the calibrated blank-card gameplay values', () => {
     expect(CHARACTERS.patrick?.stats).toEqual({ design: 0, text: 0, aa: 1 });
     expect(CHARACTERS.patrick?.maxStress).toBe(3);
-    expect(CHARACTERS.patrick?.affinities).toEqual([]);
+    expect(CHARACTERS.patrick?.affinities).toEqual(['謀']);
     expect(CHARACTERS.patrick?.skillIds).toEqual([]);
     expect(CHARACTERS.patrick?.tags).toEqual(expect.arrayContaining(['systems-thinker', 'review']));
     expect(CHARACTERS.patrick?.tags).not.toContain('graph-selected');
