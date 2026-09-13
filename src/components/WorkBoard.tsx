@@ -87,8 +87,8 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
                 title={workHint}
                 onClick={(event) => {
                   event.stopPropagation();
-                  if (workAllowed) selection.onSelect(work.id);
-                  else selection.onCancel();
+                  if (workAllowed) workSelection.onSelect(work.id);
+                  else workSelection.onCancel();
                 }}
                 sx={{
                   position: 'absolute',
