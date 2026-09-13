@@ -1,10 +1,13 @@
-import { Box, Button, Paper, Stack, Typography } from '@mui/material';
+import { useState } from 'react';
+import { Box, Button, Dialog, DialogContent, DialogTitle, Paper, Stack, Typography } from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 
+export type TeamSizeOption = 3 | 5;
+
 interface Props {
-  onStart: () => void;
+  onStart: (teamSize: TeamSizeOption) => void;
   onStartTutorial: () => void;
   onOpenRoster: () => void;
 }
@@ -13,6 +16,13 @@ const releasedAtTaiwan = import.meta.env.VITE_RELEASED_AT_TW as string | undefin
 const gameManualUrl = 'https://github.com/roleecorn/aa-card-game/blob/main/GAME_MANUAL.md';
 
 export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
+  const [modeDialogOpen, setModeDialogOpen] = useState(false);
+
+  const chooseTeamSize = (teamSize: TeamSizeOption) => {
+    setModeDialogOpen(false);
+    onStart(teamSize);
+  };
+
   return (
     <Box
       sx={{
@@ -53,14 +63,14 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
             </Typography>
           </Box>
           <Typography sx={{ maxWidth: 520, fontSize: 13.5, lineHeight: 1.8, color: 'text.secondary', fontWeight: 650 }}>
-            抽出三名創作夥伴，組成你的隊伍，再進入五回合的創作對局。
+            選擇 3 人或 5 人小隊，抽出創作夥伴，再進入五回合的創作對局。
           </Typography>
           <Stack spacing={1.1} sx={{ width: 'min(320px, 100%)' }}>
             <Button
               size="large"
               variant="contained"
               startIcon={<PlayArrowRoundedIcon />}
-              onClick={onStart}
+              onClick={() => setModeDialogOpen(true)}
               sx={{ py: 1.15, fontSize: 16, fontWeight: 950, borderRadius: 2 }}
             >
               開始遊戲
@@ -93,6 +103,23 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
           </Typography>
         </Stack>
       </Paper>
+
+      <Dialog open={modeDialogOpen} onClose={() => setModeDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 950, textAlign: 'center', pb: 1 }}>選擇對局人數</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2, color: 'text.secondary', textAlign: 'center', fontSize: 13 }}>
+            隊伍有幾名角色，就會同時有幾個作品。
+          </Typography>
+          <Stack spacing={1.2}>
+            <Button variant="outlined" size="large" onClick={() => chooseTeamSize(3)} sx={{ py: 1.25, fontWeight: 950 }}>
+              3 人模式
+            </Button>
+            <Button variant="contained" size="large" onClick={() => chooseTeamSize(5)} sx={{ py: 1.25, fontWeight: 950 }}>
+              5 人模式
+            </Button>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
