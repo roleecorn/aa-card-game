@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import appSource from '../app/App.tsx?raw';
+import drawPhaseSource from '../components/DrawPhaseScreen.tsx?raw';
 import startScreenSource from '../components/StartScreen.tsx?raw';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, selectStandardRosters } from '../game/engine';
@@ -51,5 +52,12 @@ describe('three and five member match modes', () => {
     expect(appSource).toContain('teamSize,');
     expect(appSource).toContain('draftRoster.gameDefinition');
     expect(appSource).toContain('startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition)');
+  });
+
+  it('lays out five drawn characters as a centered 3 + 2 desktop grid', () => {
+    expect(drawPhaseSource).toContain("const fiveMemberLayout = characters.length === 5;");
+    expect(drawPhaseSource).toContain("'repeat(6, minmax(0,1fr))'");
+    expect(drawPhaseSource).toContain("'& > :nth-of-type(4)': { gridColumn: { xs: 'auto', md: '2 / span 2' } }");
+    expect(drawPhaseSource).toContain("'& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } }");
   });
 });
