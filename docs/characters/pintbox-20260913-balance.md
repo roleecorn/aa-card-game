@@ -1,8 +1,13 @@
 # PintBox character balance batch — 2026-09-13
 
-This branch remains **WIP / Draft** while engineering verification is still in progress. The three character-design questions that originally blocked the PR are now resolved.
+> **Status: merged into `main` via PR #58.**  
+> 本文件現在是這批角色平衡工作的 decision record，不再代表仍處於 WIP / Draft。最新角色數值與技能仍以 `src/content/<character-id>.ts` 與對應 tests 為 authoritative source。
 
-Resolution rule: PintBox direct statements > statements explicitly accepted by PintBox > existing prototype; for the same character, later explicit settings override earlier ones.
+Resolution rule used by this batch:
+
+`PintBox direct statements > statements explicitly accepted by PintBox > existing prototype`
+
+同一角色若有多次明確設定，較新的設定覆蓋較舊設定。
 
 ## Resolved character decisions
 
@@ -15,30 +20,57 @@ Final rule:
 - Choose any already-placed Design / Text / AA die in that work and set its value to `3`.
 - Then Grimm's Stress `-1`.
 
-The runtime keeps the existing skill id `grimmBurningFrame` for compatibility, but the visible skill name and behavior are `對托內利可的愛`.
+Runtime keeps the existing skill id `grimmBurningFrame` for compatibility, but the visible skill name and behavior are `對托內利可的愛`.
 
 ### 三角希 — triangle-creature Stress behavior
 
-Do **not** add or replace the current global Stress behavior. Keep the currently implemented triangle-creature Stress effects unchanged.
+Do **not** add or replace the current global Stress behavior. Keep the implemented triangle-creature Stress effects unchanged.
 
 ### 弱智 — final fill
 
-Do **not** apply the proposed rule that changes the number of final filled slots based on remaining Stress. Keep the currently implemented `最後三天趕稿` behavior unchanged: before final scoring, every empty Design / Text / AA progress cell in Weakzhi's own work independently rolls `1d6` and is filled.
+Do **not** apply the proposed rule that changes the number of final filled slots based on remaining Stress.
 
-These three items are no longer design blockers.
+Current rule remains `最後三天趕稿`：before final scoring, every empty Design / Text / AA progress cell in Weakzhi's own work independently rolls `1d6` and is filled.
 
-## Remaining WIP scope
+## Characters added by this batch
 
-- Finish runtime regression coverage for the newly added / adjusted characters.
-- Verify shared hidden-status behavior and targeting restrictions.
-- Verify fixed work-progress initialization such as 鈴嵐.
-- Run the complete test / build pipeline and resolve any unrelated repository CI blockers.
+The merged batch added the following character packages to the runtime catalog:
+
+- 天體齒輪 (`tiantichilun`)
+- TA (`ta`)
+- Ingrid (`ingrid`)
+- 橘天使 (`orangeangel`)
+- E (`e`)
+- 鈴嵐 (`linlan`)
+- 二氧 (`eryang`)
+- Pray (`pray`)
+- 阿道 (`adao`)
+- 滯澀 (`zhise`)
+- 阿須 (`axu`)
+- Enki (`enki`)
+- 千鳥 (`chidori`)
+
+The same batch also recalibrated multiple existing characters and added shared hidden-status / targeting support needed by those rules.
+
+## Verification status after merge
+
+The original WIP checklist in this document is historical. The merged implementation includes runtime handlers and regression tests for the character batch. Future regressions should be evaluated against the normal repository validation baseline rather than treating the items below as open blockers:
+
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
+
+Gameplay changes must also keep the tutorial deterministic regression in scope, as required by `AGENTS.md`.
 
 ## Character art behavior
 
-The user has uploaded the character images. Character definitions must point directly to their own expected asset paths under:
+Character definitions point to their expected own asset paths under:
 
 - `public/assets/characters/portrait/<character-id>.webp`
 - `public/assets/characters/compact/<character-id>.webp`
 
-Do not redirect missing character assets to `narrator.webp` or another fallback character. If an expected file is missing, a development-time `404` is intentional because it exposes the integration error instead of hiding it.
+Do not silently redirect a missing character asset to `narrator.webp` or another character. Missing / invalid assets should remain visible to development validation rather than being hidden by an unrelated character fallback.
+
+For current project-wide roster and known gaps, see `PROJECT_STATUS.md`. For current gameplay rules, see `GAME_RULES.md` and `GAME_MANUAL.md`.
