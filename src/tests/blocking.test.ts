@@ -41,30 +41,31 @@ describe('blocking-safety guards', () => {
     expect(engine.canUseActiveSkill('mashiro', 'mashiroSynthesis')).toBe(true);
   });
 
-  it('disables no-target dice modifiers until a matching die exists', () => {
+  it('disables selected-die modifiers until a matching die exists', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
-      playerMemberIds: ['emotion', 'lemon', 'meteor'],
+      playerMemberIds: ['tanxi', 'lemon', 'meteor'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
     const engine = new EngineSession(game, fixedRng(0.5));
 
-    expect(engine.canUseActiveSkill('emotion', 'emotionCraftAwareness')).toBe(false);
-    engine.grantDice('player', 'emotion', 'aa', 1, 'test', false);
-    expect(engine.canUseActiveSkill('emotion', 'emotionCraftAwareness')).toBe(true);
+    expect(engine.canUseActiveSkill('tanxi', 'tanxiThinkHard')).toBe(false);
+    engine.grantDice('player', 'tanxi', 'aa', 1, 'test', false);
+    expect(engine.canUseActiveSkill('tanxi', 'tanxiThinkHard')).toBe(true);
   });
 
-  it('disables conditional no-target skills until their work condition is met', () => {
+  it('conditional active skills reject activation until their work condition is met', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
-      playerMemberIds: ['meteor', 'lemon', 'emotion'],
+      playerMemberIds: ['meteor', 'lemon', 'tanxi'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
     const engine = new EngineSession(game, fixedRng(0.5));
     const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
+    const die = engine.grantDice('player', 'meteor', 'text', 1, 'test', false, 4)[0]!;
 
     work.type = '謀';
-    expect(engine.canUseActiveSkill('meteor', 'meteorTrack')).toBe(false);
+    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(false);
     work.type = '燃';
-    expect(engine.canUseActiveSkill('meteor', 'meteorTrack')).toBe(true);
+    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(true);
   });
 
   it('continues to the next round when one enemy runtime trigger throws', () => {
