@@ -537,6 +537,23 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
               } : undefined}
             />
 
+            <Paper data-feedback-anchor="works:enemy" sx={{ ...panelSx, py: .75, borderColor: '#8abfe8', bgcolor: '#f7fbff' }}>
+              <Stack direction="row" spacing={.75} alignItems="center">
+                <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: '#fff', border: '1.5px solid #b9d9f2', display: 'grid', placeItems: 'center', transform: 'rotate(4deg)' }}>
+                  <FavoriteBorderIcon sx={{ color: '#5ca9e8', fontSize: 18 }} />
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: 16.5, fontWeight: 950, lineHeight: 1 }}>對手小隊作品</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Rival Works · Design → Text → AA</Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            <WorkBoard
+              works={game.enemy.works}
+              workSelection={workCandidates ? { candidates: workCandidates, onSelect: handleWorkSelection, onCancel: cancelSelection } : undefined}
+            />
+
             <Paper sx={panelSx}>
               <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
                 <AutoAwesomeIcon sx={{ color: '#f4ba45', fontSize: 19 }} />
