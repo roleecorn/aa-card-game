@@ -28,6 +28,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
   const candidateMap = new Map(workSelection?.candidates.map((candidate) => [candidate.id, candidate]) ?? []);
   const targeting = !!workSelection || !!slotSelection;
   const cancelSelection = workSelection?.onCancel ?? slotSelection?.onCancel;
+  const compactLayout = works.length === 5;
 
   return (
     <Box
@@ -35,11 +36,15 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
       sx={{
         position: targeting ? 'relative' : undefined,
         zIndex: targeting ? 1210 : undefined,
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          md: `repeat(${Math.min(3, Math.max(1, works.length))}, minmax(0,1fr))`,
-        },
+        display: compactLayout ? { xs: 'grid', md: 'flex' } : 'grid',
+        gridTemplateColumns: compactLayout
+          ? { xs: '1fr' }
+          : {
+              xs: '1fr',
+              md: `repeat(${Math.min(3, Math.max(1, works.length))}, minmax(0,1fr))`,
+            },
+        flexWrap: compactLayout ? { md: 'wrap' } : undefined,
+        justifyContent: compactLayout ? { md: 'center' } : undefined,
         gap: 1.15,
       }}
     >
@@ -54,6 +59,9 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
             data-tutorial={`work-${work.ownerId}`}
             sx={{
               position: 'relative',
+              width: compactLayout ? { xs: '100%', md: 'max-content' } : undefined,
+              maxWidth: '100%',
+              flex: compactLayout ? { md: '0 0 auto' } : undefined,
               opacity: workSelection && !workAllowed ? .34 : 1,
               outline: workSelection && workAllowed ? '4px solid rgba(255,180,59,.95)' : '4px solid transparent',
               outlineOffset: 3,
@@ -66,7 +74,7 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
               index={index}
               score={getWorkScore?.(work)}
               selectedDie={selectedDie}
-              compactSlots={works.length === 5}
+              compactSlots={compactLayout}
               onSlotClick={slotSelection?.onSelect ?? onSlotClick}
               getSlotLegality={slotSelection ? (slotIndex) => slotSelection.getLegality(work, slotIndex) : undefined}
               onCancelSelection={slotSelection?.onCancel}
@@ -79,8 +87,8 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
                 title={workHint}
                 onClick={(event) => {
                   event.stopPropagation();
-                  if (workAllowed) workSelection.onSelect(work.id);
-                  else workSelection.onCancel();
+                  if (workAllowed) selection.onSelect(work.id);
+                  else selection.onCancel();
                 }}
                 sx={{
                   position: 'absolute',
