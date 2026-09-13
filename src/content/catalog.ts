@@ -1,35 +1,48 @@
 import type { GameContent } from '../game/contentRegistry';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } from '../game/schema';
+import { adaoCharacter, adaoSkills } from './adao';
 import { akikageCharacter, akikageSkills } from './akikage';
 import { avocadoCharacter, avocadoSkills } from './avocado';
+import { axuCharacter, axuSkills } from './axu';
 import { bluewindCharacter, bluewindSkills } from './bluewind';
 import { cardList } from './cards';
 import { chaosCharacter, chaosSkills } from './chaos';
+import { chidoriCharacter, chidoriSkills } from './chidori';
+import { eCharacter, eSkills } from './e';
 import { emotionCharacter, emotionSkills } from './emotion';
+import { enkiCharacter, enkiSkills } from './enki';
 import { fengyangCharacter, fengyangSkills } from './fengyang';
 import { ghostshadowCharacter, ghostshadowSkills } from './ghostshadow';
 import { ginsakuraCharacter, ginsakuraSkills } from './ginsakura';
 import { grimmCharacter, grimmSkills } from './grimm';
 import { happyCharacter, happySkills } from './happy';
+import { ingridCharacter, ingridSkills } from './ingrid';
 import { kitsuCharacter, kitsuSkills } from './kitsu';
 import { lanyuCharacter, lanyuSkills } from './lanyu';
 import { lemonCharacter, lemonSkills } from './lemon';
+import { linlanCharacter, linlanSkills } from './linlan';
 import { mashiroCharacter, mashiroSkills } from './mashiro';
 import { meteorCharacter, meteorSkills } from './meteor';
 import { narratorCharacter, narratorSkills } from './narrator';
+import { orangeangelCharacter, orangeangelSkills } from './orangeangel';
 import { patrickCharacter, patrickSkills } from './patrick';
 import { pigeonCharacter, pigeonSkills } from './pigeon';
 import { pintboxCharacter, pintboxSkills } from './pintbox';
+import { prayCharacter, praySkills } from './pray';
 import { resolvePublicAssetPath } from './publicAssetPath';
 import { shennauCharacter, shennauSkills } from './shennau';
+import { eryangCharacter, eryangSkills } from './eryang';
+import { taCharacter, taSkills } from './ta';
 import { tanxiCharacter, tanxiSkills } from './tanxi';
+import { tiantichilunCharacter, tiantichilunSkills } from './tiantichilun';
 import { triangleCharacter, triangleSkills } from './triangle';
 import { user79Character, user79Skills } from './user79';
 import { viceLeaderPowerSkill } from './viceLeaderSkill';
 import { weakzhiCharacter, weakzhiSkills } from './weakzhi';
 import { yamadaCharacter, yamadaSkills } from './yamada';
 import { yashiroCharacter, yashiroSkills } from './yashiro';
+import { zhiseCharacter, zhiseSkills } from './zhise';
 export { BASE_DECK, DEFAULT_MATCH } from './match';
 import { BASE_DECK, DEFAULT_MATCH, STANDARD_EXCLUDED_CHARACTER_IDS } from './match';
 
@@ -73,6 +86,19 @@ const allSkills: SkillDefinition[] = [
   ...yamadaSkills,
   ...lanyuSkills,
   ...shennauSkills,
+  ...tiantichilunSkills,
+  ...taSkills,
+  ...ingridSkills,
+  ...orangeangelSkills,
+  ...eSkills,
+  ...linlanSkills,
+  ...eryangSkills,
+  ...praySkills,
+  ...adaoSkills,
+  ...zhiseSkills,
+  ...axuSkills,
+  ...enkiSkills,
+  ...chidoriSkills,
 ];
 
 const sourceCharacters: CharacterDefinition[] = [
@@ -102,6 +128,19 @@ const sourceCharacters: CharacterDefinition[] = [
   yamadaCharacter,
   lanyuCharacter,
   shennauCharacter,
+  tiantichilunCharacter,
+  taCharacter,
+  ingridCharacter,
+  orangeangelCharacter,
+  eCharacter,
+  linlanCharacter,
+  eryangCharacter,
+  prayCharacter,
+  adaoCharacter,
+  zhiseCharacter,
+  axuCharacter,
+  enkiCharacter,
+  chidoriCharacter,
 ];
 
 const allCharacters: CharacterDefinition[] = sourceCharacters.map((character) => ({
