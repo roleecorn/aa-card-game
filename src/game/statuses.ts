@@ -6,6 +6,8 @@ export const GAMEPLAY_STATUS = {
   coordinationUntargetable: 'coordination-untargetable',
   coordinationDisabledAsLeader: 'coordination-disabled-as-leader',
   leaderStressCapBonus: 'leader-stress-cap-bonus',
+  actingLeaderStressCapBonus: 'acting-leader-stress-cap-bonus',
+  hidden: 'hidden',
 } as const;
 
 export type GameplayStatus = (typeof GAMEPLAY_STATUS)[keyof typeof GAMEPLAY_STATUS];
