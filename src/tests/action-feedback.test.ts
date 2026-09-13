@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { createInitialGame, EngineSession } from '../game/engine';
 import { createTutorialGame, createTutorialSession } from '../tutorial/runtime';
 import { createTutorialRuntimeState } from '../tutorial/scenario';
 import type { EffectContext } from '../game/types';
@@ -10,6 +12,7 @@ function setup() {
   const engine = createTutorialSession(state, runtime);
   return { state, runtime, engine };
 }
+
 describe('action feedback observation', () => {
   it('keeps automatic no-ops quiet and names unchanged explicit targets', () => {
     const { state, engine } = setup();
@@ -19,18 +22,29 @@ describe('action feedback observation', () => {
     engine.feedback.capture({ ...context, event: { type: 'activeSkill' }, activationTarget: { memberId: 'mashiro' } }, 'skill', () => true);
     expect(state.feedback![0].impacts).toContainEqual(expect.objectContaining({ anchor: 'member:mashiro', tone: 'neutral', after: '無可見數值變化' }));
   });
+
   it('preserves the card caster for delayed writer block and marks the debuff', () => {
-    const { state, engine } = setup();
-    const card = state.player.hand.find(c => c.cardId === 'writerBlock')!;
+    const state = createInitialGame(() => 0, STANDARD_GAME_DEFINITION, {
+      playerMemberIds: ['mashiro', 'grimm', 'triangle'],
+      enemyMemberIds: ['pintbox', 'ginsakura', 'bluewind'],
+    });
+    state.feedback = [];
+    const engine = new EngineSession(state, () => 0, STANDARD_GAME_DEFINITION);
+    engine.addCard('player', 'writerBlock', 1);
+    const card = state.player.hand.find((item) => item.cardId === 'writerBlock')!;
+
     expect(engine.playCard('player', card.instanceId, { memberId: 'pintbox' })).toBe(true);
-    const event = state.feedback!.find(e => e.name === '卡文')!;
+    const event = state.feedback!.find((item) => item.name === '卡文')!;
     expect(event.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', tone: 'negative' }));
-    engine.performPlayerActions({ mashiro: 'work', grimm: 'work', triangle: 'work' });
+
+    state.phase = 'player-assign';
     engine.finishPlayerAssignment();
-    const delayed = state.feedback!.find(e => e.name === '卡文（延遲觸發）')!;
+
+    const delayed = state.feedback!.find((item) => item.name === '卡文（延遲觸發）')!;
     expect(delayed).toMatchObject({ actorId: 'mashiro', teamId: 'player', kind: 'card' });
     expect(delayed.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', part: '壓力', tone: 'negative' }));
   });
+
   it('reports partial changes honestly and unwinds observation scopes after errors', () => {
     const { state, engine } = setup();
     const context: EffectContext = { ownerId: 'grimm', ownerTeamId: 'player', definition: { id: 'test', name: 'Test' }, event: { type: 'activeSkill' } };
@@ -39,23 +53,34 @@ describe('action feedback observation', () => {
     engine.feedback.capture(context, 'skill', () => { state.player.members[1].stress++; return true; });
     expect(state.feedback!.at(-1)?.impacts).toContainEqual(expect.objectContaining({ before: 1, after: 2 }));
   });
-  it('reports skill costs and gains separately at their actual targets', () => {
+
+  it('reports Grimm work-die change and Stress relief at their actual targets', () => {
     const { state, engine } = setup();
-    engine.performPlayerActions({ mashiro: 'work', grimm: 'work', triangle: 'work' });
-    const die = state.player.pendingDice.find(d => d.ownerId === 'grimm' && d.skill === 'aa')!;
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: die.id })).toBe(true);
-    const event = state.feedback!.find(e => e.name === '燃燒畫面')!;
+    const work = state.player.works.find((candidate) => candidate.ownerId === 'grimm')!;
+    const grimm = state.player.members.find((candidate) => candidate.defId === 'grimm')!;
+    work.type = '情';
+    work.slots[0]!.aa = 5;
+    grimm.stress = 2;
+
+    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+      workId: work.id,
+      targetDieId: '0:aa',
+    })).toBe(true);
+
+    const event = state.feedback!.find((item) => item.name === '對托內利可的愛')!;
     expect(event.actorId).toBe('grimm');
     expect(event.impacts).toEqual(expect.arrayContaining([
-      expect.objectContaining({ anchor: 'member:grimm', part: '壓力', tone: 'negative' }),
-      expect.objectContaining({ anchor: `die:${die.id}`, part: 'AA 骰', tone: 'positive' }),
+      expect.objectContaining({ anchor: 'member:grimm', part: '壓力', before: 2, after: 1, tone: 'positive' }),
+      expect.objectContaining({ anchor: `work:${work.id}`, part: '第 1 格 AA', before: 5, after: 3, tone: 'negative' }),
     ]));
   });
+
   it('rejects invalid skills without presenting successful activation', () => {
     const { state, engine } = setup();
     expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {})).toBe(false);
     expect(state.feedback).toEqual([]);
   });
+
   it('attributes nested mutations to the nested source without duplicating them', () => {
     const { state, engine } = setup();
     const context: EffectContext = { ownerId: 'grimm', ownerTeamId: 'player', definition: { id: 'outer', name: 'Outer' }, event: { type: 'activeSkill' } };
@@ -71,10 +96,10 @@ describe('action feedback observation', () => {
     expect(state.feedback![0].impacts.filter(i => i.part === '壓力')).toEqual([expect.objectContaining({ before: 0, after: 1 })]);
     expect(state.feedback![1].impacts.filter(i => i.part === '壓力')).toEqual([expect.objectContaining({ before: 1, after: 2 })]);
   });
+
   it('preserves deterministic gameplay, RNG cursor and logs with presentation disabled', () => {
     const observed = setup();
     const silent = setup();
-    // Both runs share IDs to compare every gameplay field, not just scores.
     let idA = 0, idB = 0;
     observed.engine.uid = prefix => `${prefix}-${idA++}`;
     silent.engine.uid = prefix => `${prefix}-${idB++}`;
@@ -90,6 +115,7 @@ describe('action feedback observation', () => {
     expect(gameplay(observed.state)).toEqual(gameplay(silent.state));
     expect(observed.runtime).toEqual(silent.runtime);
   });
+
   it('records actual work cells and card actor, and retains bounded history', () => {
     const { state, engine } = setup();
     const card = state.player.hand.find(c => c.cardId === 'guide')!;
