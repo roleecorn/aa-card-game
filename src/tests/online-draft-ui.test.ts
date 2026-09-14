@@ -13,6 +13,17 @@ describe('online draft character UI', () => {
     expect(selectionCardSource).toContain('getCharacterTagName');
   });
 
+  it('reveals candidate cards one by one before picks become available', () => {
+    expect(draftSource).toContain("type RevealPhase = 'dealing' | 'revealing' | 'ready'");
+    expect(draftSource).toContain('setRevealCount(1)');
+    expect(draftSource).toContain('420');
+    expect(draftSource).toContain('revealed={revealReady || index < revealCount}');
+    expect(draftSource).toContain("const available = revealReady && !pickedBy && myTurn && draft.status === 'drafting'");
+    expect(draftSource).toContain('跳過抽卡動畫');
+    expect(selectionCardSource).toContain("transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)'");
+    expect(selectionCardSource).toContain('AutoAwesomeRoundedIcon');
+  });
+
   it('renders both selected teams with the same vertical selection-card visual language', () => {
     expect(draftSource).not.toContain('CharacterCard');
     expect(draftSource).toContain('variant="rail"');
