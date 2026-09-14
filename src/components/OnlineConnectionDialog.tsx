@@ -13,6 +13,7 @@ import {
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import { useOnlineSession } from '../online/onlineSession';
+import type { OnlineTeamSize } from '../online/onlineDraft';
 
 interface Props {
   open: boolean;
@@ -27,15 +28,21 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
   const role = useOnlineSession((state) => state.role);
   const status = useOnlineSession((state) => state.status);
   const roomCode = useOnlineSession((state) => state.roomCode);
+  const teamSize = useOnlineSession((state) => state.teamSize);
   const error = useOnlineSession((state) => state.error);
   const createHostRoom = useOnlineSession((state) => state.createHostRoom);
   const joinGuestRoom = useOnlineSession((state) => state.joinGuestRoom);
   const disconnect = useOnlineSession((state) => state.disconnect);
   const clearError = useOnlineSession((state) => state.clearError);
   const [guestCode, setGuestCode] = useState('');
+  const [choosingHostMode, setChoosingHostMode] = useState(false);
 
   const connected = status === 'connected';
   const waiting = status === 'waiting' || status === 'connecting';
+  const createRoom = (size: OnlineTeamSize) => {
+    setChoosingHostMode(false);
+    void createHostRoom(size);
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
@@ -43,23 +50,23 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
       <DialogContent>
         <Stack spacing={2} sx={{ pt: .5 }}>
           <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.7 }}>
-            Host 建立 6 位數房間代碼，Guest 輸入相同代碼即可配對。公開 signaling broker 只協助建立 WebRTC；遊戲資料連線後直接 P2P 傳輸。
+            房主先選擇 3 人或 5 人模式，再建立 6 位數房間代碼。配對完成後雙方會直接進入公平角色 Draft，不再使用單方重抽。
           </Typography>
 
           {error && <Alert severity="error" onClose={clearError}>{error}</Alert>}
           {connected && (
             <Alert severity="success">
-              已連線。{role === 'host' ? '請關閉此視窗後開始遊戲並選擇隊伍。' : '等待 Host 建立對局；收到資料後會自動進入遊戲。'}
+              已連線。{role === 'host' ? `已建立 ${teamSize} 人模式，準備進入角色 Draft。` : '等待房主同步角色 Draft。'}
             </Alert>
           )}
 
-          {!role && (
+          {!role && !choosingHostMode && (
             <Stack spacing={1}>
               <Button
                 variant="contained"
                 fullWidth
                 startIcon={<LinkRoundedIcon />}
-                onClick={() => void createHostRoom()}
+                onClick={() => setChoosingHostMode(true)}
               >
                 建立連線房間
               </Button>
@@ -73,9 +80,25 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
             </Stack>
           )}
 
+          {!role && choosingHostMode && (
+            <Stack spacing={1.2}>
+              <Typography sx={{ fontWeight: 950, textAlign: 'center' }}>先選擇對戰模式</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 13, textAlign: 'center' }}>
+                3 人模式會公開 6 張候選角色；5 人模式會公開 10 張候選角色。
+              </Typography>
+              <Button variant="outlined" size="large" onClick={() => createRoom(3)} sx={{ fontWeight: 950 }}>
+                3 人模式
+              </Button>
+              <Button variant="contained" size="large" onClick={() => createRoom(5)} sx={{ fontWeight: 950 }}>
+                5 人模式
+              </Button>
+              <Button variant="text" onClick={() => setChoosingHostMode(false)}>返回</Button>
+            </Stack>
+          )}
+
           {role === 'host' && (
             <Stack spacing={1.2} alignItems="stretch">
-              <Typography sx={{ fontWeight: 900, textAlign: 'center' }}>房間代碼</Typography>
+              <Typography sx={{ fontWeight: 900, textAlign: 'center' }}>{teamSize} 人模式 · 房間代碼</Typography>
               <Typography
                 aria-label="6 位數房間代碼"
                 sx={{
