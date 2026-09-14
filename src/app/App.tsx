@@ -40,6 +40,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const [onlineOpen, setOnlineOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
   const [draftRoster, setDraftRoster] = useState<DraftRoster>();
+  const [onlineDraftSettled, setOnlineDraftSettled] = useState(false);
 
   const playableIds = useMemo(() => {
     const excluded = new Set(gameDefinition.roster.excludedCharacterIds);
@@ -49,9 +50,19 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   }, [gameDefinition]);
 
   useEffect(() => {
+    if (!onlineDraft || onlineDraft.status !== 'complete') {
+      setOnlineDraftSettled(false);
+    }
+  }, [onlineDraft]);
+
+  useEffect(() => {
     if (onlineStatus !== 'connected') return;
     if (game) {
       setOnlineOpen(false);
+      if (onlineDraft && !onlineDraftSettled) {
+        setAppStage('online-draft');
+        return;
+      }
       setAppStage('battle');
       return;
     }
@@ -64,10 +75,17 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       reset();
       startHostDraft(playableIds);
     }
-  }, [game, onlineDraft, onlineRole, onlineStatus, onlineTeamSize, playableIds, reset, startHostDraft]);
+  }, [game, onlineDraft, onlineDraftSettled, onlineRole, onlineStatus, onlineTeamSize, playableIds, reset, startHostDraft]);
 
   useEffect(() => {
-    if (onlineRole !== 'host' || onlineStatus !== 'connected' || !onlineDraft || onlineDraft.status !== 'complete' || game) return;
+    if (
+      onlineRole !== 'host'
+      || onlineStatus !== 'connected'
+      || !onlineDraft
+      || onlineDraft.status !== 'complete'
+      || !onlineDraftSettled
+      || game
+    ) return;
     const selectedGameDefinition: GameDefinition = {
       ...gameDefinition,
       rules: {
@@ -82,7 +100,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       selectedGameDefinition,
     );
     broadcastCurrentGame();
-  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineRole, onlineStatus, startGame]);
+  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineRole, onlineStatus, startGame]);
 
   const handleStart = (teamSize: TeamSizeOption) => {
     if (onlineRole) disconnectOnline();
@@ -129,10 +147,15 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     setAppStage('battle');
   };
 
+  const handleOnlineDraftAnimationSettled = useCallback(() => {
+    setOnlineDraftSettled(true);
+  }, []);
+
   const handleRestart = () => {
     if (onlineRole) disconnectOnline();
     reset();
     setDraftRoster(undefined);
+    setOnlineDraftSettled(false);
     setAppStage('start');
   };
 
@@ -181,6 +204,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
         role={onlineRole}
         characters={draftCharacters}
         onPick={(characterId) => pickDraftCharacter(characterId)}
+        onAnimationSettled={handleOnlineDraftAnimationSettled}
       />
     );
   }
