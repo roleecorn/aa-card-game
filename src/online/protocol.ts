@@ -104,19 +104,3 @@ export function swapGamePerspective(source: GameState): GameState {
 
   return game;
 }
-
-export function encodeSignal(description: RTCSessionDescriptionInit): string {
-  const json = JSON.stringify({ type: description.type, sdp: description.sdp });
-  const bytes = new TextEncoder().encode(json);
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-export function decodeSignal(code: string): RTCSessionDescriptionInit {
-  const binary = atob(code.trim());
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  const parsed = JSON.parse(new TextDecoder().decode(bytes)) as RTCSessionDescriptionInit;
-  if ((parsed.type !== 'offer' && parsed.type !== 'answer') || !parsed.sdp) throw new Error('Invalid WebRTC connection code.');
-  return parsed;
-}
