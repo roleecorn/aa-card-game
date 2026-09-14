@@ -123,12 +123,12 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
   try {
     message = JSON.parse(raw) as OnlineMessage;
   } catch {
-    useOnlineSession.setState({ error: '收到無法解析的連線資料。' });
+    useOnlineSession.setState({ error: '收到異常的連線資料，請重新加入房間。' });
     return;
   }
 
   if (message.version !== ONLINE_PROTOCOL_VERSION) {
-    useOnlineSession.setState({ error: '雙方遊戲版本的連線協定不相容。' });
+    useOnlineSession.setState({ error: '雙方遊戲版本不同，請確認使用相同版本後重新連線。' });
     return;
   }
 
@@ -182,7 +182,7 @@ function attachChannel(nextChannel: RTCDataChannel, role: OnlineRole): void {
     }
   };
   channel.onclose = () => useOnlineSession.setState({ status: 'closed' });
-  channel.onerror = () => useOnlineSession.setState({ status: 'error', error: 'WebRTC DataChannel 發生錯誤。' });
+  channel.onerror = () => useOnlineSession.setState({ status: 'error', error: '連線發生錯誤，請重新建立或加入房間。' });
   channel.onmessage = (event) => handleGameMessage(String(event.data), role);
 }
 
@@ -196,7 +196,7 @@ function createPeer(role: OnlineRole): RTCPeerConnection {
   };
   connection.onconnectionstatechange = () => {
     if (connection.connectionState === 'failed') {
-      useOnlineSession.setState({ status: 'error', error: 'WebRTC P2P 連線失敗；目前網路環境可能需要 TURN relay。' });
+      useOnlineSession.setState({ status: 'error', error: '無法與對手建立連線，請確認網路狀況後重試。' });
     }
   };
 
@@ -244,7 +244,7 @@ async function handleHostSignal(message: SignalingMessage): Promise<void> {
     const connection = createPeer('host');
     const offer = await connection.createOffer();
     await connection.setLocalDescription(offer);
-    if (!connection.localDescription) throw new Error('Missing local WebRTC offer.');
+    if (!connection.localDescription) throw new Error('建立連線失敗，請重試。');
     publishSignal({ type: 'offer', to: remotePeerId, description: connection.localDescription.toJSON() });
     return;
   }
@@ -261,7 +261,7 @@ async function handleHostSignal(message: SignalingMessage): Promise<void> {
   }
   if (message.type === 'leave') {
     closeTransport(false);
-    useOnlineSession.setState({ status: 'closed', error: 'Guest 已離開房間。' });
+    useOnlineSession.setState({ status: 'closed', error: '對手已離開房間。' });
   }
 }
 
@@ -286,7 +286,7 @@ async function handleGuestSignal(message: SignalingMessage): Promise<void> {
     await flushRemoteCandidates();
     const answer = await connection.createAnswer();
     await connection.setLocalDescription(answer);
-    if (!connection.localDescription) throw new Error('Missing local WebRTC answer.');
+    if (!connection.localDescription) throw new Error('加入房間失敗，請重試。');
     publishSignal({ type: 'answer', to: remotePeerId, description: connection.localDescription.toJSON() });
     return;
   }
@@ -298,7 +298,7 @@ async function handleGuestSignal(message: SignalingMessage): Promise<void> {
   }
   if (message.type === 'leave') {
     closeTransport(false);
-    useOnlineSession.setState({ status: 'closed', error: 'Host 已離開房間。' });
+    useOnlineSession.setState({ status: 'closed', error: '房主已離開房間。' });
   }
 }
 
