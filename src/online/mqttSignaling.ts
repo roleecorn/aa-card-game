@@ -2,10 +2,13 @@ const BROKER_URL = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'aa-card-game/online-v1/';
 const KEEP_ALIVE_SECONDS = 30;
 
+type Bytes = Uint8Array<ArrayBufferLike>;
+type OwnedBytes = Uint8Array<ArrayBuffer>;
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-function concatBytes(...parts: Uint8Array[]): Uint8Array {
+function concatBytes(...parts: Bytes[]): OwnedBytes {
   const size = parts.reduce((sum, part) => sum + part.length, 0);
   const output = new Uint8Array(size);
   let offset = 0;
@@ -16,7 +19,7 @@ function concatBytes(...parts: Uint8Array[]): Uint8Array {
   return output;
 }
 
-function encodeRemainingLength(value: number): Uint8Array {
+function encodeRemainingLength(value: number): OwnedBytes {
   const bytes: number[] = [];
   let remaining = value;
   do {
@@ -28,13 +31,13 @@ function encodeRemainingLength(value: number): Uint8Array {
   return Uint8Array.from(bytes);
 }
 
-function encodeMqttString(value: string): Uint8Array {
+function encodeMqttString(value: string): OwnedBytes {
   const bytes = encoder.encode(value);
   if (bytes.length > 0xffff) throw new Error('MQTT string is too long.');
   return concatBytes(Uint8Array.of(bytes.length >> 8, bytes.length & 0xff), bytes);
 }
 
-function mqttPacket(header: number, body = new Uint8Array()): Uint8Array {
+function mqttPacket(header: number, body: Bytes = new Uint8Array()): OwnedBytes {
   return concatBytes(Uint8Array.of(header), encodeRemainingLength(body.length), body);
 }
 
@@ -73,7 +76,7 @@ export class MqttSignalingClient {
   readonly peerId = randomPeerId();
   private readonly topic: string;
   private socket: WebSocket | null = null;
-  private buffer = new Uint8Array();
+  private buffer: Bytes = new Uint8Array();
   private packetId = 1;
   private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   private connectResolve: (() => void) | null = null;
@@ -155,7 +158,7 @@ export class MqttSignalingClient {
     this.socket.send(mqttPacket(0x82, body));
   }
 
-  private consume(chunk: Uint8Array): void {
+  private consume(chunk: Bytes): void {
     this.buffer = concatBytes(this.buffer, chunk);
 
     while (this.buffer.length >= 2) {
@@ -184,7 +187,7 @@ export class MqttSignalingClient {
     }
   }
 
-  private handlePacket(header: number, body: Uint8Array): void {
+  private handlePacket(header: number, body: Bytes): void {
     const type = header >> 4;
     if (type === 2) {
       if (body.length < 2 || body[1] !== 0) {
