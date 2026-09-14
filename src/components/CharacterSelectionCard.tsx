@@ -19,8 +19,9 @@ interface Props {
 
 /**
  * Revealed character card used by pre-match selection screens.
- * `full` follows the normal initial-team card layout; `rail` keeps the same
- * vertical information hierarchy at a narrower size for already-picked teams.
+ * `full` follows the existing "你的初始隊伍" card layout: large portrait,
+ * stats, affinities, tags, and visible skill descriptions. `rail` keeps that
+ * same vertical card language at a narrower size for already-picked teams.
  */
 export function CharacterSelectionCard({
   character,
