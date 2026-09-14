@@ -166,6 +166,18 @@ export function getCardAvailability(
     : blocked('目前沒有可指定的作品。');
 }
 
+function runtimeTargetLegality(
+  engine: EngineSession,
+  ownerId: string,
+  skill: SkillDefinition,
+  target: SkillActivationTarget,
+  warning?: string,
+): TargetLegality {
+  return engine.skills.canActivateSkillTarget(ownerId, skill.id, target)
+    ? allowed(warning)
+    : blocked('目前不符合技能的發動條件。');
+}
+
 function memberCandidateForSkill(
   engine: EngineSession,
   ownerId: string,
@@ -193,7 +205,10 @@ function memberCandidateForSkill(
       return { id: memberId, ...blocked(`此角色沒有「${spec.tag}」條件。`) };
     }
   }
-  return { id: memberId, ...allowed(skillExternalWarning(engine, ownerId, memberId)) };
+  return {
+    id: memberId,
+    ...runtimeTargetLegality(engine, ownerId, skill, { memberId }, skillExternalWarning(engine, ownerId, memberId)),
+  };
 }
 
 function dieMatchesPendingSpec(
@@ -219,7 +234,13 @@ function dieMatchesPendingSpec(
   if (spec.skill && die.skill !== spec.skill) return blocked(`此技能只能指定 ${spec.skill.toUpperCase()} 骰。`);
   if (spec.minValue !== undefined && die.value < spec.minValue) return blocked(`骰值必須至少為 ${spec.minValue}。`);
   if (spec.maxValue !== undefined && die.value > spec.maxValue) return blocked(`骰值必須至多為 ${spec.maxValue}。`);
-  return allowed(skillExternalWarning(engine, ownerId, die.ownerId));
+  return runtimeTargetLegality(
+    engine,
+    ownerId,
+    skill,
+    { targetDieId: die.id },
+    skillExternalWarning(engine, ownerId, die.ownerId),
+  );
 }
 
 export function getSkillSelectionPlan(
@@ -246,20 +267,10 @@ export function getSkillSelectionPlan(
     const enemyTeam = engine.getTeam(engine.opponentId(teamId));
     return {
       stage: 'work',
-      candidates: [...ownTeam.works, ...enemyTeam.works].map((work): TargetCandidate => {
-        const isOwnTeam = ownTeam.works.some((candidate) => candidate.id === work.id);
-        const relationOk = spec.relation === 'owner'
-          ? isOwnTeam && work.ownerId === ownerId
-          : spec.relation === 'ally'
-            ? isOwnTeam
-            : !isOwnTeam;
-        if (!relationOk) return { id: work.id, ...blocked('此作品不符合技能的目標條件。') };
-        if (skillId === 'grimmBurningFrame') {
-          if (work.type !== '情') return { id: work.id, ...blocked('「對托內利可的愛」只能在（情）作品上使用。') };
-          if (!workHasProgress(work)) return { id: work.id, ...blocked('作品中還沒有可改成 3 的既有骰。') };
-        }
-        return { id: work.id, ...allowed() };
-      }),
+      candidates: [...ownTeam.works, ...enemyTeam.works].map((work): TargetCandidate => ({
+        id: work.id,
+        ...runtimeTargetLegality(engine, ownerId, skill, { workId: work.id }),
+      })),
     };
   }
   if (spec.kind === 'copyPendingDie') {
@@ -269,24 +280,26 @@ export function getSkillSelectionPlan(
         stage: 'sourceDie',
         candidates: team.pendingDice.map((die): TargetCandidate => {
           if (die.ownerId === ownerId) return { id: die.id, ...blocked('來源骰必須來自另一名我方角色。') };
-          const hasDestination = team.pendingDice.some((target) => target.ownerId === ownerId && target.value !== die.value);
+          const destination = team.pendingDice.find((target) =>
+            engine.skills.canActivateSkillTarget(ownerId, skill.id, { sourceDieId: die.id, targetDieId: target.id }));
           return {
             id: die.id,
-            ...(hasDestination
+            ...(destination
               ? allowed(skillExternalWarning(engine, ownerId, die.ownerId))
-              : blocked('目前沒有數值不同的自己的骰可作為目標。')),
+              : blocked('目前沒有合法的自己的骰可作為目標。')),
           };
         }),
       };
     }
-    const source = team.pendingDice.find((die) => die.id === partialTarget.sourceDieId);
     return {
       stage: 'targetDie',
-      candidates: team.pendingDice.map((die): TargetCandidate => {
-        if (die.ownerId !== ownerId) return { id: die.id, ...blocked('目標骰必須是自己的骰。') };
-        if (source && source.value === die.value) return { id: die.id, ...blocked('這顆骰已經是相同數值，使用後不會產生變化。') };
-        return { id: die.id, ...allowed() };
-      }),
+      candidates: team.pendingDice.map((die): TargetCandidate => ({
+        id: die.id,
+        ...runtimeTargetLegality(engine, ownerId, skill, {
+          sourceDieId: partialTarget.sourceDieId,
+          targetDieId: die.id,
+        }),
+      })),
     };
   }
 
