@@ -1,14 +1,17 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { selectStandardRosters } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
 import { useGameStore } from '../store/gameStore';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
+import { OnlineConnectionDialog } from '../components/OnlineConnectionDialog';
+import { OnlineDraftScreen } from '../components/OnlineDraftScreen';
 import { StartScreen, type TeamSizeOption } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
+import { useOnlineSession } from '../online/onlineSession';
 import { BattleRoom } from './BattleRoom';
 
-type AppStage = 'start' | 'draw' | 'battle';
+type AppStage = 'start' | 'draw' | 'online-draft' | 'battle';
 
 interface AppProps {
   gameDefinition?: GameDefinition;
@@ -25,7 +28,16 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const reset = useGameStore((state) => state.reset);
   const startGame = useGameStore((state) => state.startGame);
   const startTutorial = useGameStore((state) => state.startTutorial);
+  const onlineRole = useOnlineSession((state) => state.role);
+  const onlineStatus = useOnlineSession((state) => state.status);
+  const onlineTeamSize = useOnlineSession((state) => state.teamSize);
+  const onlineDraft = useOnlineSession((state) => state.draft);
+  const startHostDraft = useOnlineSession((state) => state.startHostDraft);
+  const pickDraftCharacter = useOnlineSession((state) => state.pickDraftCharacter);
+  const broadcastCurrentGame = useOnlineSession((state) => state.broadcastCurrentGame);
+  const disconnectOnline = useOnlineSession((state) => state.disconnect);
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [onlineOpen, setOnlineOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
   const [draftRoster, setDraftRoster] = useState<DraftRoster>();
 
@@ -36,7 +48,44 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       .map((character) => character.id);
   }, [gameDefinition]);
 
+  useEffect(() => {
+    if (onlineStatus !== 'connected') return;
+    if (game) {
+      setOnlineOpen(false);
+      setAppStage('battle');
+      return;
+    }
+    if (onlineDraft) {
+      setOnlineOpen(false);
+      setAppStage('online-draft');
+      return;
+    }
+    if (onlineRole === 'host' && onlineTeamSize) {
+      reset();
+      startHostDraft(playableIds);
+    }
+  }, [game, onlineDraft, onlineRole, onlineStatus, onlineTeamSize, playableIds, reset, startHostDraft]);
+
+  useEffect(() => {
+    if (onlineRole !== 'host' || onlineStatus !== 'connected' || !onlineDraft || onlineDraft.status !== 'complete' || game) return;
+    const selectedGameDefinition: GameDefinition = {
+      ...gameDefinition,
+      rules: {
+        ...gameDefinition.rules,
+        teamSize: onlineDraft.teamSize,
+      },
+    };
+    startGame(
+      onlineDraft.hostPicks,
+      onlineDraft.guestPicks,
+      onlineDraft.hostPicks[0],
+      selectedGameDefinition,
+    );
+    broadcastCurrentGame();
+  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineRole, onlineStatus, startGame]);
+
   const handleStart = (teamSize: TeamSizeOption) => {
+    if (onlineRole) disconnectOnline();
     reset();
     const selectedGameDefinition: GameDefinition = {
       ...gameDefinition,
@@ -55,6 +104,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   };
 
   const handleStartTutorial = () => {
+    if (onlineRole) disconnectOnline();
     startTutorial();
     setDraftRoster(undefined);
     setAppStage('battle');
@@ -80,19 +130,26 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   };
 
   const handleRestart = () => {
+    if (onlineRole) disconnectOnline();
     reset();
     setDraftRoster(undefined);
     setAppStage('start');
   };
 
-  if (appStage === 'start') {
-    return (
-      <>
-        <StartScreen onStart={handleStart} onStartTutorial={handleStartTutorial} onOpenRoster={() => setRosterOpen(true)} />
-        <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
-      </>
-    );
-  }
+  const startView = (
+    <>
+      <StartScreen
+        onStart={handleStart}
+        onStartTutorial={handleStartTutorial}
+        onOpenRoster={() => setRosterOpen(true)}
+        onOpenOnline={() => setOnlineOpen(true)}
+      />
+      <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
+      <OnlineConnectionDialog open={onlineOpen} onClose={() => setOnlineOpen(false)} />
+    </>
+  );
+
+  if (appStage === 'start') return startView;
 
   if (appStage === 'draw' && draftRoster) {
     const drawnCharacters = draftRoster.player.flatMap((memberId) => {
@@ -108,7 +165,23 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
           onConfirm={handleConfirmRoster}
         />
         <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
+        <OnlineConnectionDialog open={onlineOpen} onClose={() => setOnlineOpen(false)} />
       </>
+    );
+  }
+
+  if (appStage === 'online-draft' && onlineDraft && onlineRole) {
+    const draftCharacters = onlineDraft.poolIds.flatMap((memberId) => {
+      const character = gameDefinition.content.characters[memberId];
+      return character ? [character] : [];
+    });
+    return (
+      <OnlineDraftScreen
+        draft={onlineDraft}
+        role={onlineRole}
+        characters={draftCharacters}
+        onPick={(characterId) => pickDraftCharacter(characterId)}
+      />
     );
   }
 
@@ -116,10 +189,5 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     return <BattleRoom onRestart={handleRestart} />;
   }
 
-  return (
-    <>
-      <StartScreen onStart={handleStart} onStartTutorial={handleStartTutorial} onOpenRoster={() => setRosterOpen(true)} />
-      <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
-    </>
-  );
+  return startView;
 }

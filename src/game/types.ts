@@ -2,7 +2,7 @@ import type { CharacterDefinition, SkillDefinition, SkillStat, TeamId, WorkType 
 
 export type DieValue = 1 | 2 | 3 | 4 | 5 | 6;
 export type ActionChoice = 'work' | 'slack';
-export type Phase = 'player-plan' | 'player-assign' | 'finished';
+export type Phase = 'player-plan' | 'player-assign' | 'enemy-plan' | 'enemy-assign' | 'finished';
 
 export interface ProgressSlot {
   design?: DieValue;

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, createInitialGame } from '../game/engine';
+import { finishOnlineAssignment, performOnlineTeamActions } from '../game/onlineTurn';
 import { placeDieWithLegality } from '../game/placement';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
@@ -31,12 +32,16 @@ interface GameStore {
     gameDefinition?: GameDefinition,
   ) => void;
   startTutorial: () => void;
+  loadOnlineSnapshot: (game: GameState, gameDefinition: GameDefinition) => void;
   tutorialEvent: (event: TutorialEvent) => void;
   dismissTutorial: () => void;
   setActionChoice: (memberId: string, action: ActionChoice) => void;
   performPlayerActions: () => void;
+  performOnlineActions: (teamId: TeamId, actions: Record<string, ActionChoice>) => boolean;
   placeDie: (dieId: string, workId: string, slotIndex: number) => boolean;
+  placeOnlineDie: (teamId: TeamId, dieId: string, workId: string, slotIndex: number) => boolean;
   finishPlayerAssignment: () => void;
+  finishOnlineAssignment: (teamId: TeamId) => boolean;
   playCard: (teamId: TeamId, instanceId: string, target?: SkillActivationTarget) => boolean;
   discardCards: (teamId: TeamId, instanceIds: string[]) => boolean;
   activateSkill: (teamId: TeamId, memberId: string, skillId: string, target?: SkillActivationTarget) => boolean;
@@ -116,6 +121,18 @@ export const useGameStore = create<GameStore>()(
       state.game = game;
       state.actionChoices = defaultChoices(game, STANDARD_GAME_DEFINITION);
     }),
+    loadOnlineSnapshot: (game, gameDefinition) => set((state) => {
+      const previousPhase = state.game?.phase;
+      state.gameDefinition = castDraft(gameDefinition);
+      state.mode = 'standard';
+      state.tutorial = null;
+      state.game = castDraft(game);
+      if (game.phase === 'player-plan') {
+        state.actionChoices = previousPhase === 'player-plan'
+          ? actionChoicesForCurrentStress(game, state.actionChoices, gameDefinition)
+          : defaultChoices(game, gameDefinition);
+      }
+    }),
     tutorialEvent: (event) => set((state) => {
       if (state.mode !== 'tutorial' || !state.tutorial) return;
       state.tutorial = reduceTutorialEvent(state.tutorial as TutorialRuntimeState, event);
@@ -138,6 +155,15 @@ export const useGameStore = create<GameStore>()(
         gameDefinition,
       ).performPlayerActions(state.actionChoices);
     }),
+    performOnlineActions: (teamId, actions) => {
+      let result = false;
+      set((state) => {
+        if (!state.game) return;
+        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition);
+        result = performOnlineTeamActions(engine, teamId, actions);
+      });
+      return result;
+    },
     placeDie: (dieId, workId, slotIndex) => {
       let result = false;
       set((state) => {
@@ -153,6 +179,15 @@ export const useGameStore = create<GameStore>()(
       });
       return result;
     },
+    placeOnlineDie: (teamId, dieId, workId, slotIndex) => {
+      let result = false;
+      set((state) => {
+        if (!state.game) return;
+        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition);
+        result = placeDieWithLegality(engine, teamId, dieId, workId, slotIndex);
+      });
+      return result;
+    },
     finishPlayerAssignment: () => set((state) => {
       if (!state.game) return;
       const gameDefinition = state.gameDefinition as GameDefinition;
@@ -164,6 +199,19 @@ export const useGameStore = create<GameStore>()(
       ).finishPlayerAssignment();
       state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
     }),
+    finishOnlineAssignment: (teamId) => {
+      let result = false;
+      set((state) => {
+        if (!state.game) return;
+        const gameDefinition = state.gameDefinition as GameDefinition;
+        const engine = new EngineSession(state.game as GameState, Math.random, gameDefinition);
+        result = finishOnlineAssignment(engine, teamId);
+        if (result && state.game.phase === 'player-plan') {
+          state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
+        }
+      });
+      return result;
+    },
     playCard: (teamId, instanceId, target = {}) => {
       let result = false;
       set((state) => {
