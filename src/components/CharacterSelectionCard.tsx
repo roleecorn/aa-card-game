@@ -13,13 +13,14 @@ interface Props {
   selectedLabel?: string;
   interactive?: boolean;
   dimmed?: boolean;
+  variant?: 'full' | 'rail';
   onClick?: () => void;
 }
 
 /**
- * Reusable revealed character card for pre-match selection screens.
- * It intentionally mirrors the information hierarchy used by DrawPhaseScreen:
- * portrait, stats, affinities, tags, and full skill descriptions.
+ * Revealed character card used by pre-match selection screens.
+ * `full` follows the normal initial-team card layout; `rail` keeps the same
+ * vertical information hierarchy at a narrower size for already-picked teams.
  */
 export function CharacterSelectionCard({
   character,
@@ -27,8 +28,10 @@ export function CharacterSelectionCard({
   selectedLabel = '已選取',
   interactive = false,
   dimmed = false,
+  variant = 'full',
   onClick,
 }: Props) {
+  const rail = variant === 'rail';
   const skills = character.skillIds
     .map((skillId) => SKILLS[skillId])
     .filter((skill): skill is NonNullable<typeof skill> => !!skill);
@@ -42,15 +45,25 @@ export function CharacterSelectionCard({
         border: selected ? '3px solid #ff7098' : '2px solid #d5dfec',
         boxShadow: selected
           ? '0 0 0 5px rgba(255,112,152,.13), 0 18px 42px rgba(42,63,99,.17)'
+          : rail
+          ? '0 8px 22px rgba(42,63,99,.11)'
           : '0 18px 42px rgba(42,63,99,.13)',
         bgcolor: '#fff',
         cursor: interactive ? 'pointer' : 'default',
         opacity: dimmed ? .48 : 1,
+        minHeight: rail ? 0 : { xs: 540, md: 590 },
         transition: 'border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease, transform 180ms ease',
         '&:hover': interactive ? { transform: 'translateY(-3px)' } : undefined,
       }}
     >
-      <Box sx={{ position: 'relative', height: { xs: 245, md: 265 }, overflow: 'hidden', bgcolor: '#eef3f9' }}>
+      <Box
+        sx={{
+          position: 'relative',
+          height: rail ? { xs: 150, lg: 138, xl: 158 } : { xs: 245, md: 265 },
+          overflow: 'hidden',
+          bgcolor: '#eef3f9',
+        }}
+      >
         <Box
           component="img"
           src={character.portrait}
@@ -66,36 +79,46 @@ export function CharacterSelectionCard({
           }}
         />
         <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(20,31,52,.7) 100%)' }} />
-        <Typography sx={{ position: 'absolute', left: 15, bottom: 12, color: '#fff', fontSize: { xs: 25, md: 30 }, fontWeight: 950, textShadow: '0 2px 8px rgba(0,0,0,.35)' }}>
+        <Typography
+          sx={{
+            position: 'absolute',
+            left: rail ? 10 : 15,
+            bottom: rail ? 8 : 12,
+            color: '#fff',
+            fontSize: rail ? { xs: 18, xl: 20 } : { xs: 25, md: 30 },
+            fontWeight: 950,
+            textShadow: '0 2px 8px rgba(0,0,0,.35)',
+          }}
+        >
           {character.name}
         </Typography>
       </Box>
 
-      <Stack spacing={1.2} sx={{ p: { xs: 1.5, md: 1.8 } }}>
-        <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
-          <StatChip icon={<EditNoteIcon />} label="Design" value={character.stats.design} />
-          <StatChip icon={<SubjectIcon />} label="Text" value={character.stats.text} />
-          <StatChip icon={<LayersIcon />} label="AA" value={character.stats.aa} />
+      <Stack spacing={rail ? .75 : 1.2} sx={{ p: rail ? 1 : { xs: 1.5, md: 1.8 } }}>
+        <Stack direction="row" spacing={rail ? .45 : .8} flexWrap="wrap" useFlexGap>
+          <StatChip icon={<EditNoteIcon />} label="Design" value={character.stats.design} compact={rail} />
+          <StatChip icon={<SubjectIcon />} label="Text" value={character.stats.text} compact={rail} />
+          <StatChip icon={<LayersIcon />} label="AA" value={character.stats.aa} compact={rail} />
         </Stack>
-        <CharacterAffinities affinities={character.affinities} />
+        <CharacterAffinities affinities={character.affinities} compact={rail} />
 
         {!!character.tags?.length && (
           <Box>
-            <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .55 }}>標籤</Typography>
-            <Stack direction="row" spacing={.55} flexWrap="wrap" useFlexGap>
+            <Typography sx={{ fontSize: rail ? 9.5 : 10.5, color: 'text.secondary', fontWeight: 850, mb: rail ? .35 : .55 }}>標籤</Typography>
+            <Stack direction="row" spacing={.45} flexWrap="wrap" useFlexGap>
               {character.tags.map((tag) => (
                 <Chip
                   key={tag}
                   label={getCharacterTagName(tag)}
                   size="small"
                   sx={{
-                    height: 22,
+                    height: rail ? 19 : 22,
                     bgcolor: '#fff7fa',
                     border: '1px solid #f2bfd0',
                     color: '#8b3f58',
-                    fontSize: 10.5,
+                    fontSize: rail ? 9 : 10.5,
                     fontWeight: 850,
-                    '& .MuiChip-label': { px: .8 },
+                    '& .MuiChip-label': { px: rail ? .55 : .8 },
                   }}
                 />
               ))}
@@ -104,23 +127,23 @@ export function CharacterSelectionCard({
         )}
 
         <Box>
-          <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontWeight: 850, mb: .65 }}>技能</Typography>
-          <Stack spacing={.75}>
+          <Typography sx={{ fontSize: rail ? 9.5 : 10.5, color: 'text.secondary', fontWeight: 850, mb: rail ? .4 : .65 }}>技能</Typography>
+          <Stack spacing={rail ? .45 : .75}>
             {skills.map((skill) => (
               <Box
                 key={skill.id}
                 sx={{
-                  px: 1,
-                  py: .8,
+                  px: rail ? .7 : 1,
+                  py: rail ? .55 : .8,
                   border: '1px solid #d9e2ee',
                   borderRadius: 2,
                   bgcolor: '#f8fbff',
                 }}
               >
-                <Typography sx={{ fontSize: 12.5, fontWeight: 950, lineHeight: 1.25 }}>
+                <Typography sx={{ fontSize: rail ? 10.5 : 12.5, fontWeight: 950, lineHeight: 1.25 }}>
                   {skill.name}
                 </Typography>
-                <Typography sx={{ mt: .3, fontSize: 11.25, color: 'text.secondary', fontWeight: 650, lineHeight: 1.45 }}>
+                <Typography sx={{ mt: .25, fontSize: rail ? 9.5 : 11.25, color: 'text.secondary', fontWeight: 650, lineHeight: 1.4 }}>
                   {skill.description}
                 </Typography>
               </Box>
@@ -133,14 +156,14 @@ export function CharacterSelectionCard({
         <Box
           sx={{
             position: 'absolute',
-            top: 10,
-            right: 10,
-            px: 1,
-            py: .35,
+            top: rail ? 7 : 10,
+            right: rail ? 7 : 10,
+            px: rail ? .7 : 1,
+            py: rail ? .25 : .35,
             borderRadius: 999,
             bgcolor: '#ff7098',
             color: '#fff',
-            fontSize: 11,
+            fontSize: rail ? 9.5 : 11,
             fontWeight: 950,
             boxShadow: '0 4px 12px rgba(229,79,122,.28)',
           }}
@@ -152,13 +175,20 @@ export function CharacterSelectionCard({
   );
 }
 
-function StatChip({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function StatChip({ icon, label, value, compact }: { icon: React.ReactNode; label: string; value: number; compact?: boolean }) {
   return (
     <Chip
       icon={icon as React.ReactElement}
       label={`${label} ${value}`}
       variant="outlined"
-      sx={{ fontWeight: 900, bgcolor: '#fbfdff', '& .MuiChip-icon': { fontSize: 17 } }}
+      sx={{
+        height: compact ? 25 : 32,
+        fontSize: compact ? 10.5 : 13,
+        fontWeight: 900,
+        bgcolor: '#fbfdff',
+        '& .MuiChip-icon': { fontSize: compact ? 14 : 17 },
+        '& .MuiChip-label': { px: compact ? .7 : 1.1 },
+      }}
     />
   );
 }
