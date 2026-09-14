@@ -5,12 +5,13 @@ import type { GameDefinition } from '../game/gameDefinition';
 import { useGameStore } from '../store/gameStore';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { OnlineConnectionDialog } from '../components/OnlineConnectionDialog';
+import { OnlineDraftScreen } from '../components/OnlineDraftScreen';
 import { StartScreen, type TeamSizeOption } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
 import { useOnlineSession } from '../online/onlineSession';
 import { BattleRoom } from './BattleRoom';
 
-type AppStage = 'start' | 'draw' | 'battle';
+type AppStage = 'start' | 'draw' | 'online-draft' | 'battle';
 
 interface AppProps {
   gameDefinition?: GameDefinition;
@@ -29,6 +30,10 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const startTutorial = useGameStore((state) => state.startTutorial);
   const onlineRole = useOnlineSession((state) => state.role);
   const onlineStatus = useOnlineSession((state) => state.status);
+  const onlineTeamSize = useOnlineSession((state) => state.teamSize);
+  const onlineDraft = useOnlineSession((state) => state.draft);
+  const startHostDraft = useOnlineSession((state) => state.startHostDraft);
+  const pickDraftCharacter = useOnlineSession((state) => state.pickDraftCharacter);
   const broadcastCurrentGame = useOnlineSession((state) => state.broadcastCurrentGame);
   const disconnectOnline = useOnlineSession((state) => state.disconnect);
   const [rosterOpen, setRosterOpen] = useState(false);
@@ -44,17 +49,43 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   }, [gameDefinition]);
 
   useEffect(() => {
-    if (onlineRole === 'guest' && onlineStatus === 'connected' && game) {
+    if (onlineStatus !== 'connected') return;
+    if (game) {
       setOnlineOpen(false);
       setAppStage('battle');
-    }
-  }, [game, onlineRole, onlineStatus]);
-
-  const handleStart = (teamSize: TeamSizeOption) => {
-    if (onlineRole === 'guest' && onlineStatus === 'connected') {
-      setOnlineOpen(true);
       return;
     }
+    if (onlineDraft) {
+      setOnlineOpen(false);
+      setAppStage('online-draft');
+      return;
+    }
+    if (onlineRole === 'host' && onlineTeamSize) {
+      reset();
+      startHostDraft(playableIds);
+    }
+  }, [game, onlineDraft, onlineRole, onlineStatus, onlineTeamSize, playableIds, reset, startHostDraft]);
+
+  useEffect(() => {
+    if (onlineRole !== 'host' || onlineStatus !== 'connected' || !onlineDraft || onlineDraft.status !== 'complete' || game) return;
+    const selectedGameDefinition: GameDefinition = {
+      ...gameDefinition,
+      rules: {
+        ...gameDefinition.rules,
+        teamSize: onlineDraft.teamSize,
+      },
+    };
+    startGame(
+      onlineDraft.hostPicks,
+      onlineDraft.guestPicks,
+      onlineDraft.hostPicks[0],
+      selectedGameDefinition,
+    );
+    broadcastCurrentGame();
+  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineRole, onlineStatus, startGame]);
+
+  const handleStart = (teamSize: TeamSizeOption) => {
+    if (onlineRole) disconnectOnline();
     reset();
     const selectedGameDefinition: GameDefinition = {
       ...gameDefinition,
@@ -96,7 +127,6 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     if (!draftRoster) return;
     startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition);
     setAppStage('battle');
-    if (onlineRole === 'host' && onlineStatus === 'connected') broadcastCurrentGame();
   };
 
   const handleRestart = () => {
@@ -137,6 +167,21 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
         <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
         <OnlineConnectionDialog open={onlineOpen} onClose={() => setOnlineOpen(false)} />
       </>
+    );
+  }
+
+  if (appStage === 'online-draft' && onlineDraft && onlineRole) {
+    const draftCharacters = onlineDraft.poolIds.flatMap((memberId) => {
+      const character = gameDefinition.content.characters[memberId];
+      return character ? [character] : [];
+    });
+    return (
+      <OnlineDraftScreen
+        draft={onlineDraft}
+        role={onlineRole}
+        characters={draftCharacters}
+        onPick={(characterId) => pickDraftCharacter(characterId)}
+      />
     );
   }
 
