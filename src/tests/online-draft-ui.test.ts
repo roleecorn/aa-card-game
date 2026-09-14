@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import appSource from '../app/App.tsx?raw';
 import draftSource from '../components/OnlineDraftScreen.tsx?raw';
 import selectionCardSource from '../components/CharacterSelectionCard.tsx?raw';
 
@@ -40,6 +41,24 @@ describe('online draft character UI', () => {
     expect(draftSource).toContain('const availableCharacters = characters.filter((character) => !hiddenPickedIds.has(character.id))');
     expect(draftSource).toContain('availableCharacters.map((character, index) =>');
     expect(draftSource).not.toContain('dimmed={');
+  });
+
+  it('never shows a scrollbar on either selected-team rail', () => {
+    expect(draftSource).toContain("scrollbarWidth: 'none'");
+    expect(draftSource).toContain("msOverflowStyle: 'none'");
+    expect(draftSource).toContain("'&::-webkit-scrollbar'");
+    expect(draftSource).toContain("display: 'none'");
+  });
+
+  it('waits for the final card to land before either peer enters battle', () => {
+    expect(draftSource).toContain("const visualDraftSettled = draft.status === 'complete'");
+    expect(draftSource).toContain('&& !animationBusy');
+    expect(draftSource).toContain('&& !landingId');
+    expect(draftSource).toContain('onAnimationSettled();');
+    expect(appSource).toContain('const [onlineDraftSettled, setOnlineDraftSettled] = useState(false)');
+    expect(appSource).toContain("if (onlineDraft && !onlineDraftSettled)");
+    expect(appSource).toContain("|| !onlineDraftSettled");
+    expect(appSource).toContain('onAnimationSettled={handleOnlineDraftAnimationSettled}');
   });
 
   it('renders both selected teams with the same vertical selection-card visual language', () => {
