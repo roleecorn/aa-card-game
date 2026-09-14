@@ -44,8 +44,15 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
     void createHostRoom(size);
   };
 
+  const leaveOnlineSetup = () => {
+    disconnect();
+    setGuestCode('');
+    setChoosingHostMode(false);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+    <Dialog open={open} onClose={leaveOnlineSetup} fullWidth maxWidth="xs">
       <DialogTitle sx={{ fontWeight: 950 }}>連線對戰</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: .5 }}>
@@ -141,8 +148,7 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
         </Stack>
       </DialogContent>
       <DialogActions>
-        {role && <Button color="warning" onClick={disconnect}>中斷連線</Button>}
-        <Button onClick={onClose}>{connected ? '完成' : '關閉'}</Button>
+        <Button onClick={leaveOnlineSetup}>關閉</Button>
       </DialogActions>
     </Dialog>
   );
