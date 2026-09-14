@@ -6,7 +6,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Stack,
   TextField,
   Typography,
@@ -27,26 +26,24 @@ async function copyText(text: string): Promise<void> {
 export function OnlineConnectionDialog({ open, onClose }: Props) {
   const role = useOnlineSession((state) => state.role);
   const status = useOnlineSession((state) => state.status);
-  const offerCode = useOnlineSession((state) => state.offerCode);
-  const answerCode = useOnlineSession((state) => state.answerCode);
+  const roomCode = useOnlineSession((state) => state.roomCode);
   const error = useOnlineSession((state) => state.error);
-  const createHostOffer = useOnlineSession((state) => state.createHostOffer);
-  const createGuestAnswer = useOnlineSession((state) => state.createGuestAnswer);
-  const acceptHostAnswer = useOnlineSession((state) => state.acceptHostAnswer);
+  const createHostRoom = useOnlineSession((state) => state.createHostRoom);
+  const joinGuestRoom = useOnlineSession((state) => state.joinGuestRoom);
   const disconnect = useOnlineSession((state) => state.disconnect);
   const clearError = useOnlineSession((state) => state.clearError);
-  const [remoteOffer, setRemoteOffer] = useState('');
-  const [remoteAnswer, setRemoteAnswer] = useState('');
+  const [guestCode, setGuestCode] = useState('');
 
   const connected = status === 'connected';
+  const waiting = status === 'waiting' || status === 'connecting';
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle sx={{ fontWeight: 950 }}>連線對戰 · WebRTC P2P</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: .5 }}>
           <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.7 }}>
-            不需要遊戲 Server。Host 與 Guest 透過連線碼交換 WebRTC 資訊；連線後仍使用原本的遊玩畫面。
+            Host 建立 6 位數房間代碼，Guest 輸入相同代碼即可配對。公開 signaling broker 只協助建立 WebRTC；遊戲資料連線後直接 P2P 傳輸。
           </Typography>
 
           {error && <Alert severity="error" onClose={clearError}>{error}</Alert>}
@@ -57,73 +54,73 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
           )}
 
           {!role && (
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <Button variant="contained" fullWidth startIcon={<LinkRoundedIcon />} onClick={() => void createHostOffer()}>
-                我是 Host
+            <Stack spacing={1}>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<LinkRoundedIcon />}
+                onClick={() => void createHostRoom()}
+              >
+                建立連線房間
               </Button>
-              <Button variant="outlined" fullWidth onClick={() => useOnlineSession.setState({ role: 'guest', status: 'idle', error: null })}>
-                我是 Guest
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => useOnlineSession.setState({ role: 'guest', status: 'idle', error: null })}
+              >
+                加入連線房間
               </Button>
             </Stack>
           )}
 
           {role === 'host' && (
-            <Stack spacing={1.2}>
-              <Typography sx={{ fontWeight: 900 }}>1. 將 Offer Code 傳給 Guest</Typography>
-              {!offerCode && (
-                <Button variant="contained" disabled={status === 'preparing'} onClick={() => void createHostOffer()}>
-                  {status === 'preparing' ? '建立中…' : '建立 Offer Code'}
+            <Stack spacing={1.2} alignItems="stretch">
+              <Typography sx={{ fontWeight: 900, textAlign: 'center' }}>房間代碼</Typography>
+              <Typography
+                aria-label="6 位數房間代碼"
+                sx={{
+                  py: 1.2,
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  fontSize: { xs: 38, sm: 44 },
+                  fontWeight: 950,
+                  letterSpacing: '.18em',
+                  lineHeight: 1,
+                }}
+              >
+                {roomCode || '------'}
+              </Typography>
+              {!!roomCode && (
+                <Button startIcon={<ContentCopyRoundedIcon />} onClick={() => void copyText(roomCode)}>
+                  複製房間代碼
                 </Button>
               )}
-              {offerCode && (
-                <>
-                  <TextField value={offerCode} multiline minRows={3} fullWidth slotProps={{ input: { readOnly: true } }} />
-                  <Button startIcon={<ContentCopyRoundedIcon />} onClick={() => void copyText(offerCode)}>複製 Offer Code</Button>
-                </>
-              )}
-              <Divider />
-              <Typography sx={{ fontWeight: 900 }}>2. 貼上 Guest 回傳的 Answer Code</Typography>
-              <TextField
-                value={remoteAnswer}
-                onChange={(event) => setRemoteAnswer(event.target.value)}
-                multiline
-                minRows={3}
-                fullWidth
-                placeholder="貼上 Answer Code"
-              />
-              <Button variant="contained" disabled={!remoteAnswer.trim() || connected} onClick={() => void acceptHostAnswer(remoteAnswer)}>
-                套用 Answer 並連線
-              </Button>
+              {status === 'preparing' && <Alert severity="info">正在連接 signaling broker…</Alert>}
+              {status === 'waiting' && <Alert severity="info">等待 Guest 輸入房間代碼。</Alert>}
+              {status === 'connecting' && <Alert severity="info">已找到 Guest，正在建立 P2P 連線…</Alert>}
             </Stack>
           )}
 
-          {role === 'guest' && (
+          {role === 'guest' && !connected && (
             <Stack spacing={1.2}>
-              <Typography sx={{ fontWeight: 900 }}>1. 貼上 Host 的 Offer Code</Typography>
+              <Typography sx={{ fontWeight: 900 }}>輸入 Host 的 6 位數房間代碼</Typography>
               <TextField
-                value={remoteOffer}
-                onChange={(event) => setRemoteOffer(event.target.value)}
-                multiline
-                minRows={3}
+                value={guestCode}
+                onChange={(event) => setGuestCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                 fullWidth
-                placeholder="貼上 Offer Code"
+                autoFocus
+                placeholder="000000"
+                slotProps={{ htmlInput: { inputMode: 'numeric', maxLength: 6, pattern: '[0-9]*' } }}
               />
               <Button
                 variant="contained"
-                disabled={!remoteOffer.trim() || status === 'preparing' || !!answerCode}
-                onClick={() => void createGuestAnswer(remoteOffer)}
+                disabled={guestCode.length !== 6 || status === 'preparing' || waiting}
+                onClick={() => void joinGuestRoom(guestCode)}
               >
-                產生 Answer Code
+                {status === 'preparing' ? '連接中…' : waiting ? '正在配對…' : '加入房間'}
               </Button>
-              {answerCode && (
-                <>
-                  <Divider />
-                  <Typography sx={{ fontWeight: 900 }}>2. 將 Answer Code 傳回 Host</Typography>
-                  <TextField value={answerCode} multiline minRows={3} fullWidth slotProps={{ input: { readOnly: true } }} />
-                  <Button startIcon={<ContentCopyRoundedIcon />} onClick={() => void copyText(answerCode)}>複製 Answer Code</Button>
-                  {!connected && <Alert severity="info">等待 Host 套用 Answer Code。</Alert>}
-                </>
-              )}
+              {status === 'waiting' && <Alert severity="info">已送出加入要求，等待 Host 回應。</Alert>}
+              {status === 'connecting' && <Alert severity="info">已找到 Host，正在建立 P2P 連線…</Alert>}
             </Stack>
           )}
         </Stack>
