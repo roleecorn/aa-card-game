@@ -22,6 +22,7 @@ describe('blocking-safety guards', () => {
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
     });
     const otherTriangleEngine = new EngineSession(otherTriangleGame, fixedRng(0.5));
+    otherTriangleEngine.getCharacter('player', 'avocado')!.stress = 1;
     expect(otherTriangleEngine.canUseActiveSkill('triangle', 'triangleRecovery')).toBe(true);
   });
 
