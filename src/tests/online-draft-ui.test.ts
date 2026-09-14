@@ -3,17 +3,18 @@ import draftSource from '../components/OnlineDraftScreen.tsx?raw';
 import selectionCardSource from '../components/CharacterSelectionCard.tsx?raw';
 
 describe('online draft character UI', () => {
-  it('uses the full pre-match character information for draft candidates', () => {
+  it('uses the normal initial-team character-card information for candidates', () => {
     expect(draftSource).toContain('CharacterSelectionCard');
+    expect(draftSource).toContain("xl: 'repeat(3, minmax(0, 1fr))'");
     expect(selectionCardSource).toContain('技能');
     expect(selectionCardSource).toContain('skill.description');
     expect(selectionCardSource).toContain('CharacterAffinities');
     expect(selectionCardSource).toContain('getCharacterTagName');
   });
 
-  it('shows selected teams as the same compact character cards used in battle', () => {
-    expect(draftSource).toContain('CharacterCard');
-    expect(draftSource).toContain('compact');
+  it('renders both selected teams with the same vertical selection-card visual language', () => {
+    expect(draftSource).not.toContain('CharacterCard');
+    expect(draftSource).toContain('variant="rail"');
     expect(draftSource).toContain('title="我的隊伍"');
     expect(draftSource).toContain('title="對手隊伍"');
   });
