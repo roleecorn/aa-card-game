@@ -18,10 +18,18 @@ describe('online draft character UI', () => {
     expect(draftSource).toContain('setRevealCount(1)');
     expect(draftSource).toContain('420');
     expect(draftSource).toContain('revealed={revealReady || index < revealCount}');
-    expect(draftSource).toContain("const available = revealReady && !pickedBy && myTurn && draft.status === 'drafting'");
+    expect(draftSource).toContain("const available = revealReady && myTurn && draft.status === 'drafting'");
     expect(draftSource).toContain('跳過抽卡動畫');
     expect(selectionCardSource).toContain("transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)'");
     expect(selectionCardSource).toContain('AutoAwesomeRoundedIcon');
+  });
+
+  it('removes picked characters from the candidate pool instead of dimming them', () => {
+    expect(draftSource).toContain('const pickedIds = new Set([...draft.hostPicks, ...draft.guestPicks])');
+    expect(draftSource).toContain('const availableCharacters = characters.filter((character) => !pickedIds.has(character.id))');
+    expect(draftSource).toContain('availableCharacters.map((character, index) =>');
+    expect(draftSource).not.toContain('selectedLabel={mine');
+    expect(draftSource).not.toContain('dimmed={');
   });
 
   it('renders both selected teams with the same vertical selection-card visual language', () => {
