@@ -1,4 +1,5 @@
-import { Box, Stack, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Box, Button, Stack, Typography } from '@mui/material';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import type { CharacterDefinition } from '../game/schema';
 import { draftTurn, type OnlineDraftSide, type OnlineDraftState } from '../online/onlineDraft';
@@ -11,12 +12,50 @@ interface Props {
   onPick: (characterId: string) => void;
 }
 
+type RevealPhase = 'dealing' | 'revealing' | 'ready';
+
 export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
   const myTurn = turn?.side === role;
   const characterMap = new Map(characters.map((character) => [character.id, character]));
+  const [revealPhase, setRevealPhase] = useState<RevealPhase>('dealing');
+  const [revealCount, setRevealCount] = useState(0);
+  const revealReady = revealPhase === 'ready';
+
+  useEffect(() => {
+    if (!characters.length) {
+      setRevealPhase('ready');
+      return;
+    }
+
+    if (revealPhase === 'dealing') {
+      const timer = window.setTimeout(() => {
+        setRevealCount(1);
+        setRevealPhase('revealing');
+      }, 720);
+      return () => window.clearTimeout(timer);
+    }
+
+    if (revealPhase !== 'revealing') return;
+
+    if (revealCount < characters.length) {
+      const timer = window.setTimeout(
+        () => setRevealCount((current) => Math.min(characters.length, current + 1)),
+        420,
+      );
+      return () => window.clearTimeout(timer);
+    }
+
+    const timer = window.setTimeout(() => setRevealPhase('ready'), 520);
+    return () => window.clearTimeout(timer);
+  }, [characters.length, revealCount, revealPhase]);
+
+  const skipReveal = () => {
+    setRevealCount(characters.length);
+    setRevealPhase('ready');
+  };
 
   return (
     <Box
@@ -36,8 +75,10 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
           <Typography sx={{ fontSize: { xs: 25, md: 34 }, fontWeight: 950, letterSpacing: '-.03em' }}>
             選擇角色
           </Typography>
-          <Typography sx={{ fontSize: 12.5, color: myTurn ? 'primary.main' : 'text.secondary', fontWeight: 850 }}>
-            {draft.status === 'complete'
+          <Typography sx={{ fontSize: 12.5, color: revealReady && myTurn ? 'primary.main' : 'text.secondary', fontWeight: 850 }}>
+            {!revealReady
+              ? '角色卡將依序揭曉'
+              : draft.status === 'complete'
               ? '選角完成，正在準備對局…'
               : myTurn
               ? `輪到你：本輪還可選 ${turn?.remainingInBatch ?? 0} 名角色`
@@ -84,14 +125,14 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
               minWidth: 0,
             }}
           >
-            {characters.map((character) => {
+            {characters.map((character, index) => {
               const pickedBy = draft.hostPicks.includes(character.id)
                 ? 'host'
                 : draft.guestPicks.includes(character.id)
                 ? 'guest'
                 : null;
               const mine = pickedBy === role;
-              const available = !pickedBy && myTurn && draft.status === 'drafting';
+              const available = revealReady && !pickedBy && myTurn && draft.status === 'drafting';
 
               return (
                 <CharacterSelectionCard
@@ -101,6 +142,8 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
                   selectedLabel={mine ? '我方已選' : '對手已選'}
                   interactive={available}
                   dimmed={!!pickedBy && !mine}
+                  revealed={revealReady || index < revealCount}
+                  dealIndex={index}
                   onClick={() => onPick(character.id)}
                 />
               );
@@ -115,6 +158,12 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
             tone="rival"
           />
         </Box>
+
+        {!revealReady && (
+          <Button variant="text" onClick={skipReveal} sx={{ minWidth: 140, fontWeight: 850 }}>
+            跳過抽卡動畫
+          </Button>
+        )}
       </Stack>
     </Box>
   );
