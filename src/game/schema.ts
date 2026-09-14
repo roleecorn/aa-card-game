@@ -48,6 +48,8 @@ export const usageRuleSchema = z.object({
   scope: usageScopeSchema,
   limit: z.number().int().positive(),
   key: z.string().optional(),
+  /** Optional cross-skill bucket. Skills with the same group share the same usage counter. */
+  group: z.string().min(1).optional(),
 });
 
 export type SkillCondition =
@@ -57,6 +59,7 @@ export type SkillCondition =
   | { kind: 'not'; condition: SkillCondition }
   | { kind: 'relation'; field: 'actorId' | 'targetId' | 'sourceId'; relation: 'self' | 'ally' | 'otherAlly' | 'enemy' }
   | { kind: 'ownerStress'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
+  | { kind: 'memberStress'; target: z.infer<typeof memberSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventAmount'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventSkill'; skill: 'design' | 'text' | 'aa' }
   | { kind: 'sourceKind'; value: string }
@@ -68,6 +71,8 @@ export type SkillCondition =
   | { kind: 'pendingDice'; target: z.infer<typeof memberSelectorSchema>; skill?: 'design' | 'text' | 'aa'; minValue?: number; maxValue?: number; countAtLeast?: number }
   | { kind: 'workType'; target: z.infer<typeof workSelectorSchema>; types: z.infer<typeof workTypeSchema>[] }
   | { kind: 'workScore'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
+  | { kind: 'workLength'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
+  | { kind: 'workHasProgress'; target: z.infer<typeof workSelectorSchema>; skill?: 'design' | 'text' | 'aa'; quantifier?: 'any' | 'all' }
   | { kind: 'chance'; probability: number };
 
 export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
@@ -83,6 +88,12 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
     }),
     z.object({
       kind: z.literal('ownerStress'),
+      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
+      value: z.number(),
+    }),
+    z.object({
+      kind: z.literal('memberStress'),
+      target: memberSelectorSchema,
       op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
       value: z.number(),
     }),
@@ -135,6 +146,19 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
       target: workSelectorSchema,
       op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
       value: z.number(),
+      quantifier: z.enum(['any', 'all']).optional(),
+    }),
+    z.object({
+      kind: z.literal('workLength'),
+      target: workSelectorSchema,
+      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
+      value: z.number().int().positive(),
+      quantifier: z.enum(['any', 'all']).optional(),
+    }),
+    z.object({
+      kind: z.literal('workHasProgress'),
+      target: workSelectorSchema,
+      skill: skillStatSchema.optional(),
       quantifier: z.enum(['any', 'all']).optional(),
     }),
     z.object({
@@ -284,7 +308,7 @@ export const effectSchema = z.discriminatedUnion('kind', [
 export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('affinity.grant'), types: z.union([z.array(workTypeSchema), z.literal('all')]) }),
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
-  z.object({ kind: z.literal('coordination.stressBearer') }),
+  z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),
   z.object({ kind: z.literal('effect.immunity'), source: z.literal('external') }),
 ]);
 
@@ -334,6 +358,7 @@ export const skillDefinitionSchema = z.object({
   passives: z.array(passiveSchema).optional(),
   activeEffects: z.array(effectSchema).optional(),
   activeUsage: usageRuleSchema.optional(),
+  activeCondition: conditionSchema.optional(),
   activeHint: z.string().optional(),
   activeTarget: activeTargetSchema.optional(),
   tags: z.array(z.string()).optional(),
