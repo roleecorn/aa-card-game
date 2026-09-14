@@ -6,6 +6,7 @@ describe('online draft character UI', () => {
   it('uses the normal initial-team character-card information for candidates', () => {
     expect(draftSource).toContain('CharacterSelectionCard');
     expect(draftSource).toContain("xl: 'repeat(3, minmax(0, 1fr))'");
+    expect(selectionCardSource).toContain('你的初始隊伍');
     expect(selectionCardSource).toContain('技能');
     expect(selectionCardSource).toContain('skill.description');
     expect(selectionCardSource).toContain('CharacterAffinities');
