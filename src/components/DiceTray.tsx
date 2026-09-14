@@ -13,7 +13,7 @@ interface DiceSelection {
 interface Props {
   dice: DieTokenModel[];
   selectedDieId?: string;
-  onSelect: (dieId: string) => void;
+  onSelect?: (dieId: string) => void;
   selection?: DiceSelection;
 }
 
