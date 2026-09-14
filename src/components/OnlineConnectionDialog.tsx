@@ -49,10 +49,6 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
       <DialogTitle sx={{ fontWeight: 950 }}>連線對戰</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: .5 }}>
-          <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.7 }}>
-            房主先選擇 3 人或 5 人模式，再建立 6 位數房間代碼。另一位玩家輸入代碼加入後，雙方會進入角色選擇。
-          </Typography>
-
           {error && <Alert severity="error" onClose={clearError}>{error}</Alert>}
           {connected && (
             <Alert severity="success">
@@ -82,10 +78,6 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
 
           {!role && choosingHostMode && (
             <Stack spacing={1.2}>
-              <Typography sx={{ fontWeight: 950, textAlign: 'center' }}>先選擇對戰模式</Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: 13, textAlign: 'center' }}>
-                3 人模式會出現 6 名候選角色；5 人模式會出現 10 名候選角色。
-              </Typography>
               <Button variant="outlined" size="large" onClick={() => createRoom(3)} sx={{ fontWeight: 950 }}>
                 3 人模式
               </Button>
