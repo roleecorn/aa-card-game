@@ -11,6 +11,12 @@
 - Standard AI mode 仍使用原本 `DrawPhaseScreen` 的隨機隊伍 / 單次重抽，以及 `finishPlayerAssignment() -> runEnemyTurn()` 流程。
 - Online mode 不使用 AI 的重抽流程；連線後先進入雙方共用的 character draft，再開始 human-vs-human battle。
 
+## Player-facing copy policy
+
+連線實作細節只屬於開發文件與程式碼，不應直接顯示給玩家。UI、提示與可見錯誤訊息應使用「房間、房間代碼、對手、連線、重新嘗試」等玩家語言。
+
+以下術語不得作為玩家 UI 說明：`WebRTC`、`P2P`、`signaling`、`SDP`、`ICE`、`STUN`、`TURN`、`MQTT`、`broker`、`DataChannel`。角色選擇畫面同樣避免 `Draft` / `Pick` 等內部命名，統一使用「選擇角色／已選」。
+
 ## Signaling / room code
 
 6 位數房間代碼只是短期 **room locator**，不是把 WebRTC Offer 壓縮成 6 位數。
@@ -115,4 +121,5 @@ npm run build
 - Host / Guest 都能進行創作、放骰、出牌、發動技能、手牌超限棄牌與結束回合。
 - Guest 回合結束後會正確進入下一回合 Host turn。
 - 6 位數 code 可在 Chrome Host + Edge Guest 完成配對，不需人工交換 SDP。
+- 玩家可見 UI 與錯誤訊息不顯示 WebRTC / P2P / signaling / SDP / ICE / STUN / TURN / MQTT / broker / DataChannel 等實作術語。
 - 斷線後雙方不再允許繼續修改各自 state。
