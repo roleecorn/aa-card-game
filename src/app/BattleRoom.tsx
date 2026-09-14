@@ -28,6 +28,7 @@ import {
 } from '../game/targeting';
 import type { ActionChoice, CardInstance, SkillActivationTarget } from '../game/types';
 import { useGameStore } from '../store/gameStore';
+import { useOnlineSession } from '../online/onlineSession';
 import { GameHeader } from '../components/GameHeader';
 import { TeamColumn } from '../components/TeamColumn';
 import { WorkBoard } from '../components/WorkBoard';
@@ -69,11 +70,17 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
   const dismissTutorial = useGameStore((state) => state.dismissTutorial);
   const setActionChoice = useGameStore((state) => state.setActionChoice);
   const performPlayerActions = useGameStore((state) => state.performPlayerActions);
+  const performOnlineActions = useGameStore((state) => state.performOnlineActions);
   const placeDie = useGameStore((state) => state.placeDie);
   const finishPlayerAssignment = useGameStore((state) => state.finishPlayerAssignment);
+  const finishOnlineAssignment = useGameStore((state) => state.finishOnlineAssignment);
   const playCard = useGameStore((state) => state.playCard);
   const discardCards = useGameStore((state) => state.discardCards);
   const activateSkill = useGameStore((state) => state.activateSkill);
+  const onlineRole = useOnlineSession((state) => state.role);
+  const onlineStatus = useOnlineSession((state) => state.status);
+  const sendCommand = useOnlineSession((state) => state.sendCommand);
+  const broadcastCurrentGame = useOnlineSession((state) => state.broadcastCurrentGame);
 
   const engine = useMemo(
     () => game ? new EngineSession(game, Math.random, activeGameDefinition) : undefined,
@@ -87,6 +94,13 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
   const [rosterOpen, setRosterOpen] = useState(false);
   const tutorialStep = tutorial?.step;
 
+  const onlineConnected = onlineStatus === 'connected';
+  const onlineActive = onlineRole !== null;
+  const onlineGuest = onlineRole === 'guest';
+  const onlineHost = onlineRole === 'host';
+  const localTurn = game?.phase === 'player-plan' || game?.phase === 'player-assign';
+  const waitingForOpponent = game?.phase === 'enemy-plan' || game?.phase === 'enemy-assign';
+  const canInteract = !onlineActive || onlineConnected;
   const selectedDie = game?.player.pendingDice.find((die) => die.id === selectedDieId);
   const playerScore = engine?.scoreTeam('player') ?? 0;
   const enemyScore = engine?.scoreTeam('enemy') ?? 0;
@@ -107,19 +121,50 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [cancelSelection, selectionMode]);
 
+  useEffect(() => {
+    if (!waitingForOpponent && game?.phase !== 'finished') return;
+    setSelectionMode(undefined);
+    setSelectedDieId(undefined);
+    setCardInstance(undefined);
+    setSkillDialog(undefined);
+  }, [game?.phase, waitingForOpponent]);
+
+  const publishHostState = (success: boolean): boolean => {
+    if (success && onlineHost) broadcastCurrentGame();
+    return success;
+  };
+
+  const sendGuestCommand = (command: Parameters<typeof sendCommand>[0]): boolean => {
+    if (!onlineConnected) {
+      setMessage('連線已中斷，請重開對局。');
+      return false;
+    }
+    const sent = sendCommand(command);
+    if (!sent) setMessage('目前無法傳送操作給 Host。');
+    return sent;
+  };
+
   const handleActionChange = (memberId: string, action: ActionChoice) => {
+    if (!localTurn || !canInteract) return;
     setActionChoice(memberId, action);
     tutorialEvent({ type: 'actionChanged', memberId, action });
   };
 
   const handlePerformPlayerActions = () => {
-    performPlayerActions();
+    if (!game || game.phase !== 'player-plan' || !canInteract) return;
+    if (onlineGuest) {
+      if (!sendGuestCommand({ type: 'performActions', actions: actionChoices })) return;
+    } else if (onlineHost) {
+      if (!publishHostState(performOnlineActions('player', actionChoices))) return;
+    } else {
+      performPlayerActions();
+    }
     cancelSelection();
     tutorialEvent({ type: 'playerActionsPerformed' });
   };
 
   const handleDieSelect = (dieId: string) => {
-    if (!game || !engine || game.phase !== 'player-assign') return;
+    if (!game || !engine || game.phase !== 'player-assign' || !canInteract) return;
     if (selectionMode?.kind === 'die' && selectionMode.dieId === dieId) {
       cancelSelection();
       return;
@@ -138,7 +183,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
   };
 
   const handleSlotClick = (workId: string, slotIndex: number) => {
-    if (!selectedDie || !engine) return;
+    if (!selectedDie || !engine || !canInteract) return;
     const work = game?.player.works.find((candidate) => candidate.id === workId);
     if (!work) return;
     const legality = getDiePlacementLegality(engine, 'player', selectedDie, work, slotIndex);
@@ -146,7 +191,9 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
       cancelSelection();
       return;
     }
-    const ok = placeDie(selectedDie.id, workId, slotIndex);
+    const ok = onlineGuest
+      ? sendGuestCommand({ type: 'placeDie', dieId: selectedDie.id, workId, slotIndex })
+      : publishHostState(placeDie(selectedDie.id, workId, slotIndex));
     if (ok) {
       tutorialEvent({
         type: 'diePlaced',
@@ -163,6 +210,10 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
 
   const handleOpenCard = (instance: CardInstance) => {
     if (!game || !engine || game.phase === 'finished') return;
+    if (onlineActive && (!onlineConnected || !localTurn)) {
+      setMessage(onlineConnected ? '等待對手完成回合。' : '連線已中斷，請重開對局。');
+      return;
+    }
     const availability = getCardAvailability(engine, 'player', instance);
     if (!availability.allowed) {
       setMessage(availability.reason ?? '目前條件不允許使用這張牌。');
@@ -172,10 +223,15 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     tutorialEvent({ type: 'cardDialogOpened', cardId: instance.cardId });
   };
 
+  const playLocalCard = (instanceId: string, target: SkillActivationTarget): boolean => {
+    if (onlineGuest) return sendGuestCommand({ type: 'playCard', instanceId, target });
+    return publishHostState(playCard('player', instanceId, target));
+  };
+
   const handleCardConfirm = (target: SkillActivationTarget) => {
     if (!cardInstance) return;
     const cardId = cardInstance.cardId;
-    const ok = playCard('player', cardInstance.instanceId, target);
+    const ok = playLocalCard(cardInstance.instanceId, target);
     tutorialEvent({ type: 'cardResolved', cardId, success: ok });
     setCardInstance(undefined);
     if (!ok) setMessage('目前條件不允許使用這張牌。');
@@ -195,6 +251,10 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
 
   const handleActivate = (memberId: string, skillId: string) => {
     if (!engine) return;
+    if (onlineActive && (!onlineConnected || !localTurn)) {
+      setMessage(onlineConnected ? '等待對手完成回合。' : '連線已中斷，請重開對局。');
+      return;
+    }
     const skill = SKILLS[skillId];
     if (!skill) return;
     const availability = getSkillAvailability(engine, memberId, skillId);
@@ -206,8 +266,13 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     tutorialEvent({ type: 'skillDialogOpened', memberId, skillId });
   };
 
+  const activateLocalSkill = (memberId: string, skillId: string, target: SkillActivationTarget): boolean => {
+    if (onlineGuest) return sendGuestCommand({ type: 'activateSkill', memberId, skillId, target });
+    return publishHostState(activateSkill('player', memberId, skillId, target));
+  };
+
   const resolveSkill = (memberId: string, skillId: string, target: SkillActivationTarget) => {
-    const ok = activateSkill('player', memberId, skillId, target);
+    const ok = activateLocalSkill(memberId, skillId, target);
     tutorialEvent({ type: 'skillResolved', memberId, skillId, success: ok });
     setSkillDialog(undefined);
     setSelectionMode(undefined);
@@ -248,9 +313,21 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
   };
 
   const handleFinishPlayerAssignment = () => {
-    finishPlayerAssignment();
+    if (!game || game.phase !== 'player-assign' || !canInteract) return;
+    if (onlineGuest) {
+      if (!sendGuestCommand({ type: 'finishAssignment' })) return;
+    } else if (onlineHost) {
+      if (!publishHostState(finishOnlineAssignment('player'))) return;
+    } else {
+      finishPlayerAssignment();
+    }
     cancelSelection();
     tutorialEvent({ type: 'playerAssignmentFinished' });
+  };
+
+  const discardLocalCards = (instanceIds: string[]): boolean => {
+    if (onlineGuest) return sendGuestCommand({ type: 'discardCards', instanceIds });
+    return publishHostState(discardCards('player', instanceIds));
   };
 
   if (!game || !engine) return null;
@@ -316,7 +393,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     if (selectionMode?.kind === 'card') {
       const card = CARDS[selectionMode.instance.cardId];
       if (!card || card.target.kind !== 'member') return;
-      const ok = playCard('player', selectionMode.instance.instanceId, { memberId });
+      const ok = playLocalCard(selectionMode.instance.instanceId, { memberId });
       tutorialEvent({ type: 'cardResolved', cardId: selectionMode.instance.cardId, success: ok });
       setSelectionMode(undefined);
       if (!ok) setMessage('目前狀態已改變，這張牌無法指定該角色。');
@@ -331,7 +408,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     if (selectionMode?.kind === 'card') {
       const card = CARDS[selectionMode.instance.cardId];
       if (!card || card.target.kind !== 'work') return;
-      const ok = playCard('player', selectionMode.instance.instanceId, { workId });
+      const ok = playLocalCard(selectionMode.instance.instanceId, { workId });
       tutorialEvent({ type: 'cardResolved', cardId: selectionMode.instance.cardId, success: ok });
       setSelectionMode(undefined);
       if (!ok) setMessage('目前狀態已改變，這張牌無法指定該作品。');
@@ -382,6 +459,12 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
       )}
 
       <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
+        {onlineActive && !onlineConnected && (
+          <Alert severity="error" sx={{ mb: 1.2 }}>連線已中斷。為避免兩邊狀態分歧，目前操作已停用；請重開對局。</Alert>
+        )}
+        {onlineConnected && waitingForOpponent && (
+          <Alert severity="info" sx={{ mb: 1.2 }}>等待對手完成目前回合。</Alert>
+        )}
         <ActionFeedback events={game.feedback} />
         {game.phase === 'finished' && (
           <Alert severity={game.winner === 'player' ? 'success' : game.winner === 'draw' ? 'info' : 'warning'} sx={{ mb: 1.2 }}>
@@ -395,10 +478,10 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
             side="player"
             team={game.player}
             engine={engine}
-            showActions={game.phase === 'player-plan'}
+            showActions={game.phase === 'player-plan' && canInteract}
             actionChoices={actionChoices}
             onActionChange={handleActionChange}
-            onActivateSkill={handleActivate}
+            onActivateSkill={localTurn && canInteract ? handleActivate : undefined}
             selection={memberCandidates ? { candidates: memberCandidates, onSelect: handleMemberSelection, onCancel: cancelSelection } : undefined}
           />
 
@@ -414,12 +497,12 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
                     <Typography sx={{ fontSize: 10.5, color: 'text.secondary', fontStyle: 'italic' }}>Works in Progress · Design → Text → AA</Typography>
                   </Box>
                 </Stack>
-                {game.phase === 'player-plan' && (
+                {game.phase === 'player-plan' && canInteract && (
                   <Button data-tutorial="perform-work" color="secondary" variant="contained" startIcon={<CasinoIcon />} onClick={handlePerformPlayerActions}>
                     進行創作
                   </Button>
                 )}
-                {game.phase === 'player-assign' && (
+                {game.phase === 'player-assign' && canInteract && (
                   <Button data-tutorial="end-turn" color="warning" variant="contained" startIcon={<SkipNextIcon />} onClick={handleFinishPlayerAssignment}>
                     結束回合
                   </Button>
@@ -430,7 +513,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
             <WorkBoard
               works={game.player.works}
               selectedDie={selectedDie}
-              onSlotClick={game.phase === 'player-assign' ? handleSlotClick : undefined}
+              onSlotClick={game.phase === 'player-assign' && canInteract ? handleSlotClick : undefined}
               workSelection={workCandidates ? { candidates: workCandidates, onSelect: handleWorkSelection, onCancel: cancelSelection } : undefined}
               slotSelection={selectionMode?.kind === 'die' && selectedDie ? {
                 getLegality: (work, slotIndex) => getDiePlacementLegality(engine, 'player', selectedDie, work, slotIndex),
@@ -448,7 +531,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
               <DiceTray
                 dice={game.player.pendingDice}
                 selectedDieId={selectedDieId}
-                onSelect={handleDieSelect}
+                onSelect={game.phase === 'player-assign' && canInteract ? handleDieSelect : undefined}
                 selection={dieCandidates ? { candidates: dieCandidates, onSelect: handleSkillDieSelection, onCancel: cancelSelection } : undefined}
               />
             </Paper>
@@ -481,6 +564,9 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
                   hand={game.player.hand}
                   onPlay={handleOpenCard}
                   getDisabledReason={mode === 'tutorial' ? undefined : (instance) => {
+                    if (onlineActive && (!onlineConnected || !localTurn)) {
+                      return onlineConnected ? '等待對手完成回合。' : '連線已中斷。';
+                    }
                     const availability = getCardAvailability(engine, 'player', instance);
                     return availability.allowed ? undefined : availability.reason;
                   }}
@@ -510,7 +596,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
         </Box>
       </Container>
 
-      <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardCards('player', instanceIds)} />
+      <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardLocalCards(instanceIds)} />
 
       {useLegacyCardDialog ? (
         <CardPlayDialog open={!!cardInstance} cardInstance={cardInstance} game={game} onClose={handleCardDialogClose} onConfirm={handleCardConfirm} />
