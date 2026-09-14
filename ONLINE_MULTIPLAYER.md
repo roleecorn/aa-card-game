@@ -63,8 +63,8 @@ npm run dev
 6 位純數字只有 1,000,000 種組合，因此：
 
 - 適合朋友間短期配對，不應視為安全密碼。
-- Host 只接受第一位 Guest；後續加入者會收到 room busy。
-- public broker 不保留遊戲 state；Host 關閉頁面後房間即失效。
+- 配對期間 Host 只接受第一位 Guest；若同時出現另一位 Guest，Host 會回覆 room busy。
+- DataChannel 建立後雙方會離開 MQTT signaling topic，因此該 6 位數不再接受新的 peer；Host 關閉頁面後也沒有任何 server-side room state 可恢復。
 - 若未來需要公開 matchmaking、防猜房、可靠 reconnect 或大量同時房間，應改用具有 server-side room registry 的正式 signaling service，或提高 room code entropy。
 
 ## Security / competitive limitation
