@@ -20,6 +20,8 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
   const myTurn = turn?.side === role;
   const characterMap = new Map(characters.map((character) => [character.id, character]));
+  const pickedIds = new Set([...draft.hostPicks, ...draft.guestPicks]);
+  const availableCharacters = characters.filter((character) => !pickedIds.has(character.id));
   const [revealPhase, setRevealPhase] = useState<RevealPhase>('dealing');
   const [revealCount, setRevealCount] = useState(0);
   const revealReady = revealPhase === 'ready';
@@ -125,23 +127,14 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
               minWidth: 0,
             }}
           >
-            {characters.map((character, index) => {
-              const pickedBy = draft.hostPicks.includes(character.id)
-                ? 'host'
-                : draft.guestPicks.includes(character.id)
-                ? 'guest'
-                : null;
-              const mine = pickedBy === role;
-              const available = revealReady && !pickedBy && myTurn && draft.status === 'drafting';
+            {availableCharacters.map((character, index) => {
+              const available = revealReady && myTurn && draft.status === 'drafting';
 
               return (
                 <CharacterSelectionCard
                   key={character.id}
                   character={character}
-                  selected={!!pickedBy}
-                  selectedLabel={mine ? '我方已選' : '對手已選'}
                   interactive={available}
-                  dimmed={!!pickedBy && !mine}
                   revealed={revealReady || index < revealCount}
                   dealIndex={index}
                   onClick={() => onPick(character.id)}
