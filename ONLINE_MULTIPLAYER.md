@@ -8,7 +8,8 @@
 - **Guest command-only**：Guest 不自行結算遊戲規則，只傳送 play card / activate skill / place die / finish assignment 等 command。
 - Host 每次接受 command 後傳回完整 state snapshot。
 - Guest 收到 snapshot 後交換 `player` / `enemy` perspective，因此 Host 與 Guest 都能使用同一個 `BattleRoom` UI；各自畫面中的 `player` 永遠代表本地玩家。
-- Standard AI mode 仍使用原本 `finishPlayerAssignment() -> runEnemyTurn()` 流程；Online mode 使用獨立的 human turn adapter。
+- Standard AI mode 仍使用原本 `DrawPhaseScreen` 的隨機隊伍 / 單次重抽，以及 `finishPlayerAssignment() -> runEnemyTurn()` 流程。
+- Online mode 不使用 AI 的重抽流程；連線後先進入雙方共用的 character draft，再開始 human-vs-human battle。
 
 ## Signaling / room code
 
@@ -16,25 +17,45 @@
 
 瀏覽器使用 EMQX public MQTT broker 的 secure WebSocket endpoint `wss://broker.emqx.io:8084/mqtt` 作為 rendezvous channel：
 
-1. Host 產生隨機 6 位數 room code，訂閱該房間的 signaling topic。
+1. Host 先選擇 3 人或 5 人模式，再產生隨機 6 位數 room code。
 2. Guest 輸入同一個 room code 並送出 join message。
 3. Host / Guest 透過該 topic 自動交換 WebRTC SDP 與 ICE candidate。
 4. WebRTC DataChannel 開啟後立即關閉 MQTT signaling connection。
-5. 後續遊戲 command / snapshot 只走 WebRTC P2P，不經 MQTT broker。
+5. 後續 draft、遊戲 command / snapshot 只走 WebRTC P2P，不經 MQTT broker。
 
 Repository 內的 `src/online/mqttSignaling.ts` 是最小 MQTT 3.1.1 over WebSocket client，只實作此流程需要的 CONNECT / SUBSCRIBE / QoS 0 PUBLISH / PING / DISCONNECT，因此不需要額外 npm dependency。
 
 > EMQX public broker 是公開的 prototype / testing service。Signaling topic 上的資料不應包含帳號、密碼或其他敏感資訊。本遊戲只用它交換短期 WebRTC negotiation data。
 
+## Online character draft
+
+房主在**建立房間前**先決定隊伍人數：
+
+- 3 人模式：隨機公開 6 張不同角色卡。
+- 5 人模式：隨機公開 10 張不同角色卡。
+
+連線成功後，Host 產生候選 pool，並以 Host-authoritative draft state 同步給 Guest。雙方只能在輪到自己時選未被選走的角色。
+
+Pick 批次順序：
+
+- 3 人：`Host 1 -> Guest 2 -> Host 2 -> Guest 1`
+- 5 人：`Host 1 -> Guest 2 -> Host 2 -> Guest 2 -> Host 2 -> Guest 1`
+
+也就是一般化的 `1-2-2-...-2-1`，最後雙方都會得到相同數量的角色。每一方**第一張 Pick 的角色就是該隊組長**，因此 Online 不再存在只有 Host 能重抽或只有 Host 能選組長的不對稱。
+
+所有角色選完後，Host 才建立正式 `GameState`；Guest 收到第一個 gameplay snapshot 後，雙方進入同一個 `BattleRoom`。
+
 ## Connection flow
 
 1. 兩邊開啟相同版本的遊戲。
 2. Host 點「連線對戰」→「建立連線房間」。
-3. 畫面顯示 6 位數房間代碼，例如 `381204`。
-4. Host 透過 Discord / LINE / 其他聊天工具把這 6 位數傳給 Guest。
-5. Guest 點「連線對戰」→「加入連線房間」，輸入 6 位數代碼。
-6. 瀏覽器自動完成 SDP / ICE signaling；不再需要人工交換 Offer / Answer。
-7. DataChannel 顯示已連線後，Host 使用原本的「開始遊戲」流程選擇 3 / 5 人與隊伍；Guest 收到初始 snapshot 後直接進入相同的遊玩 UI。
+3. Host **先選 3 人或 5 人模式**。
+4. 畫面才顯示 6 位數房間代碼，例如 `381204`。
+5. Host 把這 6 位數傳給 Guest。
+6. Guest 點「連線對戰」→「加入連線房間」，輸入 6 位數代碼。
+7. 瀏覽器自動完成 SDP / ICE signaling。
+8. 連線成功後雙方直接進入 character draft，依 `1-2-2-...-2-1` 輪流 Pick。
+9. Draft 完成後自動建立對局並進入 `BattleRoom`；不再經過 Online 單方重抽畫面。
 
 ## Local development test
 
@@ -48,7 +69,8 @@ npm run dev
 - Chrome：Host
 - Edge 或 Chrome Incognito：Guest
 - 兩邊都開 Vite 顯示的 `http://localhost:5173/...`
-- Host 建立房間，把 6 位數代碼輸入 Guest
+- Host 選模式後建立房間，把 6 位數代碼輸入 Guest
+- 先完整測完一輪 draft，再確認雙方自動進入 BattleRoom
 
 需要再驗證真實 NAT traversal 時，可使用 PC Wi-Fi + 手機 5G，或不同網路的兩台裝置。
 
@@ -83,8 +105,13 @@ npm run build
 
 並人工確認：
 
-- Standard AI 對戰仍會在玩家結束分配後自動完成 AI turn。
+- Standard AI 對戰仍保留原本單次重抽、選組長與 AI 自動回合。
 - Tutorial 固定流程仍可完成。
+- Host 必須先選 3 / 5 人模式，之後才能產生 room code。
+- 3 人 draft 是 6 張候選、`1-2-2-1`；5 人 draft 是 10 張候選、`1-2-2-2-2-1`。
+- 非自己回合、超過該批選牌數或已被 Pick 的角色不可再選。
+- 雙方第一張 Pick 正確成為各自隊伍組長。
+- Draft 完成前不建立正式 gameplay state；完成後雙方自動進 BattleRoom。
 - Host / Guest 都能進行創作、放骰、出牌、發動技能、手牌超限棄牌與結束回合。
 - Guest 回合結束後會正確進入下一回合 Host turn。
 - 6 位數 code 可在 Chrome Host + Edge Guest 完成配對，不需人工交換 SDP。
