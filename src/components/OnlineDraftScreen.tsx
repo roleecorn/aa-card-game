@@ -11,6 +11,7 @@ interface Props {
   role: OnlineDraftSide;
   characters: CharacterDefinition[];
   onPick: (characterId: string) => void;
+  onAnimationSettled: () => void;
 }
 
 type RevealPhase = 'dealing' | 'revealing' | 'ready';
@@ -46,7 +47,7 @@ function snapshotRect(node: HTMLElement): RectSnapshot {
   };
 }
 
-export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
+export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimationSettled }: Props) {
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
@@ -66,7 +67,13 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
   const previousPicksRef = useRef({ host: [...draft.hostPicks], guest: [...draft.guestPicks] });
   const candidateRefs = useRef(new Map<string, HTMLDivElement>());
   const railRefs = useRef(new Map<string, HTMLDivElement>());
+  const settledNotifiedRef = useRef(false);
   const animationBusy = !!flyingPick || pendingAnimations.length > 0 || [...pickedIds].some((id) => !hiddenPickedIds.has(id));
+  const allPickedCardsLanded = [...pickedIds].every((id) => hiddenPickedIds.has(id));
+  const visualDraftSettled = draft.status === 'complete'
+    && !animationBusy
+    && !landingId
+    && allPickedCardsLanded;
 
   useEffect(() => {
     if (!characters.length) {
@@ -168,6 +175,16 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
     const timer = window.setTimeout(() => setLandingId((current) => current === landingId ? null : current), 520);
     return () => window.clearTimeout(timer);
   }, [landingId]);
+
+  useEffect(() => {
+    if (draft.status !== 'complete') {
+      settledNotifiedRef.current = false;
+      return;
+    }
+    if (!visualDraftSettled || settledNotifiedRef.current) return;
+    settledNotifiedRef.current = true;
+    onAnimationSettled();
+  }, [draft.status, onAnimationSettled, visualDraftSettled]);
 
   const skipReveal = () => {
     setRevealCount(characters.length);
@@ -387,6 +404,13 @@ function DraftTeamRail({
         alignSelf: 'start',
         maxHeight: { lg: 'calc(100vh - 32px)' },
         overflowY: { lg: 'auto' },
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        '&::-webkit-scrollbar': {
+          display: 'none',
+          width: 0,
+          height: 0,
+        },
         pr: { lg: .35 },
       }}
     >
