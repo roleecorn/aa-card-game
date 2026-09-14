@@ -33,7 +33,7 @@ function encodeRemainingLength(value: number): OwnedBytes {
 
 function encodeMqttString(value: string): OwnedBytes {
   const bytes = encoder.encode(value);
-  if (bytes.length > 0xffff) throw new Error('MQTT string is too long.');
+  if (bytes.length > 0xffff) throw new Error('連線資料過長，請重新建立房間。');
   return concatBytes(Uint8Array.of(bytes.length >> 8, bytes.length & 0xff), bytes);
 }
 
@@ -89,13 +89,13 @@ export class MqttSignalingClient {
   }
 
   connect(): Promise<void> {
-    if (this.socket) return Promise.reject(new Error('Signaling client is already connected.'));
+    if (this.socket) return Promise.reject(new Error('房間連線已啟動。'));
     this.intentionalClose = false;
 
     return new Promise((resolve, reject) => {
       this.connectResolve = resolve;
       this.connectReject = reject;
-      this.connectTimeout = setTimeout(() => this.failConnect('連線 signaling broker 逾時。'), 10_000);
+      this.connectTimeout = setTimeout(() => this.failConnect('建立房間連線逾時，請稍後重試。'), 10_000);
 
       const socket = new WebSocket(BROKER_URL, 'mqtt');
       socket.binaryType = 'arraybuffer';
@@ -109,12 +109,12 @@ export class MqttSignalingClient {
           void event.data.arrayBuffer().then((buffer) => this.consume(new Uint8Array(buffer)));
         }
       };
-      socket.onerror = () => this.failConnect('無法連線到公開 signaling broker。');
+      socket.onerror = () => this.failConnect('目前無法使用連線服務，請稍後重試。');
       socket.onclose = () => {
         this.stopKeepAlive();
         if (!this.intentionalClose) {
-          this.failConnect('Signaling broker 連線已中斷。');
-          this.options.onError('Signaling broker 連線已中斷。');
+          this.failConnect('連線服務已中斷，請重新建立或加入房間。');
+          this.options.onError('連線服務已中斷，請重新建立或加入房間。');
         }
       };
     });
@@ -172,7 +172,7 @@ export class MqttSignalingClient {
         remainingLength += (digit & 0x7f) * multiplier;
         multiplier *= 128;
         if (multiplier > 128 ** 4) {
-          this.options.onError('收到無效的 MQTT packet。');
+          this.options.onError('連線資料異常，請重新建立或加入房間。');
           this.close();
           return;
         }
@@ -191,7 +191,7 @@ export class MqttSignalingClient {
     const type = header >> 4;
     if (type === 2) {
       if (body.length < 2 || body[1] !== 0) {
-        this.failConnect(`MQTT broker 拒絕連線（code ${body[1] ?? 'unknown'}）。`);
+        this.failConnect('目前無法建立房間連線，請稍後重試。');
         return;
       }
       this.sendSubscribe();
@@ -200,7 +200,7 @@ export class MqttSignalingClient {
 
     if (type === 9) {
       if (body.length < 3 || body[2] === 0x80) {
-        this.failConnect('MQTT broker 拒絕訂閱房間。');
+        this.failConnect('無法準備房間，請重新建立或加入房間。');
         return;
       }
       this.finishConnect();
