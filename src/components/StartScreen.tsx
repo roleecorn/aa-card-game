@@ -3,6 +3,7 @@ import { Box, Button, Dialog, DialogContent, DialogTitle, Paper, Stack, Typograp
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
+import WifiRoundedIcon from '@mui/icons-material/WifiRounded';
 
 export type TeamSizeOption = 3 | 5;
 
@@ -10,12 +11,13 @@ interface Props {
   onStart: (teamSize: TeamSizeOption) => void;
   onStartTutorial: () => void;
   onOpenRoster: () => void;
+  onOpenOnline?: () => void;
 }
 
 const releasedAtTaiwan = import.meta.env.VITE_RELEASED_AT_TW as string | undefined;
 const gameManualUrl = 'https://github.com/roleecorn/aa-card-game/blob/main/GAME_MANUAL.md';
 
-export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
+export function StartScreen({ onStart, onStartTutorial, onOpenRoster, onOpenOnline }: Props) {
   const [modeDialogOpen, setModeDialogOpen] = useState(false);
 
   const chooseTeamSize = (teamSize: TeamSizeOption) => {
@@ -75,6 +77,17 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster }: Props) {
             >
               開始遊戲
             </Button>
+            {onOpenOnline && (
+              <Button
+                size="large"
+                variant="outlined"
+                startIcon={<WifiRoundedIcon />}
+                onClick={onOpenOnline}
+                sx={{ py: 1, fontSize: 15, fontWeight: 950, borderRadius: 2 }}
+              >
+                連線對戰
+              </Button>
+            )}
             <Button
               size="large"
               color="secondary"
