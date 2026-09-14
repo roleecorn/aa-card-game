@@ -8,6 +8,12 @@ import {
   type OnlineCommand,
   type OnlineMessage,
 } from './protocol';
+import {
+  applyOnlineDraftPick,
+  createOnlineDraft,
+  type OnlineDraftState,
+  type OnlineTeamSize,
+} from './onlineDraft';
 import { generateRoomCode, MqttSignalingClient, type SignalingMessage } from './mqttSignaling';
 
 type OnlineRole = 'host' | 'guest';
@@ -17,9 +23,13 @@ interface OnlineSessionStore {
   role: OnlineRole | null;
   status: OnlineStatus;
   roomCode: string;
+  teamSize: OnlineTeamSize | null;
+  draft: OnlineDraftState | null;
   error: string | null;
-  createHostRoom: () => Promise<void>;
+  createHostRoom: (teamSize: OnlineTeamSize) => Promise<void>;
   joinGuestRoom: (roomCode: string) => Promise<void>;
+  startHostDraft: (playableIds: string[]) => boolean;
+  pickDraftCharacter: (characterId: string) => boolean;
   sendCommand: (command: OnlineCommand) => boolean;
   broadcastCurrentGame: () => boolean;
   disconnect: () => void;
@@ -78,6 +88,10 @@ function publishSignal(
   });
 }
 
+function broadcastDraft(draft: OnlineDraftState): boolean {
+  return send({ version: ONLINE_PROTOCOL_VERSION, type: 'draft', draft });
+}
+
 function canGuestUseTurnAction(): boolean {
   const phase = useGameStore.getState().game?.phase;
   return phase === 'enemy-plan' || phase === 'enemy-assign';
@@ -118,6 +132,23 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
     return;
   }
 
+  if (role === 'host' && message.type === 'draftPick') {
+    const current = useOnlineSession.getState().draft;
+    const next = current ? applyOnlineDraftPick(current, 'guest', message.characterId) : null;
+    if (!next) {
+      send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '目前不能選擇這張角色卡。' });
+      return;
+    }
+    useOnlineSession.setState({ draft: next });
+    broadcastDraft(next);
+    return;
+  }
+
+  if (role === 'guest' && message.type === 'draft') {
+    useOnlineSession.setState({ draft: message.draft, teamSize: message.draft.teamSize, error: null });
+    return;
+  }
+
   if (role === 'host' && message.type === 'command') {
     const accepted = applyGuestCommand(message.command);
     if (!accepted) {
@@ -145,7 +176,10 @@ function attachChannel(nextChannel: RTCDataChannel, role: OnlineRole): void {
     signaling?.close();
     signaling = null;
     useOnlineSession.setState({ status: 'connected', error: null });
-    if (role === 'host') useOnlineSession.getState().broadcastCurrentGame();
+    if (role === 'host') {
+      const game = useGameStore.getState().game;
+      if (game) useOnlineSession.getState().broadcastCurrentGame();
+    }
   };
   channel.onclose = () => useOnlineSession.setState({ status: 'closed' });
   channel.onerror = () => useOnlineSession.setState({ status: 'error', error: 'WebRTC DataChannel 發生錯誤。' });
@@ -277,12 +311,14 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
   role: null,
   status: 'idle',
   roomCode: '',
+  teamSize: null,
+  draft: null,
   error: null,
 
-  createHostRoom: async () => {
+  createHostRoom: async (teamSize) => {
     closeTransport(false);
     const roomCode = generateRoomCode();
-    set({ role: 'host', status: 'preparing', roomCode, error: null });
+    set({ role: 'host', status: 'preparing', roomCode, teamSize, draft: null, error: null });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -305,7 +341,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
 
     closeTransport(false);
-    set({ role: 'guest', status: 'preparing', roomCode, error: null });
+    set({ role: 'guest', status: 'preparing', roomCode, teamSize: null, draft: null, error: null });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -324,6 +360,34 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
   },
 
+  startHostDraft: (playableIds) => {
+    const state = get();
+    if (state.role !== 'host' || state.status !== 'connected' || !state.teamSize) return false;
+    if (state.draft) return true;
+    try {
+      const draft = createOnlineDraft(state.teamSize, playableIds);
+      set({ draft, error: null });
+      broadcastDraft(draft);
+      return true;
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : String(error) });
+      return false;
+    }
+  },
+
+  pickDraftCharacter: (characterId) => {
+    const state = get();
+    if (!state.draft || state.status !== 'connected' || !state.role) return false;
+    if (state.role === 'guest') {
+      return send({ version: ONLINE_PROTOCOL_VERSION, type: 'draftPick', characterId });
+    }
+    const next = applyOnlineDraftPick(state.draft, 'host', characterId);
+    if (!next) return false;
+    set({ draft: next });
+    broadcastDraft(next);
+    return true;
+  },
+
   sendCommand: (command) => send({ version: ONLINE_PROTOCOL_VERSION, type: 'command', command }),
 
   broadcastCurrentGame: () => {
@@ -339,7 +403,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
 
   disconnect: () => {
     closeTransport(true);
-    set({ role: null, status: 'idle', roomCode: '', error: null });
+    set({ role: null, status: 'idle', roomCode: '', teamSize: null, draft: null, error: null });
   },
 
   clearError: () => set({ error: null }),
