@@ -1,4 +1,5 @@
 import { Box, Chip, Paper, Stack, Typography } from '@mui/material';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import SubjectIcon from '@mui/icons-material/Subject';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -14,14 +15,18 @@ interface Props {
   interactive?: boolean;
   dimmed?: boolean;
   variant?: 'full' | 'rail';
+  revealed?: boolean;
+  dealIndex?: number;
   onClick?: () => void;
 }
 
 /**
- * Revealed character card used by pre-match selection screens.
+ * Character card used by pre-match selection screens.
  * `full` follows the existing "你的初始隊伍" card layout: large portrait,
  * stats, affinities, tags, and visible skill descriptions. `rail` keeps that
  * same vertical card language at a narrower size for already-picked teams.
+ * When `revealed` is supplied, the full card uses the same card-back -> face
+ * flip language as the normal initial-team draw sequence.
  */
 export function CharacterSelectionCard({
   character,
@@ -30,6 +35,8 @@ export function CharacterSelectionCard({
   interactive = false,
   dimmed = false,
   variant = 'full',
+  revealed,
+  dealIndex = 0,
   onClick,
 }: Props) {
   const rail = variant === 'rail';
@@ -37,7 +44,7 @@ export function CharacterSelectionCard({
     .map((skillId) => SKILLS[skillId])
     .filter((skill): skill is NonNullable<typeof skill> => !!skill);
 
-  return (
+  const face = (
     <Paper
       onClick={() => interactive && onClick?.()}
       sx={{
@@ -173,6 +180,64 @@ export function CharacterSelectionCard({
         </Box>
       )}
     </Paper>
+  );
+
+  if (rail || revealed === undefined) return face;
+
+  return (
+    <Box
+      sx={{
+        perspective: '1200px',
+        minHeight: { xs: 540, md: 590 },
+        animation: `dealCard .55s cubic-bezier(.2,.8,.2,1) ${dealIndex * 90}ms both`,
+        '@keyframes dealCard': {
+          from: { opacity: 0, transform: 'translateY(48px) scale(.9) rotate(2deg)' },
+          to: { opacity: 1, transform: 'translateY(0) scale(1) rotate(0)' },
+        },
+      }}
+    >
+      <Box
+        sx={{
+          display: 'grid',
+          width: '100%',
+          minHeight: 'inherit',
+          transformStyle: 'preserve-3d',
+          transition: 'transform 560ms cubic-bezier(.2,.75,.25,1)',
+          transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
+      >
+        <Paper
+          sx={{
+            gridArea: '1 / 1',
+            minHeight: 'inherit',
+            backfaceVisibility: 'hidden',
+            display: 'grid',
+            placeItems: 'center',
+            overflow: 'hidden',
+            border: '2px solid #ccd8e8',
+            bgcolor: '#2c3d5f',
+            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,.08) 25%, transparent 25% 50%, rgba(255,255,255,.08) 50% 75%, transparent 75%)',
+            backgroundSize: '34px 34px',
+            boxShadow: '0 16px 34px rgba(39,57,89,.16)',
+          }}
+        >
+          <Box sx={{ width: 92, height: 126, border: '2px solid rgba(255,255,255,.72)', borderRadius: 3, display: 'grid', placeItems: 'center', transform: 'rotate(-5deg)' }}>
+            <AutoAwesomeRoundedIcon sx={{ color: '#fff', fontSize: 42 }} />
+          </Box>
+        </Paper>
+
+        <Box
+          sx={{
+            gridArea: '1 / 1',
+            transform: 'rotateY(180deg)',
+            backfaceVisibility: 'hidden',
+            minWidth: 0,
+          }}
+        >
+          {face}
+        </Box>
+      </Box>
+    </Box>
   );
 }
 
