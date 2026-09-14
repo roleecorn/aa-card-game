@@ -31,11 +31,14 @@ describe('online human turn flow', () => {
     const engine = new EngineSession(game, () => 0.42, definition);
 
     expect(game.phase).toBe('player-plan');
+    expect(performOnlineTeamActions(engine, 'enemy', allSlack(engine, 'enemy'))).toBe(false);
     expect(performOnlineTeamActions(engine, 'player', allSlack(engine, 'player'))).toBe(true);
     expect(game.phase).toBe('player-assign');
+    expect(finishOnlineAssignment(engine, 'enemy')).toBe(false);
     expect(finishOnlineAssignment(engine, 'player')).toBe(true);
     expect(game.phase).toBe('enemy-plan');
 
+    expect(performOnlineTeamActions(engine, 'player', allSlack(engine, 'player'))).toBe(false);
     expect(performOnlineTeamActions(engine, 'enemy', allSlack(engine, 'enemy'))).toBe(true);
     expect(game.phase).toBe('enemy-assign');
     expect(finishOnlineAssignment(engine, 'enemy')).toBe(true);
