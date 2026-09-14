@@ -2,6 +2,7 @@ import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import type { GameDefinition, MatchRules } from '../game/gameDefinition';
 import type { TeamId } from '../game/schema';
 import type { ActionChoice, GameState, Phase, SkillActivationTarget } from '../game/types';
+import type { OnlineDraftState } from './onlineDraft';
 
 export const ONLINE_PROTOCOL_VERSION = 1;
 
@@ -31,6 +32,16 @@ export type OnlineMessage =
       version: typeof ONLINE_PROTOCOL_VERSION;
       type: 'command';
       command: OnlineCommand;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'draft';
+      draft: OnlineDraftState;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'draftPick';
+      characterId: string;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
