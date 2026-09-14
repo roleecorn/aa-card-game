@@ -1,3 +1,4 @@
+import '../game/characterSkillEffects';
 import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
 
 export const pintboxCharacter = characterDefinitionSchema.parse({
