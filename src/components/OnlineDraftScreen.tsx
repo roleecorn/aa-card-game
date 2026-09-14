@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Box, Button, Stack, Typography } from '@mui/material';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import type { CharacterDefinition } from '../game/schema';
@@ -10,19 +11,69 @@ interface Props {
   role: OnlineDraftSide;
   characters: CharacterDefinition[];
   onPick: (characterId: string) => void;
+  onAnimationSettled: () => void;
 }
 
 type RevealPhase = 'dealing' | 'revealing' | 'ready';
+type DraftArea = 'mine' | 'rival';
 
-export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
+interface PickAnimation {
+  id: string;
+  side: OnlineDraftSide;
+}
+
+interface RectSnapshot {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface FlyingPick extends PickAnimation {
+  character: CharacterDefinition;
+  targetArea: DraftArea;
+  from: RectSnapshot;
+  to: RectSnapshot;
+  moving: boolean;
+}
+
+function snapshotRect(node: HTMLElement): RectSnapshot {
+  const rect = node.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+}
+
+export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimationSettled }: Props) {
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
   const myTurn = turn?.side === role;
   const characterMap = new Map(characters.map((character) => [character.id, character]));
+  const pickedIds = new Set([...draft.hostPicks, ...draft.guestPicks]);
+  const [hiddenPickedIds, setHiddenPickedIds] = useState<Set<string>>(
+    () => new Set([...draft.hostPicks, ...draft.guestPicks]),
+  );
+  const availableCharacters = characters.filter((character) => !hiddenPickedIds.has(character.id));
   const [revealPhase, setRevealPhase] = useState<RevealPhase>('dealing');
   const [revealCount, setRevealCount] = useState(0);
+  const [pendingAnimations, setPendingAnimations] = useState<PickAnimation[]>([]);
+  const [flyingPick, setFlyingPick] = useState<FlyingPick | null>(null);
+  const [landingId, setLandingId] = useState<string | null>(null);
   const revealReady = revealPhase === 'ready';
+  const previousPicksRef = useRef({ host: [...draft.hostPicks], guest: [...draft.guestPicks] });
+  const candidateRefs = useRef(new Map<string, HTMLDivElement>());
+  const railRefs = useRef(new Map<string, HTMLDivElement>());
+  const settledNotifiedRef = useRef(false);
+  const animationBusy = !!flyingPick || pendingAnimations.length > 0 || [...pickedIds].some((id) => !hiddenPickedIds.has(id));
+  const allPickedCardsLanded = [...pickedIds].every((id) => hiddenPickedIds.has(id));
+  const visualDraftSettled = draft.status === 'complete'
+    && !animationBusy
+    && !landingId
+    && allPickedCardsLanded;
 
   useEffect(() => {
     if (!characters.length) {
@@ -52,9 +103,102 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
     return () => window.clearTimeout(timer);
   }, [characters.length, revealCount, revealPhase]);
 
+  useEffect(() => {
+    const previous = previousPicksRef.current;
+    const previousHost = new Set(previous.host);
+    const previousGuest = new Set(previous.guest);
+    const additions: PickAnimation[] = [
+      ...draft.hostPicks.filter((id) => !previousHost.has(id)).map((id) => ({ id, side: 'host' as const })),
+      ...draft.guestPicks.filter((id) => !previousGuest.has(id)).map((id) => ({ id, side: 'guest' as const })),
+    ];
+
+    previousPicksRef.current = { host: [...draft.hostPicks], guest: [...draft.guestPicks] };
+    if (additions.length) {
+      setPendingAnimations((current) => [...current, ...additions]);
+    }
+  }, [draft.hostPicks, draft.guestPicks]);
+
+  useEffect(() => {
+    if (flyingPick || !pendingAnimations.length) return;
+
+    const next = pendingAnimations[0]!;
+    const sourceNode = candidateRefs.current.get(next.id);
+    const targetNode = railRefs.current.get(next.id);
+    const character = characterMap.get(next.id);
+
+    if (!sourceNode || !targetNode || !character) {
+      setHiddenPickedIds((current) => new Set(current).add(next.id));
+      setPendingAnimations((current) => current.slice(1));
+      return;
+    }
+
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    if (reduceMotion) {
+      setHiddenPickedIds((current) => new Set(current).add(next.id));
+      setLandingId(next.id);
+      setPendingAnimations((current) => current.slice(1));
+      return;
+    }
+
+    setFlyingPick({
+      ...next,
+      character,
+      targetArea: next.side === role ? 'mine' : 'rival',
+      from: snapshotRect(sourceNode),
+      to: snapshotRect(targetNode),
+      moving: false,
+    });
+    setPendingAnimations((current) => current.slice(1));
+  }, [characterMap, flyingPick, pendingAnimations, role]);
+
+  useEffect(() => {
+    if (!flyingPick || flyingPick.moving) return;
+    const timer = window.setTimeout(() => {
+      setFlyingPick((current) => current && current.id === flyingPick.id ? { ...current, moving: true } : current);
+    }, 140);
+    return () => window.clearTimeout(timer);
+  }, [flyingPick]);
+
+  useEffect(() => {
+    if (!flyingPick?.moving) return;
+    const id = flyingPick.id;
+    const timer = window.setTimeout(() => {
+      setHiddenPickedIds((current) => new Set(current).add(id));
+      setLandingId(id);
+      setFlyingPick((current) => current?.id === id ? null : current);
+    }, 560);
+    return () => window.clearTimeout(timer);
+  }, [flyingPick]);
+
+  useEffect(() => {
+    if (!landingId) return;
+    const timer = window.setTimeout(() => setLandingId((current) => current === landingId ? null : current), 520);
+    return () => window.clearTimeout(timer);
+  }, [landingId]);
+
+  useEffect(() => {
+    if (draft.status !== 'complete') {
+      settledNotifiedRef.current = false;
+      return;
+    }
+    if (!visualDraftSettled || settledNotifiedRef.current) return;
+    settledNotifiedRef.current = true;
+    onAnimationSettled();
+  }, [draft.status, onAnimationSettled, visualDraftSettled]);
+
   const skipReveal = () => {
     setRevealCount(characters.length);
     setRevealPhase('ready');
+  };
+
+  const registerCandidateRef = (id: string, node: HTMLDivElement | null) => {
+    if (node) candidateRefs.current.set(id, node);
+    else candidateRefs.current.delete(id);
+  };
+
+  const registerRailRef = (id: string, node: HTMLDivElement | null) => {
+    if (node) railRefs.current.set(id, node);
+    else railRefs.current.delete(id);
   };
 
   return (
@@ -110,6 +254,9 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
             characterMap={characterMap}
             area="mine"
             tone="mine"
+            hiddenPickedIds={hiddenPickedIds}
+            landingId={landingId}
+            registerRailRef={registerRailRef}
           />
 
           <Box
@@ -125,27 +272,39 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
               minWidth: 0,
             }}
           >
-            {characters.map((character, index) => {
-              const pickedBy = draft.hostPicks.includes(character.id)
+            {availableCharacters.map((character, index) => {
+              const movingOut = pickedIds.has(character.id) && !hiddenPickedIds.has(character.id);
+              const pickedSide: OnlineDraftSide | null = draft.hostPicks.includes(character.id)
                 ? 'host'
                 : draft.guestPicks.includes(character.id)
                 ? 'guest'
                 : null;
-              const mine = pickedBy === role;
-              const available = revealReady && !pickedBy && myTurn && draft.status === 'drafting';
+              const available = revealReady
+                && !animationBusy
+                && !movingOut
+                && myTurn
+                && draft.status === 'drafting';
+              const hideSource = flyingPick?.id === character.id && flyingPick.moving;
 
               return (
-                <CharacterSelectionCard
+                <Box
                   key={character.id}
-                  character={character}
-                  selected={!!pickedBy}
-                  selectedLabel={mine ? '我方已選' : '對手已選'}
-                  interactive={available}
-                  dimmed={!!pickedBy && !mine}
-                  revealed={revealReady || index < revealCount}
-                  dealIndex={index}
-                  onClick={() => onPick(character.id)}
-                />
+                  ref={(node: HTMLDivElement | null) => registerCandidateRef(character.id, node)}
+                  sx={{
+                    opacity: hideSource ? 0 : 1,
+                    transition: 'opacity 120ms ease',
+                  }}
+                >
+                  <CharacterSelectionCard
+                    character={character}
+                    selected={movingOut}
+                    selectedLabel={pickedSide === role ? '我方選擇' : '對手選擇'}
+                    interactive={available}
+                    revealed={revealReady || index < revealCount}
+                    dealIndex={index}
+                    onClick={() => onPick(character.id)}
+                  />
+                </Box>
               );
             })}
           </Box>
@@ -156,6 +315,9 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
             characterMap={characterMap}
             area="rival"
             tone="rival"
+            hiddenPickedIds={hiddenPickedIds}
+            landingId={landingId}
+            registerRailRef={registerRailRef}
           />
         </Box>
 
@@ -165,6 +327,49 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
           </Button>
         )}
       </Stack>
+
+      {flyingPick && typeof document !== 'undefined' && createPortal(
+        <FlyingCharacterCard pick={flyingPick} role={role} />,
+        document.body,
+      )}
+    </Box>
+  );
+}
+
+function FlyingCharacterCard({ pick, role }: { pick: FlyingPick; role: OnlineDraftSide }) {
+  const dx = pick.to.left - pick.from.left;
+  const dy = pick.to.top - pick.from.top;
+  const scale = Math.max(.32, Math.min(1, pick.to.width / Math.max(1, pick.from.width)));
+
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: 'fixed',
+        left: pick.from.left,
+        top: pick.from.top,
+        width: pick.from.width,
+        zIndex: 1800,
+        pointerEvents: 'none',
+        transformOrigin: 'top left',
+        transform: pick.moving
+          ? `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`
+          : 'translate3d(0, 0, 0) scale(1.025)',
+        filter: pick.moving
+          ? 'drop-shadow(0 18px 22px rgba(31,48,78,.24))'
+          : 'drop-shadow(0 0 16px rgba(255,112,152,.42))',
+        transition: pick.moving
+          ? 'transform 560ms cubic-bezier(.2,.8,.2,1), filter 560ms ease'
+          : 'transform 120ms ease-out, filter 120ms ease-out',
+        willChange: 'transform',
+      }}
+    >
+      <CharacterSelectionCard
+        character={pick.character}
+        selected
+        selectedLabel={pick.side === role ? '我方選擇' : '對手選擇'}
+        revealed
+      />
     </Box>
   );
 }
@@ -175,12 +380,18 @@ function DraftTeamRail({
   characterMap,
   area,
   tone,
+  hiddenPickedIds,
+  landingId,
+  registerRailRef,
 }: {
   title: string;
   ids: string[];
   characterMap: Map<string, CharacterDefinition>;
-  area: 'mine' | 'rival';
-  tone: 'mine' | 'rival';
+  area: DraftArea;
+  tone: DraftArea;
+  hiddenPickedIds: Set<string>;
+  landingId: string | null;
+  registerRailRef: (id: string, node: HTMLDivElement | null) => void;
 }) {
   return (
     <Stack
@@ -193,6 +404,13 @@ function DraftTeamRail({
         alignSelf: 'start',
         maxHeight: { lg: 'calc(100vh - 32px)' },
         overflowY: { lg: 'auto' },
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        '&::-webkit-scrollbar': {
+          display: 'none',
+          width: 0,
+          height: 0,
+        },
         pr: { lg: .35 },
       }}
     >
@@ -204,12 +422,24 @@ function DraftTeamRail({
       {ids.map((id) => {
         const character = characterMap.get(id);
         if (!character) return null;
+        const landed = landingId === id;
         return (
-          <CharacterSelectionCard
+          <Box
             key={id}
-            character={character}
-            variant="rail"
-          />
+            ref={(node: HTMLDivElement | null) => registerRailRef(id, node)}
+            sx={{
+              opacity: hiddenPickedIds.has(id) ? 1 : 0,
+              transform: landed ? 'scale(1.035)' : 'scale(1)',
+              filter: landed ? 'drop-shadow(0 0 14px rgba(255,112,152,.42))' : 'none',
+              transition: 'opacity 140ms ease, transform 220ms ease, filter 220ms ease',
+              transformOrigin: area === 'mine' ? 'left center' : 'right center',
+            }}
+          >
+            <CharacterSelectionCard
+              character={character}
+              variant="rail"
+            />
+          </Box>
         );
       })}
     </Stack>
