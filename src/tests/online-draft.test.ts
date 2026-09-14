@@ -68,9 +68,10 @@ describe('online character draft', () => {
   });
 
   it('chooses the host mode before room creation and routes online play away from the AI reroll screen', () => {
-    expect(dialogSource).toContain('先選擇對戰模式');
+    expect(dialogSource).not.toContain('先選擇對戰模式');
     expect(dialogSource).toContain('createRoom(3)');
     expect(dialogSource).toContain('createRoom(5)');
+    expect(dialogSource).toContain('createHostRoom(size)');
     expect(appSource).toContain("'online-draft'");
     expect(appSource).toContain('<OnlineDraftScreen');
     expect(appSource).toContain('onlineDraft.hostPicks[0]');
