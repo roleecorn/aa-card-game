@@ -20,16 +20,16 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
     <Box sx={{ minHeight: '100vh', bgcolor: '#f7f9fd', px: { xs: 1.2, md: 3 }, py: { xs: 2, md: 3 } }}>
       <Stack spacing={2.2} alignItems="center">
         <Box sx={{ textAlign: 'center' }}>
-          <Typography sx={{ fontSize: { xs: 26, md: 34 }, fontWeight: 950 }}>連線對戰 · 角色 Draft</Typography>
+          <Typography sx={{ fontSize: { xs: 26, md: 34 }, fontWeight: 950 }}>連線對戰 · 選擇角色</Typography>
           <Typography sx={{ mt: .7, color: 'text.secondary', fontWeight: 750 }}>
-            {draft.teamSize} 人模式 · 候選 {draft.poolIds.length} 張 · 第一張 Pick 會成為各自隊伍的組長
+            {draft.teamSize} 人模式 · 候選 {draft.poolIds.length} 名角色 · 雙方第一位選到的角色會成為組長
           </Typography>
           <Typography sx={{ mt: .9, fontSize: { xs: 15, md: 17 }, fontWeight: 950, color: myTurn ? 'primary.main' : 'text.secondary' }}>
             {draft.status === 'complete'
-              ? 'Draft 完成，正在建立對局…'
+              ? '選角完成，正在準備對局…'
               : myTurn
-              ? `輪到你：本輪還可選 ${turn?.remainingInBatch ?? 0} 張`
-              : `等待對手選擇 ${turn?.remainingInBatch ?? 0} 張`}
+              ? `輪到你：本輪還可選 ${turn?.remainingInBatch ?? 0} 名角色`
+              : `等待對手選擇 ${turn?.remainingInBatch ?? 0} 名角色`}
           </Typography>
         </Box>
 
@@ -77,7 +77,7 @@ export function OnlineDraftScreen({ draft, role, characters, onPick }: Props) {
                   />
                   {pickedBy && (
                     <Chip
-                      label={mine ? '我的 Pick' : '對手 Pick'}
+                      label={mine ? '我方已選' : '對手已選'}
                       color={mine ? 'primary' : 'default'}
                       sx={{ position: 'absolute', top: 10, right: 10, fontWeight: 900 }}
                     />
