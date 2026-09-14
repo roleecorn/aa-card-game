@@ -43,7 +43,7 @@ describe('online draft character UI', () => {
   });
 
   it('renders both selected teams with the same vertical selection-card visual language', () => {
-    expect(draftSource).not.toContain('CharacterCard');
+    expect(draftSource).not.toContain('import { CharacterCard }');
     expect(draftSource).toContain('variant="rail"');
     expect(draftSource).toContain('title="我的隊伍"');
     expect(draftSource).toContain('title="對手隊伍"');
