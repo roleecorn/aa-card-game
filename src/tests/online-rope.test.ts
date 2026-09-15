@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import ropeStatusSource from '../components/OnlineRopeStatus.tsx?raw';
 import type { GameState } from '../game/types';
 import type { OnlineDraftState } from '../online/onlineDraft';
 import {
@@ -112,5 +113,12 @@ describe('online rope timer', () => {
     expect(ropeRemainingSeconds(localized!, 85_001)).toBe(10);
     expect(ropeIsWarning(localized!, 85_001)).toBe(true);
     expect(ropeIsWarning(localized!, 84_999)).toBe(false);
+  });
+
+  it('blocks Host battle UI input after the authoritative deadline', () => {
+    expect(ropeStatusSource).toContain("role !== 'host' || timer?.kind !== 'battle'");
+    expect(ropeStatusSource).toContain('current.deadlineAt > Date.now()');
+    expect(ropeStatusSource).toContain("document.addEventListener('pointerdown', blockExpiredInteraction, true)");
+    expect(ropeStatusSource).toContain('event.stopImmediatePropagation()');
   });
 });
