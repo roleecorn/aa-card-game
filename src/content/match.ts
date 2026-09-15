@@ -5,7 +5,10 @@ export const BASE_DECK = [
   'overtime', 'writerBlock', 'soothe', 'guide', 'voice', 'overtime',
 ] as const;
 
-export const STANDARD_EXCLUDED_CHARACTER_IDS = ['chaos'] as const;
+// Standard must contain only characters whose declared skills are executable.
+// Narrator / Ginsakura remain available to custom/test definitions, but their
+// source material does not define enough behavior to safely invent mechanics.
+export const STANDARD_EXCLUDED_CHARACTER_IDS = ['chaos', 'narrator', 'ginsakura'] as const;
 
 export function isStandardPlayableCharacterId(characterId: string): boolean {
   return !(STANDARD_EXCLUDED_CHARACTER_IDS as readonly string[]).includes(characterId);
