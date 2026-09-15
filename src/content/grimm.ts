@@ -28,6 +28,13 @@ export const grimmSkills = skillDefinitionSchema.array().parse([
     activation: 'active',
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
+    activeCondition: {
+      kind: 'all',
+      conditions: [
+        { kind: 'workType', target: 'selectedWork', types: ['情'] },
+        { kind: 'workHasProgress', target: 'selectedWork' },
+      ],
+    },
     activeHint: '先選擇自己的（情）作品，再選擇作品中一顆已放置的骰。',
     activeTarget: { kind: 'work', relation: 'owner' },
     activeEffects: [

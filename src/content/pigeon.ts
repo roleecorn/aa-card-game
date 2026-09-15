@@ -27,7 +27,7 @@ export const pigeonSkills = skillDefinitionSchema.array().parse([
     activation: 'active',
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
-    activeTarget: { kind: 'pendingDie', relation: 'otherAlly' },
+    activeTarget: { kind: 'pendingDie', relation: 'otherAlly', maxValue: 5 },
     activeEffects: [{ kind: 'dice.modifySelected', add: 1 }],
     tags: ['support', 'prototype'],
   },

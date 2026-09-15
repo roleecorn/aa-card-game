@@ -1,3 +1,4 @@
+import '../game/characterSkillEffects';
 import type { GameContent } from '../game/contentRegistry';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { CardDefinition, CharacterDefinition, SkillDefinition, WorkType } from '../game/schema';

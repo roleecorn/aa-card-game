@@ -69,10 +69,11 @@ function validateRosterOverride(
   }
   const combined = [...playerMemberIds, ...enemyMemberIds];
   if (new Set(combined).size !== combined.length) throw new Error('Player and enemy rosters must not contain duplicate characters.');
+
+  // Explicit roster overrides are a deterministic scenario/test escape hatch. User-facing
+  // drafting and automatic Standard selection still honor roster.excludedCharacterIds.
   for (const id of combined) {
-    const definition = content.characters[id];
-    if (!definition) throw new Error(`Unknown character ${id}`);
-    if (!isRosterPlayable(definition, gameDefinition)) throw new Error(`Character ${id} is not available in game definition ${gameDefinition.id}.`);
+    if (!content.characters[id]) throw new Error(`Unknown character ${id}`);
   }
 }
 
@@ -172,7 +173,9 @@ export class EngineSession {
     if (!member) return undefined;
     const base = this.getDefinition(memberId).maxStress;
     if (base === null) return null;
-    return base + getStatusStacks(member, GAMEPLAY_STATUS.leaderStressCapBonus);
+    return base
+      + getStatusStacks(member, GAMEPLAY_STATUS.leaderStressCapBonus)
+      + getStatusStacks(member, GAMEPLAY_STATUS.actingLeaderStressCapBonus);
   }
 
   isAtStressCap(teamId: TeamId, memberId: string): boolean {
@@ -481,7 +484,16 @@ export class EngineSession {
     slot[die.skill] = die.value;
     team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== dieId);
     this.log(`${this.getDefinition(die.ownerId).name} 將 ${die.skill.toUpperCase()} ${die.value} 放入「${work.title}」第 ${slotIndex + 1} 格。`);
-    this.skills.emit({ type: 'afterDiePlaced', teamId, actorId: die.ownerId, dieId: die.id, skill: die.skill, workId: work.id, amount: die.value });
+    this.skills.emit({
+      type: 'afterDiePlaced',
+      teamId,
+      actorId: die.ownerId,
+      dieId: die.id,
+      skill: die.skill,
+      workId: work.id,
+      amount: die.value,
+      metadata: { slotIndex },
+    });
     return true;
   }
 
@@ -565,15 +577,26 @@ export class EngineSession {
     }
     if (!this.validateCardTarget(teamId, card, target)) return false;
 
+    const cardEvent = {
+      type: 'cardPlayed' as const,
+      teamId,
+      actorId,
+      targetId: target.memberId,
+      workId: target.workId,
+      skill: target.skill,
+      sourceKind: card.kind,
+      metadata: { cardId: card.id },
+    };
+
     return this.feedback.capture({ ownerId: actorId, ownerTeamId: teamId, definition: card,
-      event: { type: 'cardPlayed', teamId, actorId }, activationTarget: target }, 'card', () => {
+      event: cardEvent, activationTarget: target }, 'card', () => {
       let success = false;
       if (card.effects?.length) {
         const context: EffectContext = {
           ownerId: actorId,
           ownerTeamId: teamId,
           definition: card,
-          event: { type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } },
+          event: cardEvent,
           activationTarget: target,
         };
         success = this.applyEffects(card.effects, context);
@@ -596,7 +619,7 @@ export class EngineSession {
         const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
         this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true, actorId);
       }
-      this.skills.emit({ type: 'cardPlayed', teamId, actorId, sourceKind: card.kind, metadata: { cardId: card.id } });
+      this.skills.emit(cardEvent);
       return true;
     });
   }

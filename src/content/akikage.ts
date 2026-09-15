@@ -6,5 +6,8 @@ export const akikageCharacter = characterDefinitionSchema.parse({
 });
 export const akikageSkills = skillDefinitionSchema.array().parse([
   { id: 'akikageDeadlineWarrior', name: '死線戰士', description: '遊戲開始時，自己的 Stress 為 3。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'gameStart', effects: [{ kind: 'stress.change', target: 'owner', amount: 3, source: '死線戰士' }] }] },
-  { id: 'akikageProcrastination', name: '拖延症', description: '自己擲出的 1、2 不能使用。', activation: 'triggered', status: 'implemented', triggers: [{ event: 'afterRollBatch', condition: { kind: 'all', conditions: [{ kind: 'relation', field: 'actorId', relation: 'self' }, { kind: 'diceMatch', maxValue: 2 }] }, effects: [{ kind: 'custom', handler: 'removeEventDiceAtOrBelow', args: { maxValue: 2 } }] }] },
+  { id: 'akikageProcrastination', name: '拖延症', description: '自己擲出的 1、2 不能使用。', activation: 'triggered', status: 'implemented', triggers: [
+    { event: 'afterRollBatch', condition: { kind: 'all', conditions: [{ kind: 'relation', field: 'actorId', relation: 'self' }, { kind: 'diceMatch', maxValue: 2 }] }, effects: [{ kind: 'custom', handler: 'removeEventDiceAtOrBelow', args: { maxValue: 2 } }] },
+    { event: 'afterDiceGranted', condition: { kind: 'all', conditions: [{ kind: 'relation', field: 'targetId', relation: 'self' }, { kind: 'diceMatch', maxValue: 2 }] }, effects: [{ kind: 'custom', handler: 'removeGrantedDiceAtOrBelow', args: { maxValue: 2 } }] },
+  ] },
 ]);

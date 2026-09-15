@@ -34,6 +34,7 @@ export function placeDieWithLegality(
     skill: die.skill,
     workId: work.id,
     amount: die.value,
+    metadata: { slotIndex },
   });
   return true;
 }

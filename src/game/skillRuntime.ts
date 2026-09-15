@@ -2,6 +2,7 @@ import { builtInEffects } from './effectRegistry';
 import type { SkillCondition, SkillEffect, SkillPassive, SkillDefinition, WorkType } from './schema';
 import type { EffectContext, SkillActivationTarget, SkillEvent } from './types';
 import type { EngineSession } from './engine';
+import { GAMEPLAY_STATUS, hasGameplayStatus } from './statuses';
 
 function compare(left: number, op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte', right: number): boolean {
   if (op === 'eq') return left === right;
@@ -21,6 +22,10 @@ function relation(engine: EngineSession, ownerId: string, otherId?: string): 'se
   return ownerTeam === otherTeam ? 'otherAlly' : 'enemy';
 }
 
+function workHasProgress(work: ReturnType<EngineSession['resolveWorks']>[number], skill?: 'design' | 'text' | 'aa'): boolean {
+  return work.slots.some((slot) => skill ? slot[skill] !== undefined : slot.design !== undefined || slot.text !== undefined || slot.aa !== undefined);
+}
+
 export function matchesCondition(condition: SkillCondition, context: EffectContext, engine: EngineSession): boolean {
   if (condition.kind === 'always') return true;
   if (condition.kind === 'all') return condition.conditions.every((item) => matchesCondition(item, context, engine));
@@ -29,6 +34,9 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
   if (condition.kind === 'ownerStress') {
     const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
     return !!owner && compare(owner.stress, condition.op, condition.value);
+  }
+  if (condition.kind === 'memberStress') {
+    return engine.resolveMembers(condition.target, context).some(({ member }) => compare(member.stress, condition.op, condition.value));
   }
   if (condition.kind === 'eventAmount') return compare(context.event.amount ?? 0, condition.op, condition.value);
   if (condition.kind === 'eventSkill') return context.event.skill === condition.skill;
@@ -61,6 +69,18 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
     const works = engine.resolveWorks(condition.target, context);
     if (!works.length) return false;
     const matches = (work: (typeof works)[number]) => compare(engine.scoreWork(work), condition.op, condition.value);
+    return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
+  }
+  if (condition.kind === 'workLength') {
+    const works = engine.resolveWorks(condition.target, context);
+    if (!works.length) return false;
+    const matches = (work: (typeof works)[number]) => compare(work.length, condition.op, condition.value);
+    return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
+  }
+  if (condition.kind === 'workHasProgress') {
+    const works = engine.resolveWorks(condition.target, context);
+    if (!works.length) return false;
+    const matches = (work: (typeof works)[number]) => workHasProgress(work, condition.skill);
     return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
   }
   if (condition.kind === 'chance') return engine.random() < condition.probability;
@@ -141,10 +161,53 @@ export class SkillRuntime {
     const skill = this.engine.content.skills[skillId];
     if (!member || !skill || skill.activation !== 'active' || skill.status === 'planned' || !skill.activeEffects) return false;
     if (!this.engine.getDefinition(memberId).skillIds.includes(skillId)) return false;
-    if (skill.activeUsage && !this.canUse(memberId, skillId, skill.activeUsage)) return false;
-    if (!this.validateActiveTarget(teamId, memberId, skill, target)) return false;
+    if (!this.canActivateTarget(teamId, memberId, skill, target)) return false;
 
-    const context: EffectContext = {
+    const context = this.activeContext(teamId, memberId, skill, target);
+    const applied = this.applyEffects(skill.activeEffects, context);
+    if (!applied) return false;
+    if (skill.activeUsage) this.markUsed(memberId, skillId, skill.activeUsage);
+    this.engine.log(`${this.engine.getDefinition(memberId).name} 發動「${skill.name}」。`);
+    this.emit(context.event);
+    return true;
+  }
+
+  canUseActive(memberId: string, skillId: string): boolean {
+    const skill = this.engine.content.skills[skillId];
+    if (!skill || skill.activation !== 'active' || skill.status === 'planned' || !skill.activeEffects) return false;
+    const teamId = this.engine.findMemberTeam(memberId);
+    if (!teamId) return false;
+    const member = this.engine.getCharacter(teamId, memberId);
+    if (!member || hasGameplayStatus(member, GAMEPLAY_STATUS.actionBlocked)) return false;
+    if (skill.activeUsage && !this.canUse(memberId, skillId, skill.activeUsage)) return false;
+    return this.hasUsableActiveTarget(teamId, memberId, skill);
+  }
+
+  /** Runtime source of truth for one concrete active-skill target. UI targeting should delegate here. */
+  canActivateTarget(teamId: 'player' | 'enemy', memberId: string, skill: SkillDefinition, target: SkillActivationTarget): boolean {
+    const member = this.engine.getCharacter(teamId, memberId);
+    if (!member || hasGameplayStatus(member, GAMEPLAY_STATUS.actionBlocked)) return false;
+    if (skill.activeUsage && !this.canUse(memberId, skill.id, skill.activeUsage)) return false;
+    if (!this.validateActiveTargetStructure(teamId, memberId, skill, target)) return false;
+    if (!skill.activeCondition) return true;
+    return matchesCondition(skill.activeCondition, this.activeContext(teamId, memberId, skill, target), this.engine);
+  }
+
+  canActivateSkillTarget(memberId: string, skillId: string, target: SkillActivationTarget): boolean {
+    const teamId = this.engine.findMemberTeam(memberId);
+    const skill = this.engine.content.skills[skillId];
+    if (!teamId || !skill || skill.activation !== 'active' || skill.status === 'planned' || !skill.activeEffects) return false;
+    if (!this.engine.getDefinition(memberId).skillIds.includes(skillId)) return false;
+    return this.canActivateTarget(teamId, memberId, skill, target);
+  }
+
+  private activeContext(
+    teamId: 'player' | 'enemy',
+    memberId: string,
+    skill: SkillDefinition,
+    target: SkillActivationTarget,
+  ): EffectContext {
+    return {
       ownerId: memberId,
       ownerTeamId: teamId,
       definition: skill,
@@ -159,69 +222,32 @@ export class SkillRuntime {
       },
       activationTarget: target,
     };
-    const applied = this.applyEffects(skill.activeEffects, context);
-    if (!applied) return false;
-    if (skill.activeUsage) this.markUsed(memberId, skillId, skill.activeUsage);
-    this.engine.log(`${this.engine.getDefinition(memberId).name} 發動「${skill.name}」。`);
-    this.emit(context.event);
-    return true;
-  }
-
-  canUseActive(memberId: string, skillId: string): boolean {
-    const skill = this.engine.content.skills[skillId];
-    if (!skill || skill.activation !== 'active' || skill.status === 'planned') return false;
-    if (skill.activeUsage && !this.canUse(memberId, skillId, skill.activeUsage)) return false;
-    const teamId = this.engine.findMemberTeam(memberId);
-    if (!teamId) return false;
-    return this.hasUsableActiveTarget(teamId, memberId, skill);
   }
 
   private hasUsableActiveTarget(teamId: 'player' | 'enemy', memberId: string, skill: SkillDefinition): boolean {
     const spec = skill.activeTarget ?? { kind: 'none' as const };
-
-    if (spec.kind === 'none') {
-      const effects = skill.activeEffects ?? [];
-      if (!effects.length) return false;
-
-      return effects.some((effect) => {
-        if (effect.kind === 'dice.modifyPending') {
-          const team = this.engine.getTeam(teamId);
-          let dice = team.pendingDice.filter((die) => die.ownerId === memberId);
-          if (effect.skill) dice = dice.filter((die) => die.skill === effect.skill);
-          if (effect.minValue !== undefined) dice = dice.filter((die) => die.value >= effect.minValue!);
-          if (effect.maxValue !== undefined) dice = dice.filter((die) => die.value <= effect.maxValue!);
-          return dice.length > 0;
-        }
-        if (effect.kind === 'dice.grantBestOf' && effect.requireOwnerWorkType) {
-          return this.engine.getTeam(teamId).works.some(
-            (work) => work.ownerId === memberId && work.type === effect.requireOwnerWorkType,
-          );
-        }
-        return true;
-      });
-    }
+    if (spec.kind === 'none') return this.canActivateTarget(teamId, memberId, skill, {});
 
     if (spec.kind === 'member' || spec.kind === 'taggedMember') {
       return [...this.engine.state.player.members, ...this.engine.state.enemy.members]
-        .some((member) => this.validateActiveTarget(teamId, memberId, skill, { memberId: member.defId }));
+        .some((member) => this.canActivateTarget(teamId, memberId, skill, { memberId: member.defId }));
     }
 
     if (spec.kind === 'work') {
       return [...this.engine.state.player.works, ...this.engine.state.enemy.works]
-        .some((work) => this.validateActiveTarget(teamId, memberId, skill, { workId: work.id }));
+        .some((work) => this.canActivateTarget(teamId, memberId, skill, { workId: work.id }));
     }
 
     if (spec.kind === 'copyPendingDie') {
       const team = this.engine.getTeam(teamId);
-      const sources = team.pendingDice.filter((die) => die.ownerId !== memberId);
-      const targets = team.pendingDice.filter((die) => die.ownerId === memberId);
-      return sources.some((source) => targets.some((target) => source.value !== target.value));
+      return team.pendingDice.some((source) => team.pendingDice.some((target) =>
+        this.canActivateTarget(teamId, memberId, skill, { sourceDieId: source.id, targetDieId: target.id })));
     }
 
     const dice = spec.relation === 'enemy'
       ? this.engine.getTeam(this.engine.opponentId(teamId)).pendingDice
       : this.engine.getTeam(teamId).pendingDice;
-    return dice.some((die) => this.validateActiveTarget(teamId, memberId, skill, { targetDieId: die.id }));
+    return dice.some((die) => this.canActivateTarget(teamId, memberId, skill, { targetDieId: die.id }));
   }
 
   getAffinity(memberId: string, base: WorkType[]): WorkType[] | 'all' {
@@ -248,8 +274,11 @@ export class SkillRuntime {
     if (!leader) return undefined;
 
     return team.members.find((member) => {
-      if (member.defId === team.leaderId || member.stress >= leader.stress) return false;
-      return this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer');
+      if (member.defId === team.leaderId || hasGameplayStatus(member, GAMEPLAY_STATUS.hidden)) return false;
+      return this.passives(member.defId).some((passive) => {
+        if (passive.kind !== 'coordination.stressBearer') return false;
+        return passive.allowEqual ? member.stress <= leader.stress : member.stress < leader.stress;
+      });
     })?.defId;
   }
 
@@ -277,18 +306,19 @@ export class SkillRuntime {
     });
   }
 
-  private usageKey(skillId: string, usage: { scope: 'round' | 'game'; key?: string }): string {
+  private usageKey(skillId: string, usage: { scope: 'round' | 'game'; key?: string; group?: string }): string {
+    const bucket = usage.group ?? skillId;
     const suffix = usage.key ?? 'default';
-    return usage.scope === 'round' ? `${skillId}:${suffix}:round:${this.engine.state.round}` : `${skillId}:${suffix}:game`;
+    return usage.scope === 'round' ? `${bucket}:${suffix}:round:${this.engine.state.round}` : `${bucket}:${suffix}:game`;
   }
 
-  private canUse(memberId: string, skillId: string, usage: { scope: 'round' | 'game'; key?: string; limit: number }): boolean {
+  private canUse(memberId: string, skillId: string, usage: { scope: 'round' | 'game'; key?: string; group?: string; limit: number }): boolean {
     const teamId = this.engine.findMemberTeam(memberId);
     const member = teamId ? this.engine.getCharacter(teamId, memberId) : undefined;
     return !!member && (member.skillUsage[this.usageKey(skillId, usage)] ?? 0) < usage.limit;
   }
 
-  private markUsed(memberId: string, skillId: string, usage: { scope: 'round' | 'game'; key?: string; limit: number }): void {
+  private markUsed(memberId: string, skillId: string, usage: { scope: 'round' | 'game'; key?: string; group?: string; limit: number }): void {
     const teamId = this.engine.findMemberTeam(memberId);
     const member = teamId ? this.engine.getCharacter(teamId, memberId) : undefined;
     if (!member) return;
@@ -296,7 +326,7 @@ export class SkillRuntime {
     member.skillUsage[key] = (member.skillUsage[key] ?? 0) + 1;
   }
 
-  private validateActiveTarget(teamId: 'player' | 'enemy', memberId: string, skill: SkillDefinition, target: SkillActivationTarget): boolean {
+  private validateActiveTargetStructure(teamId: 'player' | 'enemy', memberId: string, skill: SkillDefinition, target: SkillActivationTarget): boolean {
     const spec = skill.activeTarget ?? { kind: 'none' as const };
     if (spec.kind === 'none') return true;
     if (spec.kind === 'member') {
