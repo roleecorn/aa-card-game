@@ -42,6 +42,8 @@ export type OnlineMessage =
       version: typeof ONLINE_PROTOCOL_VERSION;
       type: 'draftPick';
       characterId: string;
+      /** Backward-compatible display identity; older clients may omit it. */
+      teamName?: string;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
@@ -96,8 +98,8 @@ export function swapGamePerspective(source: GameState): GameState {
   const host = game.player;
   const guest = game.enemy;
 
-  game.player = { ...guest, id: 'player', name: source.player.name };
-  game.enemy = { ...host, id: 'enemy', name: source.enemy.name };
+  game.player = { ...guest, id: 'player', name: source.enemy.name };
+  game.enemy = { ...host, id: 'enemy', name: source.player.name };
   game.phase = swapPhase(source.phase);
   if (source.winner === 'player' || source.winner === 'enemy') game.winner = swapTeamId(source.winner);
 
