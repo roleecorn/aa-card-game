@@ -4,7 +4,9 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import type { CharacterDefinition } from '../game/schema';
 import { draftTurn, type OnlineDraftSide, type OnlineDraftState } from '../online/onlineDraft';
+import { useOnlineSession } from '../online/onlineSession';
 import { CharacterSelectionCard } from './CharacterSelectionCard';
+import { OnlineRopeStatus } from './OnlineRopeStatus';
 
 interface Props {
   draft: OnlineDraftState;
@@ -48,6 +50,7 @@ function snapshotRect(node: HTMLElement): RectSnapshot {
 }
 
 export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimationSettled }: Props) {
+  const markDraftReady = useOnlineSession((state) => state.markDraftReady);
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
@@ -102,6 +105,10 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
     const timer = window.setTimeout(() => setRevealPhase('ready'), 520);
     return () => window.clearTimeout(timer);
   }, [characters.length, revealCount, revealPhase]);
+
+  useEffect(() => {
+    if (revealReady) markDraftReady();
+  }, [markDraftReady, revealReady]);
 
   useEffect(() => {
     const previous = previousPicksRef.current;
@@ -229,6 +236,8 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
               : `等待對手選擇 ${turn?.remainingInBatch ?? 0} 名角色`}
           </Typography>
         </Stack>
+
+        <OnlineRopeStatus />
 
         <Box
           sx={{
