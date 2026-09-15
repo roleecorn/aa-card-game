@@ -236,7 +236,9 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   }
 
   if (appStage === 'battle' && game) {
-    return <BattleRoom onRestart={handleRestart} />;
+    return onlineRole
+      ? <BattleRoom key={`online-${game.phase}`} onRestart={handleRestart} />
+      : <BattleRoom onRestart={handleRestart} />;
   }
 
   return startView;
