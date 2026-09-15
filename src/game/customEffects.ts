@@ -10,7 +10,12 @@ const handlers = new Map<string, CustomEffectHandler>();
 const SKILLS: SkillStat[] = ['design', 'text', 'aa'];
 
 export function registerCustomSkillEffect(name: string, handler: CustomEffectHandler): void {
+  if (handlers.has(name)) throw new Error(`Duplicate custom skill effect registration: ${name}`);
   handlers.set(name, handler);
+}
+
+export function hasCustomSkillEffect(name: string): boolean {
+  return handlers.has(name);
 }
 
 export function executeCustomSkillEffect(effect: CustomEffect, context: EffectContext, engine: EngineSession): boolean {
