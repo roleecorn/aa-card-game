@@ -26,6 +26,7 @@ interface Props {
 
 export function TeamColumn({ title, team, engine, showActions, actionChoices, onActionChange, onActivateSkill, side = 'player', selection }: Props) {
   const candidateMap = new Map(selection?.candidates.map((candidate) => [candidate.id, candidate]) ?? []);
+  const displayTitle = team.name || title;
 
   return (
     <Stack
@@ -36,7 +37,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
     >
       <Stack direction="row" spacing={.7} alignItems="center" sx={{ px: .3 }}>
         <AutoAwesomeIcon sx={{ color: side === 'player' ? '#f4ba45' : '#5ca9e8', fontSize: 19 }} />
-        <Typography variant="h6" sx={{ fontSize: 17 }}>{title}</Typography>
+        <Typography variant="h6" sx={{ fontSize: 17, overflowWrap: 'anywhere' }}>{displayTitle}</Typography>
         <Typography variant="caption" sx={{ color: side === 'player' ? '#2d79c7' : '#6279a5', fontStyle: 'italic', fontWeight: 800 }}>
           {side === 'player' ? 'My Team' : 'Rival Team'}
         </Typography>

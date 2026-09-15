@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useGameStore } from '../store/gameStore';
+import { DEFAULT_TEAM_NAME, normalizeTeamName } from '../preferences/teamName';
 import {
   ONLINE_PROTOCOL_VERSION,
   restoreDefinition,
@@ -25,9 +26,11 @@ interface OnlineSessionStore {
   roomCode: string;
   teamSize: OnlineTeamSize | null;
   draft: OnlineDraftState | null;
+  localTeamName: string;
+  remoteTeamName: string | null;
   error: string | null;
-  createHostRoom: (teamSize: OnlineTeamSize) => Promise<void>;
-  joinGuestRoom: (roomCode: string) => Promise<void>;
+  createHostRoom: (teamSize: OnlineTeamSize, teamName: string) => Promise<void>;
+  joinGuestRoom: (roomCode: string, teamName: string) => Promise<void>;
   startHostDraft: (playableIds: string[]) => boolean;
   pickDraftCharacter: (characterId: string) => boolean;
   sendCommand: (command: OnlineCommand) => boolean;
@@ -139,7 +142,10 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
       send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '目前不能選擇這張角色卡。' });
       return;
     }
-    useOnlineSession.setState({ draft: next });
+    useOnlineSession.setState({
+      draft: next,
+      remoteTeamName: normalizeTeamName(message.teamName ?? DEFAULT_TEAM_NAME),
+    });
     broadcastDraft(next);
     return;
   }
@@ -313,12 +319,15 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
   roomCode: '',
   teamSize: null,
   draft: null,
+  localTeamName: DEFAULT_TEAM_NAME,
+  remoteTeamName: null,
   error: null,
 
-  createHostRoom: async (teamSize) => {
+  createHostRoom: async (teamSize, requestedTeamName) => {
     closeTransport(false);
     const roomCode = generateRoomCode();
-    set({ role: 'host', status: 'preparing', roomCode, teamSize, draft: null, error: null });
+    const localTeamName = normalizeTeamName(requestedTeamName);
+    set({ role: 'host', status: 'preparing', roomCode, teamSize, draft: null, localTeamName, remoteTeamName: null, error: null });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -333,7 +342,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
   },
 
-  joinGuestRoom: async (input) => {
+  joinGuestRoom: async (input, requestedTeamName) => {
     const roomCode = input.trim();
     if (!/^\d{6}$/.test(roomCode)) {
       set({ status: 'error', error: '房間代碼必須是 6 位數字。' });
@@ -341,7 +350,8 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
 
     closeTransport(false);
-    set({ role: 'guest', status: 'preparing', roomCode, teamSize: null, draft: null, error: null });
+    const localTeamName = normalizeTeamName(requestedTeamName);
+    set({ role: 'guest', status: 'preparing', roomCode, teamSize: null, draft: null, localTeamName, remoteTeamName: null, error: null });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -379,7 +389,12 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     const state = get();
     if (!state.draft || state.status !== 'connected' || !state.role) return false;
     if (state.role === 'guest') {
-      return send({ version: ONLINE_PROTOCOL_VERSION, type: 'draftPick', characterId });
+      return send({
+        version: ONLINE_PROTOCOL_VERSION,
+        type: 'draftPick',
+        characterId,
+        teamName: state.localTeamName,
+      });
     }
     const next = applyOnlineDraftPick(state.draft, 'host', characterId);
     if (!next) return false;
@@ -403,7 +418,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
 
   disconnect: () => {
     closeTransport(true);
-    set({ role: null, status: 'idle', roomCode: '', teamSize: null, draft: null, error: null });
+    set({ role: null, status: 'idle', roomCode: '', teamSize: null, draft: null, remoteTeamName: null, error: null });
   },
 
   clearError: () => set({ error: null }),

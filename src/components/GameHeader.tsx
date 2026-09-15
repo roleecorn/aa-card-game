@@ -31,9 +31,9 @@ export function GameHeader({ game, playerScore, enemyScore, onReset, onOpenRoste
           <Counter label="Round" value={`${game.round} / ${game.maxRounds}`} dark />
           <Counter icon={<StyleIcon fontSize="small" />} label="Deck" value={game.player.deck.length} />
           <Counter icon={<DeleteSweepIcon fontSize="small" />} label="Discard" value={game.player.discard.length} />
-          <ScoreBox label="我方 Player" value={playerScore} tone="pink" />
+          <ScoreBox label={game.player.name} value={playerScore} tone="pink" />
           <Typography fontWeight={950} sx={{ px: .2, fontStyle: 'italic' }}>VS</Typography>
-          <ScoreBox label="對手 Rival" value={enemyScore} tone="blue" />
+          <ScoreBox label={game.enemy.name} value={enemyScore} tone="blue" />
           <Button size="small" variant="outlined" startIcon={<GroupsIcon />} onClick={onOpenRoster}>角色卡</Button>
           <Button size="small" variant="outlined" startIcon={<RestartAltIcon />} onClick={onReset}>重開</Button>
         </Stack>
@@ -59,10 +59,10 @@ function Counter({ label, value, icon, dark }: { label: string; value: string | 
 function ScoreBox({ label, value, tone }: { label: string; value: number; tone: 'pink' | 'blue' }) {
   const palette = tone === 'pink' ? { bg: '#fff1f5', border: '#ff87a8' } : { bg: '#eef8ff', border: '#72baf1' };
   return (
-    <Paper variant="outlined" sx={{ px: 1.25, py: .5, bgcolor: palette.bg, borderColor: palette.border, borderWidth: 2, minWidth: 104 }}>
+    <Paper variant="outlined" sx={{ px: 1.25, py: .5, bgcolor: palette.bg, borderColor: palette.border, borderWidth: 2, minWidth: 124, maxWidth: 190 }}>
       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-        <Typography sx={{ fontSize: 11, whiteSpace: 'pre-line', fontWeight: 850, lineHeight: 1.05 }}>{label.replace(' ', '\n')}</Typography>
-        <Typography sx={{ fontSize: 25, lineHeight: 1, fontWeight: 950 }}>{value}</Typography>
+        <Typography title={label} sx={{ fontSize: 11, fontWeight: 850, lineHeight: 1.05, overflowWrap: 'anywhere' }}>{label}</Typography>
+        <Typography sx={{ fontSize: 25, lineHeight: 1, fontWeight: 950, flexShrink: 0 }}>{value}</Typography>
       </Stack>
     </Paper>
   );
