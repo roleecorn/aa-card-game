@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
-import { executeCustomSkillEffect } from '../game/customEffects';
-import type { EngineSession } from '../game/engine';
+import { hasCustomSkillEffect, registerCustomSkillEffect } from '../game/customEffects';
 import type { SkillEffect } from '../game/schema';
-import type { EffectContext } from '../game/types';
-
-const gameSources = import.meta.glob('../game/*.ts', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
 
 function customHandlers(effects: SkillEffect[] | undefined): string[] {
   return (effects ?? []).flatMap((effect) => effect.kind === 'custom' ? [effect.handler] : []);
@@ -18,41 +14,6 @@ function referencedCustomHandlers(): string[] {
       ...customHandlers(skill.activeEffects),
       ...(skill.triggers ?? []).flatMap((trigger) => customHandlers(trigger.effects)),
     ]);
-}
-
-function sourceRegistrations(): string[] {
-  const names: string[] = [];
-  const registrationPattern = /registerCustomSkillEffect\(\s*['"]([^'"]+)['"]/g;
-  for (const source of Object.values(gameSources)) {
-    for (const match of source.matchAll(registrationPattern)) names.push(match[1]!);
-  }
-  return names;
-}
-
-function assertRuntimeHandlerRegistered(handler: string): void {
-  const missingLogs: string[] = [];
-  const engine = new Proxy({
-    log: (message: string) => missingLogs.push(message),
-  } as unknown as EngineSession, {
-    get(target, property, receiver) {
-      if (Reflect.has(target as object, property)) return Reflect.get(target as object, property, receiver);
-      throw new Error(`registered handler touched test-only engine property ${String(property)}`);
-    },
-  });
-  const context: EffectContext = {
-    ownerId: 'contract-owner',
-    ownerTeamId: 'player',
-    definition: { id: 'contract-skill', name: 'contract-skill' },
-    event: { type: 'activeSkill', teamId: 'player', actorId: 'contract-owner' },
-  };
-
-  try {
-    executeCustomSkillEffect({ kind: 'custom', handler }, context, engine);
-  } catch {
-    // A registered handler may require real game state; registry reachability is
-    // the contract here. Missing handlers are detected by the explicit log.
-  }
-  expect(missingLogs.filter((message) => message.includes('找不到 custom handler')), handler).toEqual([]);
 }
 
 describe('skill authoring contracts', () => {
@@ -71,15 +32,19 @@ describe('skill authoring contracts', () => {
   });
 
   it('requires every referenced custom skill handler to exist in the live runtime registry', () => {
-    for (const handler of [...new Set(referencedCustomHandlers())].sort()) {
-      assertRuntimeHandlerRegistered(handler);
-    }
+    const missing = [...new Set(referencedCustomHandlers())]
+      .filter((handler) => !hasCustomSkillEffect(handler))
+      .sort();
+
+    expect(missing).toEqual([]);
   });
 
-  it('forbids duplicate custom-handler registrations that would silently overwrite behavior', () => {
-    const registrations = sourceRegistrations();
-    const duplicates = [...new Set(registrations.filter((name, index) => registrations.indexOf(name) !== index))].sort();
-    expect(duplicates).toEqual([]);
+  it('fails fast when a custom-handler name is registered twice', () => {
+    const handlerName = '__skill-contract-duplicate-registration__';
+    registerCustomSkillEffect(handlerName, () => true);
+
+    expect(() => registerCustomSkillEffect(handlerName, () => false))
+      .toThrow(`Duplicate custom skill effect registration: ${handlerName}`);
   });
 
   it('keeps Standard roster limited to characters whose declared skills are executable', () => {
