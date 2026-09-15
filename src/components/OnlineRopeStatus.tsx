@@ -34,6 +34,30 @@ export function OnlineRopeStatus() {
     return () => window.clearInterval(interval);
   }, [timer?.id, timer?.deadlineAt]);
 
+  useEffect(() => {
+    if (role !== 'host' || timer?.kind !== 'battle') return;
+
+    // The Online session remains authoritative for timeout resolution. This capture
+    // guard only closes the narrow UI race where a background-throttled timeout
+    // callback and the first user input after returning to the tab are both queued.
+    const blockExpiredInteraction = (event: Event) => {
+      const current = useOnlineSession.getState().timer;
+      if (current?.kind !== 'battle' || current.deadlineAt > Date.now()) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    };
+
+    document.addEventListener('pointerdown', blockExpiredInteraction, true);
+    document.addEventListener('click', blockExpiredInteraction, true);
+    document.addEventListener('keydown', blockExpiredInteraction, true);
+    return () => {
+      document.removeEventListener('pointerdown', blockExpiredInteraction, true);
+      document.removeEventListener('click', blockExpiredInteraction, true);
+      document.removeEventListener('keydown', blockExpiredInteraction, true);
+    };
+  }, [role, timer?.id, timer?.kind]);
+
   const remainingMs = timer ? ropeRemainingMs(timer, now) : 0;
   const remainingSeconds = timer ? ropeRemainingSeconds(timer, now) : 0;
   const warning = timer ? ropeIsWarning(timer, now) : false;
