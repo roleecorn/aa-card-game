@@ -84,7 +84,7 @@ public/assets/
 - hand / work / scoring constants；
 - Standard roster eligibility。
 
-目前 Standard 一般 roster 排除 `chaos / narrator / ginsakura`。Eligibility 不放 Character Tag。
+目前 Standard / Online 一般 roster 只排除 `chaos`。`planned` skill status 不構成 roster exclusion；旁白 `narrator` 與銀櫻 `ginsakura` 保留在一般 selection pool，讓角色可進入真實對局做實機／整合測試。Eligibility 不放 Character Tag。
 
 ### Battle UI
 
@@ -337,7 +337,8 @@ Standard mode 使用 `STANDARD_GAME_DEFINITION`。
 
 - UI / normal Standard selection 仍必須遵守 `roster.excludedCharacterIds`。
 - Online candidate pool 也必須遵守同一 exclusions。
-- 測試可以明確注入 excluded character 驗證 planned/special behavior，但不能拿這個 API 行為解讀成玩家可選。
+- `planned` skill status 不會自動加入 exclusions；目前旁白、銀櫻必須存在於 normal Standard selection source 與 Online candidate source，才能覆蓋真實遊戲流程測試。
+- 測試仍可以明確注入真正 excluded 的角色（例如 `chaos`）驗證 special behavior，但不能拿 override API 當作玩家 eligibility 規則。
 
 ## Online architecture
 
@@ -369,6 +370,7 @@ shared BattleRoom
 - `onlineDraft.ts` 保存 serializable selection state。
 - 3 人 batch `[1,2,2,1]`；5 人 `[1,2,2,2,2,1]`。
 - pool size 固定 `teamSize * 2`。
+- candidate source 使用 Standard roster eligibility；目前只排除 `chaos`，`narrator` 與 `ginsakura` 保留可選。
 - Host 建立正式 GameState 前必須 selection complete 且本地動畫 settled。
 - Guest 收到 gameplay snapshot 也要等自己的 final transfer animation settled 才離開 selection screen。
 
@@ -402,7 +404,7 @@ Gameplay / ability / target / turn flow 修改必須跑 tutorial regression。
 
 技能與規則測試分層：
 
-1. **Contract tests**：schema / handler registry / roster completeness / shared usage invariant。
+1. **Contract tests**：schema / handler registry / roster eligibility / shared usage invariant；planned-skill characters 的 selection-pool inclusion 也要有回歸保護。
 2. **Isolated skill tests**：`helpers/skillHarness.ts` 的 neutral fixtures，避免 filler 角色技能污染 assertion。
 3. **Runtime integration regressions**：透過真實 Engine action 驗 event payload / ordering。
 4. **Targeting consistency**：UI candidate allowed 必須等於 runtime validator。

@@ -92,17 +92,15 @@ AA Group Card Game 是雙方創作小隊競爭作品完成度的回合制卡牌�
 
 ### 3.1 Standard 可出戰角色
 
-目前 runtime catalog 共 **39 名角色**。一般 Standard 可出戰池排除：
+目前 runtime catalog 共 **39 名角色**。一般 Standard 可出戰池只排除：
 
-- 卡奧斯：特殊／Boss content，目前不進 Standard。
-- 旁白：仍有未完成的 planned 技能。
-- 銀櫻：仍有未完成的 planned 技能。
+- 卡奧斯：特殊／Boss content，目前不進一般 Standard / Online roster。
 
-因此目前 Standard 可抽取 **36 名角色**。
+因此目前 Standard 可抽取 **38 名角色**。旁白與銀櫻雖有未完成的 `planned` 技能，仍保留在正常可選池，方便在真實對局中測試角色與未來技能實作。`planned` 不等於不可出戰。
 
 抽隊流程：
 
-1. Shuffle 36 名可出戰角色。
+1. Shuffle 38 名可出戰角色。
 2. 我方取前 `teamSize` 名。
 3. 對手從剩餘角色取接下來 `teamSize` 名。
 4. 同一局雙方不會有重複角色。
@@ -155,7 +153,7 @@ Guest 輸入 Host 顯示的 6 位數代碼後，遊戲會自動完成配對。�
 
 ### 4.2 角色選擇
 
-連線成功後不是隨機分隊，而是從共同候選池輪流選角。候選池使用和 Standard 相同的 **36 名可出戰角色**，因此不會出現卡奧斯、旁白、銀櫻。
+連線成功後不是隨機分隊，而是從共同候選池輪流選角。候選池使用和 Standard 相同的 **38 名可出戰角色**；只有卡奧斯不會出現，旁白與銀櫻仍可能成為候選。
 
 | 模式 | 候選角色 | 選擇順序 |
 | --- | ---: | --- |
@@ -406,7 +404,7 @@ pending dice 不帶到下一回合。每一方完成自己的配置時，尚未�
 - 旁白：「中國大阪人」「超長發揮」。
 - 銀櫻：「起來」「愉悅的支援者」。
 
-因此這兩名角色目前保留在角色資料庫中，但**不會出現在一般 Standard 或 Online 選角池**。
+這兩名角色仍會出現在一般 Standard / Online 選角池；`planned` 只表示技能尚未完整實作，不代表角色被排除。保留可選是為了能在真實對局流程中持續測試。
 
 ### 10.3 發動前合法性
 
@@ -524,8 +522,8 @@ Tag 是 metadata / selector，不直接產生 gameplay behavior。不能用 Tag 
 | Pintbox | 2/0/2 | 5 | 謀 | Yes |
 | 真白 | 2/1/2 | 5 | 被動全適性 | Yes |
 | 79 | 2/3/2 | 4 | 燃、謀 | Yes |
-| 旁白 | 1/3/1 | 5 | 笑 | **No（planned 技能）** |
-| 銀櫻 | 1/2/3 | 3 | 燃 | **No（planned 技能）** |
+| 旁白 | 1/3/1 | 5 | 笑 | **Yes（含 planned 技能）** |
+| 銀櫻 | 1/2/3 | 3 | 燃 | **Yes（含 planned 技能）** |
 | 藍風 | 1/1/0 | 3 | 情 | Yes |
 | 三角希＆有希 | 1/2/2 | 4 | 被動全適性 | Yes |
 | 風揚 | 3/3/0 | 2 | 謀、情 | Yes |
@@ -580,7 +578,7 @@ Tag 是 metadata / selector，不直接產生 gameplay behavior。不能用 Tag 
 - Standard 的隨機抽隊、單次重抽與 3 / 5 人模式屬 Prototype decision。
 - Online 房間代碼／直接連線模式屬 Prototype；沒有正式帳號 matchmaking、可靠 reconnect 或 anti-cheat server。
 - 卡奧斯目前不進 Standard / Online 一般角色池；Boss mode 尚未完成。
-- 旁白、銀櫻仍有 planned 技能，因此暫時不進 Standard / Online 一般角色池。
+- 旁白、銀櫻仍有 planned 技能，但角色照常保留在 Standard / Online 一般角色池；未完成技能本身不產生完整 runtime behavior。
 - AI 對需要人工指定角色／作品／骰子的主動技能仍沒有完整決策能力，因此 AI 使用角色技能的完整度不等同真人操作。
 - 部分早期角色仍包含 prototype assumption；可查看各角色 `sourceNotes`。
 - `discussion-notes.md` 保存來源與歷史討論，不代表目前 runtime snapshot。

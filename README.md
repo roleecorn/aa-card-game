@@ -9,7 +9,7 @@
 - 一般對局固定 5 回合。
 - 可選 **3 人模式**或 **5 人模式**；每名角色對應一部作品。
 - 支援 **Standard AI** 與 **Online 兩人連線對戰**。
-- Runtime catalog 共 **39 名角色**；一般 Standard / Online 可出戰 **36 名**，目前排除卡奧斯、旁白、銀櫻。
+- Runtime catalog 共 **39 名角色**；一般 Standard / Online 可出戰 **38 名**，目前只排除特殊內容角色卡奧斯。旁白、銀櫻雖仍有 `planned` 技能，但照常保留在可選池以支援實機與整合測試。
 - Standard AI：隨機抽隊、我方全局一次重抽、手動選組長、對手 AI 回合。
 - Online：Host 先選 3/5 人模式，使用 6 位數房間代碼配對，再從共同候選池輪流選角；雙方第一個選到的角色各自成為組長。
 - 支援角色主動／被動／觸發技能、統籌卡與事件卡、Stress、作品適性、作品進度、組長接任、hidden／神隱等 runtime mechanic。
@@ -63,7 +63,7 @@ npm run storybook
 ### Standard AI
 
 1. 選擇 3 人或 5 人模式。
-2. 系統從 36 名一般可出戰角色中抽出雙方不重複隊伍。
+2. 系統從 38 名一般可出戰角色中抽出雙方不重複隊伍。
 3. 我方初始隊伍有一次重抽一名角色的機會。
 4. 我方確認隊伍後選組長。
 5. 玩家完成回合後由 AI 自動處理對手回合。
@@ -207,5 +207,6 @@ aa-card-game/
 - 作品類型為 `燃 / 謀 / 笑 / 情 / 色 / 怪`。
 - 角色技能與卡牌效果共用 data-driven effect pipeline。
 - Standard / Online 一般 roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
+- `planned` skill status 不會自動把角色排除出一般 roster；目前旁白與銀櫻仍可被 Standard 抽到，也可出現在 Online 候選池。
 
 這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。

@@ -10,8 +10,9 @@
 - 對戰入口：**Standard AI**、**Online human-vs-human**、Tutorial。
 - 每名上場角色對應一部作品，因此每隊作品數為 3 或 5。
 - Runtime catalog：**39 名角色**。
-- Standard / Online 一般可出戰：**36 名角色**。
-- 一般可出戰池排除：`chaos`、`narrator`、`ginsakura`。
+- Standard / Online 一般可出戰：**38 名角色**。
+- 一般可出戰池只排除：`chaos`。
+- 旁白 `narrator`、銀櫻 `ginsakura` 雖仍有 `planned` 技能，但保留在一般可出戰池，以支援實機、整合與回歸測試。
 - 基礎牌庫：12 張；初始手牌 2；每回合抽 2；手牌上限 8。
 - Tutorial：固定 roster、固定抽牌與 deterministic RNG。
 
@@ -39,7 +40,7 @@
 - 3 人 draft：6 候選，`Host 1 → Guest 2 → Host 2 → Guest 1`。
 - 5 人 draft：10 候選，`Host 1 → Guest 2 → Host 2 → Guest 2 → Host 2 → Guest 1`。
 - 每一方第一個 pick 是該隊初始組長。
-- 候選池使用 Standard playable pool，因此排除 `chaos`、`narrator`、`ginsakura`。
+- 候選池使用 Standard playable pool，因此只排除 `chaos`；`narrator`、`ginsakura` 仍可成為候選。
 - Picked character 會從中央候選池移除並動畫移入隊伍 rail；最終 pick 的動畫 settle 後才進入 BattleRoom。
 - 左右隊伍 rail 保留捲動能力但不顯示 scrollbar。
 - 關閉 Online setup dialog 會立即 disconnect / 取消目前配對流程，不留下背景連線。
@@ -73,7 +74,7 @@
 - 旁白：`中國大阪人`、`超長發揮`。
 - 銀櫻：`起來`、`愉悅的支援者`。
 
-兩名角色仍保留在 catalog 與 explicit custom/test scenario 中，但**不進 Standard 自動抽選，也不進 Online 一般候選池**。要重新加入一般可玩 roster，必須先完成技能 runtime、tests 與文件同步。
+兩名角色**仍進入 Standard 自動抽選與 Online 一般候選池**。這是刻意的測試策略：角色必須能進入真實對局流程，才能持續做手動、整合與回歸測試。`planned` 只表示技能尚未有完整 runtime behavior，不代表角色不可出戰。
 
 卡奧斯同樣保留在 catalog，但因 Boss / special content 尚未完成而排除一般 roster。
 
@@ -114,7 +115,7 @@ Schema / SkillRuntime 現在支援：
 PR #68 後，技能測試不再只靠大型 mixed-roster suite：
 
 - `src/tests/helpers/skillHarness.ts`：提供 neutral character fixtures，讓角色技能測試隔離其他角色的被動／trigger。
-- `skill-contracts.test.ts`：驗證 implemented skill 有 executable behavior、custom handler live registration、duplicate handler fail-fast、Standard roster 不包含 planned skill characters、shared usage group 等 contract。
+- `skill-contracts.test.ts`：驗證 implemented skill 有 executable behavior、custom handler live registration、duplicate handler fail-fast、planned-skill 角色仍保留在 Standard selection pool、shared usage group 等 contract。
 - `skill-runtime-regressions.test.ts`：針對 Pintbox、風揚、情緒、阿道、Enki、秋影、hidden 等真實 runtime regression。
 - `skill-targeting-contracts.test.ts`：驗證 UI availability / target candidates 與 runtime validator 一致。
 - Cross-character interaction 需要獨立測試，避免再出現「測試通過其實是另一名角色技能代替生效」的 false positive。
@@ -161,8 +162,8 @@ public/assets/characters/compact/<character-id>.webp
 
 ## Known gaps
 
-- 旁白兩個技能仍 planned，角色暫時排除一般 roster。
-- 銀櫻兩個技能仍 planned，角色暫時排除一般 roster。
+- 旁白兩個技能仍 planned，但角色保留在 Standard / Online 一般 roster 以便測試。
+- 銀櫻兩個技能仍 planned，但角色保留在 Standard / Online 一般 roster 以便測試。
 - Boss mode 尚未完成；卡奧斯排除 Standard / Online 一般 roster。
 - **Standard AI 對 Active skill 的決策仍有限**：目前只會自動使用 `ai.autoUse` 且 `activeTarget.kind === 'none'` 的技能；需要選角色、作品或骰子的 Active skill 尚沒有通用 AI target chooser。
 - Online 目前沒有 TURN relay；嚴格 NAT / 公司網路可能無法建立 P2P。

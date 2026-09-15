@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { isStandardPlayableCharacterId } from '../content/match';
 import { hasCustomSkillEffect, registerCustomSkillEffect } from '../game/customEffects';
+import { selectStandardRosters } from '../game/engine';
 import type { SkillEffect } from '../game/schema';
 
 function customHandlers(effects: SkillEffect[] | undefined): string[] {
@@ -47,16 +49,25 @@ describe('skill authoring contracts', () => {
       .toThrow(`Duplicate custom skill effect registration: ${handlerName}`);
   });
 
-  it('keeps Standard roster limited to characters whose declared skills are executable', () => {
-    const excluded = new Set(STANDARD_GAME_DEFINITION.roster.excludedCharacterIds);
-    const incompletePlayableCharacters = Object.values(CHARACTERS)
-      .filter((character) => !excluded.has(character.id))
+  it('keeps planned-skill characters in the normal Standard selection pool for testing', () => {
+    const excluded = [...STANDARD_GAME_DEFINITION.roster.excludedCharacterIds];
+    const plannedPlayableCharacters = Object.values(CHARACTERS)
+      .filter((character) => !excluded.includes(character.id))
       .filter((character) => character.skillIds.some((skillId) => SKILLS[skillId]?.status === 'planned'))
       .map((character) => character.id)
       .sort();
+    const selected = selectStandardRosters(() => 0.5, STANDARD_GAME_DEFINITION);
+    const selectionPool = [
+      ...selected.playerMemberIds,
+      ...selected.enemyMemberIds,
+      ...selected.unusedMemberIds,
+    ];
 
-    expect(incompletePlayableCharacters).toEqual([]);
-    expect([...excluded]).toEqual(expect.arrayContaining(['chaos', 'narrator', 'ginsakura']));
+    expect(excluded).toEqual(['chaos']);
+    expect(isStandardPlayableCharacterId('narrator')).toBe(true);
+    expect(isStandardPlayableCharacterId('ginsakura')).toBe(true);
+    expect(plannedPlayableCharacters).toEqual(['ginsakura', 'narrator']);
+    expect(selectionPool).toEqual(expect.arrayContaining(['narrator', 'ginsakura']));
   });
 
   it('keeps shared usage groups explicit in schema rather than custom-handler counters', () => {

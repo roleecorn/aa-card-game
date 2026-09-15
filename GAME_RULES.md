@@ -34,13 +34,11 @@
 
 ## Standard AI setup
 
-目前 runtime catalog 共 **39 名角色**。Standard 可出戰池排除：
+目前 runtime catalog 共 **39 名角色**。一般 Standard / Online 可出戰池只排除：
 
-- 卡奧斯 `chaos`：Boss / special content，目前不進 Standard。
-- 旁白 `narrator`：仍含 planned 技能。
-- 銀櫻 `ginsakura`：仍含 planned 技能。
+- 卡奧斯 `chaos`：Boss / special content，目前不進一般 Standard / Online roster。
 
-因此目前一般 Standard / Online 可選池為 **36 名角色**。
+因此目前一般 Standard / Online 可選池為 **38 名角色**。旁白 `narrator` 與銀櫻 `ginsakura` 雖仍含 `planned` 技能，仍保留在一般可選池，方便實機、整合與回歸測試；`planned` 狀態本身不構成 roster exclusion。
 
 Standard 開局：
 
@@ -73,7 +71,7 @@ Guest：
 
 - 3 人模式：候選池 6 名不同角色，選擇順序 `Host 1 → Guest 2 → Host 2 → Guest 1`。
 - 5 人模式：候選池 10 名不同角色，選擇順序 `Host 1 → Guest 2 → Host 2 → Guest 2 → Host 2 → Guest 1`。
-- 候選角色來自同一個 Standard playable pool，因此不包含 Chaos、旁白、銀櫻。
+- 候選角色來自同一個 Standard playable pool，因此只排除 Chaos；旁白與銀櫻仍可出現在候選池。
 - 已被選走的角色立即失去再次選取資格，並在選角 UI 中由中央候選池移往對應隊伍欄。
 - **每一方第一個選到的角色就是該隊組長**。
 - 最後一張角色卡的移動／落點動畫完成後，才進入正式對局，避免視覺流程被 BattleRoom transition 截斷。
@@ -258,9 +256,9 @@ Game Event
 
 ## Standard roster completeness
 
-旁白與銀櫻仍保留在 catalog，方便 custom/test scenario 或未來補完；但因仍有 `planned` 技能，**不進 Standard 自動抽選，也不進 Online 一般候選池**。
+旁白與銀櫻仍有 `planned` 技能，但**照常進入 Standard 自動抽選與 Online 一般候選池**。保留可選是刻意的測試策略：角色必須能進入真實對局流程，才能做手動、整合與回歸測試。
 
-若之後要把角色重新放回 Standard，必須先讓宣告技能可執行、通過 skill contract tests，並同步更新本文件、`GAME_MANUAL.md`、`PROJECT_STATUS.md` 與相關 roster 文件。
+`planned` 只表示該技能目前沒有完整 runtime behavior，不等於角色不可出戰。若未來要改變 roster eligibility，必須把它視為獨立的遊戲規則／數據變更，並同步 tests 與文件。
 
 ## Scoring and game end
 

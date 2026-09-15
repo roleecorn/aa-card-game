@@ -63,13 +63,13 @@ Online setup dialog 的生命週期等同這一次連線流程：
 
 Online 候選池由 `App.tsx` 使用目前 `GameDefinition.roster.excludedCharacterIds` 過濾，所以與 Standard playable pool 共用 eligibility。
 
-目前 catalog 39 名角色，一般 Online / Standard 排除：
+目前 catalog 39 名角色，一般 Online / Standard 只排除：
 
 - `chaos`
-- `narrator`
-- `ginsakura`
 
-因此目前候選來源為 **36 名角色**。Explicit test/custom scenario roster override 不代表玩家 UI 可以繞過這個限制。
+因此目前候選來源為 **38 名角色**。`narrator` 與 `ginsakura` 雖仍有 `planned` 技能，但照常保留在候選來源，方便在真實連線／對局流程中做實機與整合測試。`planned` skill status 本身不構成 roster exclusion。
+
+Explicit test/custom scenario roster override 仍可用於 deterministic scenario，但不代表玩家 UI 可以繞過真正的 roster exclusions。
 
 ## Online character selection
 
@@ -217,7 +217,7 @@ npm run test:tutorial
 - Host 必須先選 3 / 5 人模式才能產生 room code。
 - 關閉 Online setup 會 disconnect，不留下背景連線。
 - 3 人 selection 是 6 候選、`1-2-2-1`；5 人是 10 候選、`1-2-2-2-2-1`。
-- 候選 pool 不包含 Standard excluded characters。
+- 候選 pool 不包含 Standard excluded characters；目前只排除 `chaos`，旁白與銀櫻應能出現在候選來源中。
 - 非自己回合、超過該批選牌數、已選角色不能再次選。
 - 選中角色從中央飛到正確 team rail，完成後才從 pool 移除。
 - Team rails 不顯示 scrollbar。

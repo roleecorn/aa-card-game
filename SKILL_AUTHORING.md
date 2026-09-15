@@ -286,7 +286,7 @@ Runtime registry 目前有兩個 hard contract：
   - implemented skill 必須有 executable behavior；
   - referenced custom handlers 必須存在於 live registry；
   - duplicate custom-handler registration fail-fast；
-  - Standard playable character 不得含 planned skill；
+  - `planned` skill status 不得被誤用為 roster exclusion；旁白與銀櫻必須留在 Standard selection pool，以便真實對局測試；
   - shared usage group 等 schema contract。
 - `skill-runtime-regressions.test.ts`
   - 真實 skill/event interaction regressions。
@@ -329,5 +329,6 @@ Standard AI 目前只會自動使用：
 - `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
 - Character Tag 只可作 metadata / selector / condition；不能承載 gameplay restriction 或 roster eligibility。
 - Standard / special mode eligibility 放在 match configuration。
+- `planned` 是 skill implementation status，不是 mode eligibility；是否排除角色只能由 match configuration 明確決定。
 
 `status: implemented` 必須有真正 runtime effect 與 tests；資料或文案存在但未完整執行時維持 `partial` / `planned`。
