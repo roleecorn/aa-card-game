@@ -5,6 +5,7 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import EditIcon from '@mui/icons-material/Edit';
 import GroupsIcon from '@mui/icons-material/Groups';
 import type { GameState } from '../game/types';
+import { OnlineRopeStatus } from './OnlineRopeStatus';
 
 interface Props {
   game: GameState;
@@ -28,6 +29,7 @@ export function GameHeader({ game, playerScore, enemyScore, onReset, onOpenRoste
           </Box>
         </Stack>
         <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center" justifyContent={{ xs: 'flex-start', lg: 'flex-end' }}>
+          <OnlineRopeStatus />
           <Counter label="Round" value={`${game.round} / ${game.maxRounds}`} dark />
           <Counter icon={<StyleIcon fontSize="small" />} label="Deck" value={game.player.deck.length} />
           <Counter icon={<DeleteSweepIcon fontSize="small" />} label="Discard" value={game.player.discard.length} />
