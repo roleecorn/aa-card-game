@@ -66,25 +66,22 @@ registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   return true;
 });
 
-// afterRollBatch mutates a transient batch; afterDiceGranted observes dice that have
-// already been inserted into pendingDice. Keep both representations synchronized.
-registerCustomSkillEffect('removeEventDiceAtOrBelow', (effect, context, engine) => {
+// afterDiceGranted observes dice that are already present in pendingDice. The
+// generic removeEventDiceAtOrBelow handler is sufficient for transient roll
+// batches, but granted dice must also be removed from the persistent state.
+registerCustomSkillEffect('removeGrantedDiceAtOrBelow', (effect, context, engine) => {
   const maxValue = effect.args?.maxValue;
   const dice = context.event.dice;
-  if (typeof maxValue !== 'number' || !dice?.length) return false;
+  if (context.event.type !== 'afterDiceGranted' || typeof maxValue !== 'number' || !dice?.length) return false;
 
   const removed = dice.filter((die) => die.value <= maxValue);
   if (!removed.length) return false;
   const removedIds = new Set(removed.map((die) => die.id));
-  const kept = dice.filter((die) => !removedIds.has(die.id));
-  dice.splice(0, dice.length, ...kept);
+  dice.splice(0, dice.length, ...dice.filter((die) => !removedIds.has(die.id)));
 
-  if (context.event.type === 'afterDiceGranted') {
-    const teamId = context.event.teamId ?? context.ownerTeamId;
-    const team = engine.getTeam(teamId);
-    team.pendingDice = team.pendingDice.filter((die) => !removedIds.has(die.id));
-  }
-
+  const teamId = context.event.teamId ?? context.ownerTeamId;
+  const team = engine.getTeam(teamId);
+  team.pendingDice = team.pendingDice.filter((die) => !removedIds.has(die.id));
   engine.log(`${context.definition.name}：${removed.length} 顆點數 ${maxValue} 以下的骰無法使用。`);
   return true;
 });
