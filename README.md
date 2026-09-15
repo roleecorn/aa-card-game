@@ -6,14 +6,17 @@
 
 ## 目前可玩的內容
 
-- Standard 對局固定 5 回合。
-- 開始遊戲後可選 **3 人模式**或 **5 人模式**。
-- 隊伍角色數與作品數相同：3 人模式每隊 3 部作品，5 人模式每隊 5 部作品。
-- 目前 runtime catalog 共 **39 名角色**；卡奧斯由 Standard match configuration 排除，因此 Standard 可抽取 **38 名角色**。
+- 一般對局固定 5 回合。
+- 可選 **3 人模式**或 **5 人模式**；每名角色對應一部作品。
+- 支援 **Standard AI** 與 **Online 兩人連線對戰**。
+- Runtime catalog 共 **39 名角色**；一般 Standard / Online 可出戰 **36 名**，目前排除卡奧斯、旁白、銀櫻。
+- Standard AI：隨機抽隊、我方全局一次重抽、手動選組長、對手 AI 回合。
+- Online：Host 先選 3/5 人模式，使用 6 位數房間代碼配對，再從共同候選池輪流選角；雙方第一個選到的角色各自成為組長。
 - 支援角色主動／被動／觸發技能、統籌卡與事件卡、Stress、作品適性、作品進度、組長接任、hidden／神隱等 runtime mechanic。
+- Active skill 的可用性與 target legality 由 SkillRuntime 統一判定，UI 不應提供 runtime 會拒絕的假目標。
 - 另有固定 roster / 固定抽牌 / deterministic RNG 的教學關卡。
 
-目前程式實際規則以 [`GAME_RULES.md`](./GAME_RULES.md) 為準；玩家向完整說明見 [`GAME_MANUAL.md`](./GAME_MANUAL.md)。
+目前程式實際規則以 [`GAME_RULES.md`](./GAME_RULES.md) 為準；玩家向完整說明見 [`GAME_MANUAL.md`](./GAME_MANUAL.md)；連線架構與限制見 [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)。
 
 ## 技術棧
 
@@ -55,6 +58,27 @@ npm run test:image-tools
 npm run storybook
 ```
 
+## 對局模式
+
+### Standard AI
+
+1. 選擇 3 人或 5 人模式。
+2. 系統從 36 名一般可出戰角色中抽出雙方不重複隊伍。
+3. 我方初始隊伍有一次重抽一名角色的機會。
+4. 我方確認隊伍後選組長。
+5. 玩家完成回合後由 AI 自動處理對手回合。
+
+### Online
+
+1. Host 選 3 人或 5 人模式後建立 6 位數房間代碼。
+2. Guest 輸入代碼加入。
+3. 連線成功後，3 人模式從 6 名候選、5 人模式從 10 名候選輪流選角。
+4. 選擇批次分別為 `1-2-2-1` 與 `1-2-2-2-2-1`。
+5. 雙方第一個選到的角色就是初始組長。
+6. 選角完成後共用同一個 `BattleRoom` 進行真人對真人回合。
+
+Online 使用 WebRTC DataChannel，MQTT 僅做短期 signaling；目前沒有 TURN relay 或可靠 reconnect。詳細見 [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)。
+
 ## 部署與資源路徑
 
 這個 Web app **不假設部署在網站根目錄 `/`**。正式 release 目前由 GitHub Pages 掛在 repository 子路徑，因此 Vite build 會使用類似 `/aa-card-game/` 的 `base`。
@@ -69,52 +93,45 @@ assets/cards/guide.svg
 
 不要在 content 或 component 中把 `/assets/...` 當成正式路徑。Browser runtime URL 應經由 Vite `import.meta.env.BASE_URL` 或專案共用 `resolvePublicAssetPath` 解析。
 
-例如 deployment base 為 `/aa-card-game/` 時：
-
-```text
-assets/characters/portrait/example.webp
--> /aa-card-game/assets/characters/portrait/example.webp
-```
-
-涉及 public asset path 的修改應包含 non-root base regression test，不能只在 Vite dev server 的 `/` 環境驗證。
+涉及 public asset path 的修改應包含 non-root base regression test。
 
 ## Branch / release policy
 
-- `main` 是 application source、deployment workflow 與 release UI behavior 的 source of truth。
+- `main` 是 application source、規則、文件與 deployment workflow 的 source of truth。
 - `release` 代表目前部署中的版本，不應直接維護只存在於 `release` 的 source code、workflow 或 UI 差異。
-- GitHub Pages workflow 可存在於 `main`，但由 `release` branch push 觸發部署；一般 `main` 更新只跑 CI。
-- 發布時建立 `main -> release` PR；實際 merge 前仍必須依 repository policy 完成人工測試與人工確認。
+- 一般 `main` 更新只跑 CI；發布時建立 `main -> release` PR。
+- 任何 PR merge 前都必須完成人工測試／review；CI 綠燈不等於 merge 授權。
 - 完整流程見 [`docs/release-flow.md`](./docs/release-flow.md)。
 
 ## 圖片工具與角色美術
 
-Runtime 角色圖片分成：
+Runtime 角色圖片：
 
 ```text
 public/assets/characters/portrait/<character-id>.webp
 public/assets/characters/compact/<character-id>.webp
 ```
 
-正式 portrait 規格為 3:4、768 × 1024 WebP；compact slot 為 384 × 320 WebP。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+正式 portrait 規格為 3:4、768×1024 WebP；compact slot 為 384×320 WebP。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
 
 Repository 內建圖片工具：
 
-- `npm run image:inspect -- <file> [file...]`：顯示格式、尺寸、frame/page 數、色彩空間與檔案大小。
-- `npm run image:check -- <file> ...`：檢查單一資源規格。
-- `npm run image:webp -- <input> <output> ...`：轉成 sRGB WebP。
-- `npm run art:normalize`：正規化 portrait，並從 canonical portrait 重建 compact。
-- `npm run art:validate`：檢查 portrait / compact 配對、WebP container、尺寸、單幀與 sRGB。
+- `npm run image:inspect -- <file> [file...]`
+- `npm run image:check -- <file> ...`
+- `npm run image:webp -- <input> <output> ...`
+- `npm run art:normalize`
+- `npm run art:validate`
 
 角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)。
 
 ## 規則與內容架構
 
-角色技能不應散落成 `GameEngine` 裡的角色特判。主要流程為：
+角色技能不應散落成 `GameEngine` 裡的角色特判。主要流程：
 
 ```text
-Game Event
+Game Event / Active request
   -> SkillRuntime
-  -> Conditions
+  -> Conditions / target legality / usage
   -> EffectRegistry / customEffects
   -> Game State
 ```
@@ -125,13 +142,18 @@ Game Event
 src/content/<character-id>.ts
 ```
 
-同一 package 保存該角色的 `CharacterDefinition` 與角色專屬 `SkillDefinition`。`src/content/catalog.ts` 只負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。
+`src/content/catalog.ts` 負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。Standard AI 與 Online 共用 `BattleRoom` 與核心 Engine；Online 只另外處理 connection、draft、command authority 與 human turn ownership。
 
 詳細內容：
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - [`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)
+
+## Documentation policy
+
+涉及**遊戲規則或遊戲數據**的修改，必須在同一個 PR 同步更新對應文件；不能只改 code/data 後依賴 CI。Canonical 規則與文件對應表定義在 [`AGENTS.md`](./AGENTS.md)。
 
 ## Repository 文件
 
@@ -139,6 +161,7 @@ src/content/<character-id>.ts
 - Contribution：[`CONTRIBUTING.md`](./CONTRIBUTING.md)
 - Runtime 規則：[`GAME_RULES.md`](./GAME_RULES.md)
 - 玩家向遊戲說明：[`GAME_MANUAL.md`](./GAME_MANUAL.md)
+- Online：[`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)
 - 實作狀態 / Known gaps：[`PROJECT_STATUS.md`](./PROJECT_STATUS.md)
 - 架構：[`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
@@ -154,17 +177,13 @@ src/content/<character-id>.ts
 
 ```text
 aa-card-game/
-├─ public/
-│  └─ assets/
-│     ├─ characters/
-│     │  ├─ portrait/
-│     │  └─ compact/
-│     └─ cards/
+├─ public/assets/
 ├─ src/
-│  ├─ app/
+│  ├─ app/                # App routing + shared BattleRoom
 │  ├─ components/
-│  ├─ content/           # per-character packages / cards / match / catalog
-│  ├─ game/              # engine / skill runtime / effect registry
+│  ├─ content/            # character/card/match/catalog
+│  ├─ game/               # engine / skill runtime / online turn
+│  ├─ online/             # signaling / session / draft / protocol
 │  ├─ store/
 │  ├─ tutorial/
 │  └─ tests/
@@ -172,21 +191,21 @@ aa-card-game/
 ├─ AGENTS.md
 ├─ GAME_RULES.md
 ├─ GAME_MANUAL.md
+├─ ONLINE_MULTIPLAYER.md
 ├─ PROJECT_STATUS.md
 └─ README.md
 ```
 
 ## Prototype rule summary
 
-- 5 回合。
-- 3 人或 5 人小隊。
+- 5 回合；3 人或 5 人小隊。
+- Standard AI 或兩人 Online。
 - 每名角色各有一部作品。
-- Progress 依 `Design -> Text -> AA`。
-- 角色能力值決定工作骰數量。
+- Progress 依 `Design → Text → AA`。
 - 高骰可以覆蓋同類型低骰。
 - Work 通常增加 Stress；Slack 降低 Stress。
 - 作品類型為 `燃 / 謀 / 笑 / 情 / 色 / 怪`。
 - 角色技能與卡牌效果共用 data-driven effect pipeline。
-- Standard roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
+- Standard / Online 一般 roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
 
 這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。

@@ -1,6 +1,6 @@
 # Current Game Rules
 
-本文件描述 **目前 `main` 的 TypeScript runtime 實際採用規則**。它不是 Discord 原始討論逐字整理；來源內容請看 `discussion-notes.md`，角色個別定義則以 `src/content/<character-id>.ts` 為準。
+本文件描述 **目前 `main` 的 TypeScript runtime 實際採用規則**。它不是 Discord 原始討論逐字整理；來源內容請看 `discussion-notes.md`，角色個別數值／能力則以 `src/content/<character-id>.ts` 為 authoritative source。
 
 規則可分為：
 
@@ -8,119 +8,180 @@
 - **Prototype decision**：為了讓目前 Prototype 可執行而採用的專案決策。
 - **Planned**：資料或文字已存在，但 runtime 尚未完整實作。
 
-## Match setup
+## Match modes
 
-### Standard match
+目前有兩種可玩的對戰入口：
 
-目前一般對局：
+- **Standard AI**：玩家對 AI。
+- **Online**：兩名真人透過房間代碼連線對戰。
 
-- 固定 5 回合。
-- 開始遊戲後可選 **3 人模式**或 **5 人模式**。
-- 隊伍有幾名角色，就建立幾部作品；因此 3 人模式每隊 3 部作品，5 人模式每隊 5 部作品。
-- `src/content/match.ts` 的 `DEFAULT_MATCH.teamSize` 仍是 3，作為 Standard definition 的基準值；UI 選擇 5 人模式時會為該局建立 `teamSize: 5` 的 `GameDefinition`，不修改全域 catalog。
-- Standard 可出戰池由 `src/content/match.ts` 的 match configuration 決定。
-- 目前 catalog 共 **39 名角色**；Standard 排除卡奧斯，因此一般模式可抽取 **38 名角色**。
-- 先 shuffle Standard 可出戰池。
-- 我方依所選 team size 取前 3 或 5 名。
-- 對手再從**剩餘角色**取接下來 3 或 5 名。
-- 同一局雙方角色不重複。
-- 未抽到的角色本局不上場。
-- 按「重開」會重新建立遊戲，因此重新抽隊伍。
+兩者共用同一套 `GameDefinition`、角色／技能／卡牌資料與 `BattleRoom` gameplay UI，但**開局選角與回合控制方式不同**。
 
-卡奧斯由 Standard match configuration 排除，不使用 `not-standard-playable` 之類 Character Tag 承載這條規則。
+### Shared match constants
 
-隨機抽隊與目前的 3 / 5 人模式皆屬 **Prototype decision**；不要把它回寫成 Discord 已定案的選角規則。
+目前 Standard definition 的主要規則：
 
-### Leader
+- 固定 **5 回合**。
+- 可選 **3 人模式**或 **5 人模式**。
+- 每名上場角色建立一部自己的作品，所以每隊作品數等於隊伍人數。
+- 初始作品篇幅 5。
+- 初始手牌 2；第 2–5 回合開始時抽 2。
+- 手牌上限 8。
+- 組長有效 Stress 上限 +2。
+- 缺少 Design / Text / AA 的 slot 項目以 `-2` 參與計分。
 
-我方在抽隊後選擇一名組長；對手目前以 roster 第一名作為組長。
+`src/content/match.ts` 的 `DEFAULT_MATCH.teamSize` 為 3，只是 Standard definition 的基準值；3/5 人模式會為該局建立對應的 `GameDefinition`，不修改全域 catalog。
 
-- 組長本局 Stress 上限 +2。
-- 這個加成保存在當局 `CharacterState.statuses`，不修改全域 `CharacterDefinition.maxStress`。
-- 若組長離場，從仍在場的同隊成員中使用當局 RNG 隨機選擇一名接任組長。
-- 接任者取得組長 Stress 上限加成；之後所有卡牌也立即視為由新組長使用。
-- 若組長離場後沒有任何可接任成員，該隊立即判負。
+## Standard AI setup
+
+目前 runtime catalog 共 **39 名角色**。Standard 可出戰池排除：
+
+- 卡奧斯 `chaos`：Boss / special content，目前不進 Standard。
+- 旁白 `narrator`：仍含 planned 技能。
+- 銀櫻 `ginsakura`：仍含 planned 技能。
+
+因此目前一般 Standard / Online 可選池為 **36 名角色**。
+
+Standard 開局：
+
+1. Shuffle Standard 可出戰池。
+2. 我方依 team size 取前 3 或 5 名。
+3. 對手從剩餘角色取接下來 3 或 5 名。
+4. 雙方角色不重複。
+5. 我方看到初始隊伍後，全局只有 **一次重抽機會**：選一名我方角色，以當局尚未參戰的可出戰角色替換。
+6. 確認隊伍後，我方選擇組長。
+7. 對手以 roster 第一名作為組長。
+
+Standard 的隨機抽隊、單次重抽與 3/5 人模式皆屬 Prototype decision。
+
+## Online setup and draft
+
+Online 不使用 Standard 的「抽隊 → 單次重抽 → 選組長」流程。
+
+Host：
+
+1. 進入「連線對戰」→「建立連線房間」。
+2. 先選擇 3 人或 5 人模式。
+3. 建立 6 位數房間代碼。
+
+Guest：
+
+1. 進入「連線對戰」→「加入連線房間」。
+2. 輸入 Host 的 6 位數代碼。
+
+連線完成後進入共同角色選擇：
+
+- 3 人模式：候選池 6 名不同角色，選擇順序 `Host 1 → Guest 2 → Host 2 → Guest 1`。
+- 5 人模式：候選池 10 名不同角色，選擇順序 `Host 1 → Guest 2 → Host 2 → Guest 2 → Host 2 → Guest 1`。
+- 候選角色來自同一個 Standard playable pool，因此不包含 Chaos、旁白、銀櫻。
+- 已被選走的角色立即失去再次選取資格，並在選角 UI 中由中央候選池移往對應隊伍欄。
+- **每一方第一個選到的角色就是該隊組長**。
+- 最後一張角色卡的移動／落點動畫完成後，才進入正式對局，避免視覺流程被 BattleRoom transition 截斷。
+
+離開／關閉連線設定畫面會視為中斷該次連線流程；不能把關閉 Dialog 當成「連線仍在背景繼續」。
+
+完整 transport 與連線限制見 `ONLINE_MULTIPLAYER.md`。
+
+## Turn flow
+
+### Standard AI
+
+一般每回合：
+
+1. `roundStart` 技能／狀態。
+2. 抽牌（第 2 回合起）。
+3. 玩家規劃每名可行動角色的 Work / Slack。
+4. 執行玩家角色行動並產生 pending dice。
+5. 玩家放骰、出牌、使用主動技能。
+6. 結束配置；玩家未使用 pending dice 清除。
+7. AI 執行技能／卡牌、Work / Slack 與自動放骰。
+8. `roundEnd` 技能／狀態。
+9. 進入下一回合，或第 5 回合後結算。
+
+### Online human-vs-human
+
+Online 使用同一 GameState，但兩邊都由真人操作：
+
+1. Host side：`player-plan → player-assign`。
+2. Host 完成配置後進入 Guest side：`enemy-plan → enemy-assign`。
+3. Guest 完成配置後執行共用 roundEnd / cleanup / draw / roundStart，進入下一回合 Host turn。
+4. Online 不套用 Standard AI 的敵方自動棄牌；兩名真人都必須自行處理超過手牌上限的情況。
+
+Host 是 authoritative state owner；Guest 傳 command，由 Host 驗證與結算，再同步 snapshot。這是網路架構，不改變角色技能或計分規則。
+
+## Leader
+
+- 組長有限 Stress 上限 +2。
+- 所有卡牌 actor 都是該隊**當前組長**。
+- 副組長類能力只能改變「統籌卡 +1 Stress 的承擔者」，不改變 card actor identity。
+- 若組長離場，Engine 從仍在場的同隊成員中使用當局 RNG 隨機選擇接任者。
+- 接任者取得組長 Stress cap bonus；之後所有卡牌立即由新組長使用。
+- 若組長離場後無人可接任，該隊立即判負。
+
+Online 的第一個 draft pick 只決定**初始組長**；之後的接任規則與 Standard 相同。
 
 ## Works
 
 每名上場角色建立一部自己的作品。
 
 - 初始篇幅：5。
-- 每個 progress slot 包含 `Design / Text / AA`。
-- 放置順序為 `Design -> Text -> AA`。
-- 同一 slot、同一 progress 類型中，較高骰可以覆蓋較低骰；相同或更低數值不能覆蓋。
-- 最終每個 slot 以 `min(Design, Text, AA)` 計分。
+- 每個 slot 包含 `Design / Text / AA`。
+- 空 slot 放置順序為 `Design → Text → AA`。
+- 同一 slot、同一 progress 類型中，較高骰可以覆蓋較低骰；相同或更低不能覆蓋。
+- 每個 slot 最終以 `min(Design, Text, AA)` 計分。
 - 缺少任一項時，缺項按 `-2` 參與最低值計算。
-- 作品篇幅可以被效果增加或減少，最低不得低於 runtime 定義的合法值。
+- 作品篇幅可被效果增減，最低為 1。
 
-作品類型：
-
-`燃 / 謀 / 笑 / 情 / 色 / 怪`
+作品類型：`燃 / 謀 / 笑 / 情 / 色 / 怪`。
 
 角色自己的作品會從有效適性中選擇；全適性角色可使用全部類型。若角色沒有 explicit affinity，也沒有被動提供適性，Prototype fallback 為 `謀`。
 
-## Character actions
+## Character actions and Stress
 
 一般可行動角色每回合選擇：
 
-- **Work**：依有效 `Design / Text / AA` 能力產生骰子，通常 Stress +1。
-- **Slack**：本輪不工作，Stress -2。
+- **Work**：依有效 `Design / Text / AA` 產生骰子，通常 Stress +1。
+- **Slack**：不工作，Stress -2。
 
-當有限 Stress 上限角色在實際執行行動時已達有效上限，Work 會被強制轉成 Slack。
+若有限 Stress 上限角色在實際執行行動時已 `Stress >= 有效上限`，Work 會被強制轉成 Slack。
 
-若某次 Stress 增加造成 `Stress > 有效上限`，該角色尚未分配的骰會被清除；若是該次 Work 本身造成超標，該批工作骰不會留下。剛好到達上限則不會追溯取消已產生的骰。
+若 Stress 增加造成 `Stress > 有效上限`：
+
+- 該角色尚未分配的 pending dice 清除。
+- 若是這次 Work 本身造成超標，該批工作骰不留下。
+- 剛好到達上限不會追溯取消已產生的骰。
 
 `maxStress: null` 表示沒有一般 Stress 上限，例如高興與卡奧斯。
 
 ### Hidden / 神隱
 
-目前 runtime 已有共用 hidden gameplay status。被神隱的角色：
+Hidden 是共用 gameplay status：
 
-- 在 hidden 期間不能作為一般可行動角色操作；
-- 依技能指定的 duration 決定何時恢復；
-- 若技能明確指定「到遊戲結束」，則本局不再回場；
-- 角色的作品不會因此自動刪除，仍可留待其他規則處理與最終計分。
-
-目前 Ingrid、Pray、山田、滯澀等角色都會使用這套共用機制，但觸發時機與 duration 由各自 SkillDefinition 決定。
-
-## Character Tag rule
-
-`CharacterDefinition.tags` 只作為 metadata 或 Skill selector / condition 的目標標示。
-
-Tag 不得直接：
-
-- 修改 Stress、骰子、能力或作品；
-- 禁止／允許角色行動；
-- 提供免疫；
-- 控制卡牌使用或被指定權限；
-- 決定 game mode 出場資格。
-
-上述 gameplay behavior 必須由 Skill / Effect / runtime status 或 match configuration 明確實作。
-
-例如 `triangle-creature` 可以讓技能找到目標，但真正的 Stress 修改仍由該 Skill 的 effect 執行。
-
-## Effect immunity 與 targetability
-
-「效果無效」與「不能指定」是兩種不同規則：
-
-- **效果無效**：目標仍合法；Skill / Card 正常發動，使用次數與卡牌消耗照常處理，只有落在免疫對象上的 effect 變成 no-op。
-- **不能指定**：target validation 階段就不是合法目標，UI / runtime 不應讓玩家把該對象選成有效目標。
-
-神惱「自己做」屬於效果無效：仍可被指定，但其他角色技能或卡牌造成在神惱本人的正面／負面修改不生效。
-
-弱智的 `coordinationUntargetable` 屬於真正不能指定：直接指定角色的統籌卡不應把弱智列為合法角色目標。
+- hidden 角色不能執行一般 Work / Slack。
+- hidden / action-blocked 角色也不能手動發動 Active skill。
+- hidden 角色不能成為直接角色目標的統籌卡 target。
+- 作品不會因角色 hidden 自動刪除。
+- duration 由各 SkillDefinition 決定；若技能指定到遊戲結束，就不會回場。
 
 ## Dice
 
-- 一般骰值範圍為 1–6。
-- pending dice 在回合結束時不保留。
-- 一般 pending dice 只能投入我方作品。
-- 把骰投入其他組員作品時，Design / Text 需要符合骰子擁有者的有效作品適性；AA 不檢查適性。特定技能可建立例外骰或例外放置規則。
-- 部分角色會修改可出現的骰面，例如風揚最低為 3；天體齒輪不會出現 3、4；嘆息與鬼影也有各自的禁骰面規則。
+- 一般骰值為 1–6。
+- pending dice 不保留到下一回合。
+- 一般 pending dice 只能投入己方作品。
+- 把骰投入其他組員作品時，Design / Text 需要骰子擁有者對該作品類型有有效適性；AA 一般不檢查適性。
+- 特定技能可建立例外放置規則。
+
+部分角色修改合法骰面：
+
+- 風揚：最低骰面 3。
+- 天體齒輪：不會出現 3、4。
+- 嘆息：Text / AA 不會出現 5、6。
+- 鬼影：Design / AA 不會出現 5、6。
+- 秋影：「拖延症」會讓自己擲出的 1、2 無法使用；這條規則同時適用一般工作骰與技能／卡牌取得的額外骰。
 
 ## Cards
 
-基礎牌庫目前為固定 12 張 Prototype deck：
+基礎牌庫固定 12 張：
 
 - 安撫 ×2
 - 指導 ×2
@@ -133,76 +194,94 @@ Tag 不得直接：
 
 每隊使用自己的 deck / hand / discard pile。
 
-- 初始手牌 2 張。
-- 第 2–5 回合開始時各抽 2 張。
-- 手牌上限 8 張；我方超過上限時必須主動棄到 8 張才能繼續。
-- 牌庫耗盡時會把棄牌堆洗回牌庫。
+- 初始手牌 2。
+- 第 2–5 回合開始時抽 2。
+- 手牌上限 8。
+- 牌庫耗盡時把棄牌堆洗回牌庫。
 
-**所有卡牌一律視為由該隊當前組長使用。**
+所有卡牌都由當前組長使用。統籌卡成功使用後，一般由組長承擔 +1 外部 Stress；副組長能力可能依規則在**結算前**改變 Stress bearer。
 
-統籌卡成功使用後，一般由組長承擔 +1 外部 Stress；具有副組長相關技能的角色可能依各自 SkillDefinition 改變這個 Stress 承擔者，但不會因此改變 card actor identity。
+各卡牌完整 target / effect 以 `src/content/cards.ts` 為 authoritative source；玩家向說明見 `GAME_MANUAL.md`。
 
-### Coordination cards
-
-目前包含：安撫、指導、精修、重新考慮一下……、趕工、語音會議。
-
-### Event cards
-
-目前包含：突發加班、卡文。
-
-各卡牌的 target 與完整效果以 `src/content/cards.ts` 為 authoritative source；`GAME_MANUAL.md` 提供玩家向說明。
-
-## Character-specific rules
-
-角色資料採 per-character package：
-
-`src/content/<character-id>.ts`
-
-這裡的 `CharacterDefinition` / `SkillDefinition` 是角色數值與能力的 authoritative source。文件不要複製出另一套會獨立漂移的角色規則資料庫。
-
-目前需要特別注意的 runtime 規則：
-
-- **Pintbox**：「審稿」已是可主動使用的 implemented skill；「這只是基本的要求……」在 Pintbox Stress >= 3 時會自動重複處理低骰，不再是 partial。
-- **弱智**：不能行動、不能成為直接角色目標的統籌卡 target；若擔任組長則不能使用統籌卡。最終仍以「最後三天趕稿」獨立 `1d6` 填空格。
-- **格林**：「對托內利可的愛」目前是在自己的（情）作品上，每回合一次，把一顆已放置進度骰改成 3，再 Stress -1。
-- **山田**：達到 Stress 上限會神隱到本局結束，而不是沿用一般角色的「只限制 Work」處理。
-- **卡奧斯**：Standard 不出戰；其「體力」與 Stress immunity 仍保留作為 content/runtime mechanic。Boss mode 尚未完成。
-
-目前仍明確標為 `planned` 的既有能力包含旁白與銀櫻的未完成技能；其他角色是否可操作、目標是否合法與能力如何結算，一律以目前 SkillDefinition / target validation 為準。
-
-## Skills
+## Skills and target legality
 
 技能採 data-driven pipeline：
 
 ```text
 Game Event
   -> SkillRuntime
-  -> Condition
+  -> Condition / usage / target legality
   -> EffectRegistry / customEffects
   -> GameState
 ```
 
-新增技能規則見 `SKILL_AUTHORING.md`；角色 Tag 與 Skill 的責任邊界見 `ARCHITECTURE.md` 與 `CHARACTER_AUTHORING.md`。
+### Active skills
+
+`SkillRuntime` 是 Active skill 可用性與 target legality 的單一 runtime source of truth：
+
+- `activeTarget` 描述目標結構與 relation / skill / minValue / maxValue 等限制。
+- `activeCondition` 描述真正的發動前置條件，例如作品類型、已有進度、作品篇幅或目標 Stress。
+- UI target list 必須委派同一套 runtime validator；不能顯示「看似可選、實際 runtime 會拒絕」的目標。
+- 完全沒有合法 target 或效果必然為 no-op 時，技能應在發動前不可用。
+- `activeUsage.group` 可讓多個技能共享同一使用次數桶，例如阿道的加長／縮短全局合計兩次。
+
+### Effect immunity vs untargetable
+
+- **效果無效**：target 仍合法，技能／卡牌正常發動與消耗，但落在免疫目標上的 effect 不改變狀態。
+- **不能指定**：target validation 階段就不是合法目標。
+
+神惱「自己做」屬於效果無效；弱智的統籌卡指定限制屬於 untargetable。
+
+### Custom handler contract
+
+`status: implemented` 的 custom effect 必須在 live runtime registry 真正完成註冊。Registry 現在會：
+
+- 可被 contract tests 查詢 handler 是否存在；
+- 遇到同名 handler 重複註冊時 fail fast，不再靜默覆寫。
+
+## Character-specific current notes
+
+角色的完整數值與技能仍以 per-character package 為準。近期容易與舊文件混淆的規則：
+
+- **Pintbox**：`審稿` 可主動重擲己方所有 1/2 pending dice；每重擲一顆，該骰 owner +1 Stress。`這只是基本的要求……` 在 Pintbox Stress >=3 且工作批次出現 1/2 時，自動處理該批與既有 pending 低骰直到沒有 1/2。
+- **風揚**：`起來` 已實作；回合開始時若自身達有效 Stress 上限，會依技能規則處理自身／組長 Stress。
+- **情緒**：`屬陀螺的` 以實際統籌卡 target 判斷；每回合第一次成為統籌卡目標時，己方組長 Stress -1。
+- **流星**：`軌之共鳴` 只有自己的作品為（燃）且存在可重擲 pending die 時才可發動。
+- **格林**：`對托內利可的愛` 只有自己的（情）作品存在已放置進度時可發動。
+- **鬼影**：`貓影共鳴` 必須真的存在可重擲的 Design 進度，不能空付 Stress。
+- **鴿子的化身／嘆息**：加骰值技能不會把已經沒有提升空間的 6 點骰當成合法 target。
+- **Pray**：`高產` 不能對 1 點骰做 1→1 的 no-op 拆分。
+- **TA**：`人氣作家的手腕` 是無指定目標的主動技能；有自身 pending dice 時，重擲最低的最多 2 顆。
+- **三角希＆有希**：回復技能必須讓自身或所選三角生物至少一方真的有 Stress 可下降。
+- **阿道**：`開個回憶篇` 會正確取得實際 slot index；自己的骰放到自己作品第 4/5 slot 時 +1 Stress。加長／縮短共用全局兩次 quota，作品已長度 1 時不能縮短。
+- **Enki**：`副組長力` 使用 pre-resolution `coordination.stressBearer` 決定統籌卡 Stress bearer，不會因對手出牌觸發；`代組長力` 的 +2 會實際進入有效 Stress 上限計算。
+
+## Standard roster completeness
+
+旁白與銀櫻仍保留在 catalog，方便 custom/test scenario 或未來補完；但因仍有 `planned` 技能，**不進 Standard 自動抽選，也不進 Online 一般候選池**。
+
+若之後要把角色重新放回 Standard，必須先讓宣告技能可執行、通過 skill contract tests，並同步更新本文件、`GAME_MANUAL.md`、`PROJECT_STATUS.md` 與相關 roster 文件。
 
 ## Scoring and game end
 
-第 5 回合的 `roundEnd` 與相關最終觸發完成後：
+第 5 回合的 `roundEnd` 與 final triggers 完成後：
 
-1. 每個作品 slot 取 Design / Text / AA 的最低值；缺項為 -2。
-2. 作品分數為所有 slot 分數加總。
-3. 隊伍分數為該隊所有作品分數加總。
+1. 每個作品 slot 取 Design / Text / AA 最低值；缺項為 -2。
+2. 作品分數 = 所有 slot 分數總和。
+3. 隊伍分數 = 該隊所有作品分數總和。
 4. 高分者勝；同分為平手。
 
-若較早發生「組長離場且無人可接任」的立即敗北，則不再走一般分數比較。
+若較早發生「組長離場且無人可接任」的立即敗北，不再走一般分數比較。
 
-## Source vs Prototype
+## Source hierarchy
 
 若文件之間內容不同：
 
-1. `src/content/`、`src/game/` 與對應 tests 描述目前程式真正怎麼跑。
+1. `src/content/`、`src/game/`、`src/online/` 與對應 tests 描述目前程式真正怎麼跑。
 2. `GAME_RULES.md` 是 runtime 規則摘要。
 3. `GAME_MANUAL.md` 是玩家向說明。
-4. `discussion-notes.md` 保留來源討論與歷史脈絡，不應被誤當成目前 runtime snapshot。
-5. `PROJECT_STATUS.md` 記錄目前仍存在的 gap / planned scope。
+4. `ONLINE_MULTIPLAYER.md` 是連線模式的網路與流程說明。
+5. `PROJECT_STATUS.md` 記錄目前功能與 known gaps。
+6. `discussion-notes.md` 保存來源討論與歷史脈絡，不代表目前 runtime snapshot。
 
-不要為了讓文件一致而把 Prototype decision 回寫成「Discord 已定案」。
+遊戲規則或遊戲數據變更時，程式與上述對應文件必須在同一個 PR 中同步；詳細要求見 `AGENTS.md`。

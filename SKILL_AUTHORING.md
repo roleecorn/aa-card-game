@@ -1,12 +1,12 @@
 # Skill Authoring
 
-新增技能時優先使用 declarative definition，不要先修改 `EngineSession`。
+新增／修改技能時，優先使用 declarative definition，不要先修改 `EngineSession`。目前 Active skill 的可用性與 target legality 由 `SkillRuntime` 統一判定；UI 不應建立第二套角色特判。
 
 ## 1. 選 activation 類型
 
 ### Passive
 
-適合持續規則，例如適性、最低骰值或提供其他系統可查詢的能力 metadata：
+適合持續規則，例如適性、最低骰值、effect immunity 或 coordination stress bearer：
 
 ```ts
 {
@@ -19,22 +19,9 @@
 }
 ```
 
-若某個持續能力同時需要 event runtime 執行與 UI／targeting 判斷，可在同一 Skill 放 `passives` 與 `triggers`。例如外部效果免疫可用：
+若同一能力同時需要 event runtime 與 UI／targeting 判斷，可以在同一 Skill 放 `passives` 與 `triggers`。
 
-```ts
-passives: [{ kind: 'effect.immunity', source: 'external' }]
-```
-
-`effect.immunity` 是 **effect resolution** 規則，不是 target validation 規則。UI 不得因為看到 immunity 就把角色從可選目標中隱藏；selector 也不得因 immunity 改選下一個角色。真正的 Stress／dice effect cancellation 可由同一 Skill 的 triggers 或共用 effect-resolution helper 執行。不要另外建立 Character ID、Tag 或平行 metadata table 來描述同一規則。
-
-### 「無效」與「不能指定」
-
-這兩種規則必須分開建模：
-
-- **無效（immune / ineffective）**：目標仍然合法，Skill／Card 可以正常發動並消耗使用次數或卡牌；只有落在免疫角色／作品上的 effect 變成 no-op。同一個 Skill 的其他 effect 仍照常結算。
-- **不能指定（untargetable）**：屬於 target validation；該角色根本不是合法目標，玩家不能以它完成該次指定。這必須由 `activeTarget`、Card target rule 或明確的 runtime status 表達，例如 `coordinationUntargetable`。
-
-例如，若神惱同時具有 `triangle-creature` Tag，三角希仍可用「滾滾三角生物」指定神惱：三角希自己的 Stress -1 正常生效，神惱的 Stress -1 因「自己做」而無效；技能仍視為已發動。若規則文字真正寫的是「不能被指定」，才應在 target validation 階段排除。
+`effect.immunity` 是 **effect resolution** 規則，不是 target validation 規則：免疫角色仍可被合法指定，只是落在它身上的 effect no-op。真正「不能指定」必須由 target rule 或 runtime status 表達。
 
 ### Triggered
 
@@ -66,27 +53,80 @@ passives: [{ kind: 'effect.immunity', source: 'external' }]
   activation: 'active',
   status: 'implemented',
   activeUsage: { scope: 'round', limit: 1 },
-  activeTarget: { kind: 'pendingDie', relation: 'self' },
+  activeTarget: { kind: 'pendingDie', relation: 'self', maxValue: 5 },
   activeEffects: [{ kind: 'dice.modifySelected', add: 1 }]
 }
 ```
 
-## 2. 用 condition 組規則
+如果沒有任何合法 target，`canUseActive()` 應該直接回 false，而不是讓玩家先進 dialog 再失敗。
+
+## 2. Active target 與 activeCondition 的責任
+
+`activeTarget` 表達「**要選什麼，而且這個目標本身是否合法**」：
+
+- kind：`none / member / taggedMember / work / pendingDie / copyPendingDie`
+- relation：self / ally / otherAlly / enemy / owner 等
+- pending die 的 `skill / minValue / maxValue`
+- tag / excludeSelf 等 target structure
+
+`activeCondition` 表達「**發動前置條件是否成立**」，尤其是不能只靠 target structure 表達的規則：
 
 ```ts
-condition: {
-  kind: 'all',
-  conditions: [
-    { kind: 'round', op: 'gte', value: 3 },
-    { kind: 'ownerStress', op: 'lte', value: 2 },
-    { kind: 'pendingDice', target: 'owner', skill: 'text', countAtLeast: 1 }
-  ]
+{
+  activeCondition: {
+    kind: 'all',
+    conditions: [
+      { kind: 'workType', target: 'ownerWork', types: ['燃'] },
+      { kind: 'pendingDice', target: 'owner', countAtLeast: 1 },
+    ],
+  },
 }
 ```
 
-如果是 OR 使用 `any`，反向條件使用 `not`。
+目前常用 condition 還包括：
 
-## 3. 用 selector 選目標
+- `ownerStress`
+- `memberStress`
+- `ownerStat`
+- `round`
+- `eventAmount / eventSkill / sourceKind / eventMeta`
+- `diceMatch / pendingDice`
+- `ownerStatus`
+- `workType`
+- `workScore`
+- `workLength`
+- `workHasProgress`
+- `chance`
+- `all / any / not`
+
+### 不要把可用條件藏在 custom handler
+
+如果規則是「作品必須是（燃）」「作品至少長度 2」「目標至少有 1 Stress」「要存在 Design progress」等，必須優先用 `activeCondition` / `activeTarget` 表達。
+
+Custom handler 可以再次 defensive validate，但不能讓 UI/`canUseActive()` 只能等到 handler 執行後才知道其實不能用。
+
+## 3. Runtime 是 target legality 的單一來源
+
+所有 UI target candidate 最終必須委派：
+
+```ts
+engine.skills.canActivateSkillTarget(memberId, skillId, target)
+```
+
+`targeting.ts` 可以提供更具體的人類可讀原因，但不能自行複製一份角色規則或使用 skill ID 特判。
+
+必須維持這個 invariant：
+
+> UI 標示 allowed 的 target，必須能被同一 runtime validator 接受。
+
+新增 target kind 時，必須同步：
+
+1. schema/type。
+2. `SkillRuntime` structure validation。
+3. `targeting.ts` / `SkillActivationDialog` candidate generation。
+4. runtime-target consistency test。
+
+## 4. 用 selector 選目標
 
 常用例子：
 
@@ -98,7 +138,7 @@ condition: {
 
 Triggered skill 通常靠 selector 自動找目標；Active skill 若需要玩家選擇，使用 `activeTarget`。
 
-## 4. 一個技能可以組多個 effects
+## 5. 一個技能可以組多個 effects
 
 ```ts
 activeEffects: [
@@ -108,45 +148,95 @@ activeEffects: [
 ]
 ```
 
-這是藍風「妄想全開」目前採用的模式。
+優先組合 generic effects，只有既有 vocabulary 真正無法表達時才寫 custom handler。
 
-## 5. 限制使用次數
+## 6. Usage limit 與共享 usage group
+
+單一技能：
 
 ```ts
 activeUsage: { scope: 'round', limit: 1 }
 ```
 
-或：
+Triggered usage：
 
 ```ts
 usage: { scope: 'game', limit: 2, key: 'shield' }
 ```
 
-## 6. 加入角色
+多個 Active skill 共享同一 quota：
 
-角色專屬 Skill 應與 `CharacterDefinition` 放在同一個 `src/content/<character-id>.ts` package；只有真正跨角色共用的 Skill 才放到 shared module，例如 `viceLeaderSkill.ts`。
+```ts
+activeUsage: { scope: 'game', limit: 2, group: 'adaoAdjustLength' }
+```
 
-技能定義完成後，必須直接把 skill ID 加到角色：
+同一 `group` 會共用 counter；不要在 custom handler 再建立另一份隱藏 `skillUsage` key。阿道「加長／縮短」就是此模式。
+
+## 7. Event payload 是 contract
+
+Triggered skill 依賴 event data 時，event emitter 必須真的提供該欄位。
+
+目前常見欄位：
+
+- `actorId`
+- `targetId`
+- `sourceId`
+- `workId`
+- `dieId`
+- `skill`
+- `amount`
+- `dice`
+- `sourceKind`
+- `metadata`
+
+例如：
+
+- `afterDiePlaced` 需要 slot 資訊時使用 `metadata.slotIndex`；真實 `placeDie()` emitter 必須帶它。
+- `cardPlayed` 需要判斷實際被指定角色時，必須帶 `targetId`，不能只帶 card actor。
+
+**測試不能只人工 construct 一個比 production emitter 更完整的 event。** 只要技能依賴某 event field，至少要有一個 integration regression 透過真實 Engine action 產生該 event。
+
+## 8. Coordination stress bearer
+
+`coordination.stressBearer` passive 用來在統籌卡共通 +1 Stress **結算前**決定替代承擔者，不改變 card actor identity。
+
+```ts
+passives: [
+  { kind: 'coordination.stressBearer', allowEqual: true }
+]
+```
+
+- `allowEqual: false`：候選角色 Stress 必須嚴格低於組長。
+- `allowEqual: true`：候選角色 Stress 可以小於或等於組長。
+- hidden 角色不能成為 stress bearer。
+- 多名候選時 runtime 只選一名，不應讓多個副組長技能各自搬一次 Stress。
+
+不要用 `cardPlayed` 之後「先減組長再加副組長」的方式模擬，因為會和其他 stress bearer、immunity、跨隊 event 產生 ordering bug。
+
+## 9. 加入角色
+
+角色專屬 Skill 應與 `CharacterDefinition` 放在同一個 `src/content/<character-id>.ts` package；只有真正跨角色共用的 Skill 才放 shared module。
+
+技能定義完成後，直接把 skill ID 加到角色：
 
 ```ts
 {
   id: 'newCharacter',
-  // ...
   skillIds: ['recoverOnRoundStart', 'fixOneDie']
 }
 ```
 
-`catalog.ts` 會在啟動時驗證角色是否引用不存在的技能。不要依賴 catalog migration 在 runtime 偷補 skill；authoring source 本身就是 canonical definition。
+`catalog.ts` 會驗證角色 reference；不要依賴 runtime migration 偷補 Skill。
 
-## 7. 什麼時候才寫 custom handler
+## 10. Custom handler policy
 
 先問：
 
 - 是否只是壓力、骰子、能力、作品、進度、卡牌、status 的組合？
-- 是否可增加一個會被其他角色重用的 generic effect？
-- 是否只差一個 selector 或 condition？
+- 是否只缺 selector / condition / generic effect？
+- 新 mechanic 是否有跨角色重用價值？
 
-只有答案都是否，才新增 custom handler。
+只有既有 vocabulary 不足時才使用 `custom`。
 
 禁止在 `engine.ts` 加：
 
@@ -156,30 +246,88 @@ if (character.id === 'someCharacter') {
 }
 ```
 
-## 8. 測試
+### Registry contract
+
+Custom skill handler 必須使用 `registerCustomSkillEffect(name, handler)` 註冊。
+
+Runtime registry 目前有兩個 hard contract：
+
+1. 所有非-planned Skill 所引用的 custom handler 必須能由 live registry 查到。
+2. 同一 handler name 重複註冊會直接 throw，不能靜默 overwrite。
+
+角色 custom handler 的載入要經正式 bootstrap path；不要讓測試只用 regex 掃 source code 判斷「字串看起來存在」。
+
+## 11. 測試架構
+
+### Isolated skill harness
+
+新增／修改單一角色技能時，優先使用 `src/tests/helpers/skillHarness.ts` 的 neutral fixtures，把被測角色和沒有技能副作用的隊友／對手組合在一起。
+
+原因：使用真實多角色 roster 當 filler，其他角色的被動或 trigger 可能碰巧滿足 assertion，造成 false positive。
+
+### Minimum behavior coverage
 
 至少測：
 
-- 觸發條件成立時會生效。
+- 條件成立時生效。
 - 條件不成立時不生效。
-- 每回合 / 每局 usage limit。
-- target relation。
-- 若涉及 random，使用 deterministic RNG。
-- 若 UI 需要依規則過濾目標，驗證依據是真正的 target rule / runtime status，而不是 `effect.immunity`、Character Tag 或角色 ID。
+- round/game/shared usage limit。
+- target relation 與 target filters。
+- no-op 情況不可錯誤顯示可發動。
+- random 使用 deterministic RNG。
+- event payload 用真實 emitter 驗證。
+- 若可能和其他角色交互，加入 cross-character interaction test。
 
-需要注入自訂 content 的測試，先用 `withGameContent()` 從一個完整 `GameDefinition` 建出測試 definition，再交給 `EngineSession` / `createInitialGame()`；Engine API 不接受單獨 `GameContent`。
+### Contract suites
 
-## 9. 目前的 special mechanics
+目前至少維持：
 
-- Trigger event 已包含 `roundEnd`、`afterDiePlaced` 與 `cardPlayed`。
-- 卡牌一律由當前 `TeamState.leaderId` 對應的組長使用，`cardPlayed.actorId` 由 Engine 推導；不要在 Skill authoring 建立另一套任意 card actor / `card.permission` 模型。
-- `coordination.stressBearer` 可讓副組長代替組長承擔統籌卡的 +1 Stress，但不改變出牌者 identity。
-- `effect.immunity` passive 表示外部 effect 在結算時無效；它**不得**被 UI / selector 解讀成「不能指定」。真正的 untargetable 規則必須另用 target rule / runtime status 表達。
+- `skill-contracts.test.ts`
+  - implemented skill 必須有 executable behavior；
+  - referenced custom handlers 必須存在於 live registry；
+  - duplicate custom-handler registration fail-fast；
+  - Standard playable character 不得含 planned skill；
+  - shared usage group 等 schema contract。
+- `skill-runtime-regressions.test.ts`
+  - 真實 skill/event interaction regressions。
+- `skill-targeting-contracts.test.ts`
+  - UI availability / candidate 與 runtime validator 一致。
+
+既有大型 `skills.test.ts` 可以保留 broad regression，但不能成為單一可信來源。
+
+## 12. AI authoring boundary
+
+Standard AI 目前只會自動使用：
+
+- `skill.ai.autoUse === true`
+- Active skill
+- `activeTarget.kind === 'none'`
+
+需要選 member / work / die 的 Active skill 目前沒有通用 AI target chooser。若新增 AI 必須能使用的指定型技能，不能只在 SkillDefinition 加 `ai.autoUse` 就宣稱完成；需同步擴充 AI target policy 與 tests。
+
+## 13. Documentation gate
+
+修改角色數值、適性、Stress、Skill 行為／狀態、card effect/target、match rule、roster eligibility 或 gameplay vocabulary 時，必須在**同一個 PR**同步更新對應文件。
+
+至少檢查：
+
+- `GAME_RULES.md`
+- `GAME_MANUAL.md`
+- `PROJECT_STATUS.md`
+- `README.md`
+- 若為 schema / authoring vocabulary：本文件與 `ARCHITECTURE.md`
+- 若影響 Online：`ONLINE_MULTIPLAYER.md`
+
+完整 mapping 與 mandatory policy 見 `AGENTS.md`。
+
+## 14. 目前的 special mechanics
+
+- Trigger event 包含 `roundEnd`、`afterDiePlaced`、`cardPlayed` 等。
+- 卡牌 actor 固定由當前 `TeamState.leaderId` 推導。
+- `coordination.stressBearer` 可改變統籌卡 Stress bearer，但不改 card actor。
+- `effect.immunity` 是 effect-resolution 規則，不等同 untargetable。
 - `CharacterDefinition.resource` / `CharacterState.resources` 可處理特殊資源。
-- Character Tag 只可用於 metadata 或 selector / condition；`no-stress`、`cannot-act`、`not-standard-playable` 等 behavior tag 不得新增。
-- Standard / Boss mode eligibility 放在 match configuration，不放 Character Tag。
-- custom handler `addRandomCardsByKind` 用於高興「編輯長」。
-- custom handler `changeOwnerResource` 用於卡奧斯「Boss 體力」。
+- Character Tag 只可作 metadata / selector / condition；不能承載 gameplay restriction 或 roster eligibility。
+- Standard / special mode eligibility 放在 match configuration。
 
-`status: implemented` 必須有真正 runtime effect 與 test；資料或文案存在但尚未完整執行時維持 `partial` / `planned`。
-若技能屬於角色 package，另需遵守 `CHARACTER_AUTHORING.md` 的 atomic commit 規範。
+`status: implemented` 必須有真正 runtime effect 與 tests；資料或文案存在但未完整執行時維持 `partial` / `planned`。
