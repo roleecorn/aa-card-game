@@ -91,7 +91,7 @@ describe('skill authoring contracts', () => {
       .sort();
 
     expect(incompletePlayableCharacters).toEqual([]);
-    expect(excluded).toEqual(expect.objectContaining(new Set(['chaos', 'narrator', 'ginsakura'])));
+    expect([...excluded]).toEqual(expect.arrayContaining(['chaos', 'narrator', 'ginsakura']));
   });
 
   it('keeps shared usage groups explicit in schema rather than custom-handler counters', () => {
