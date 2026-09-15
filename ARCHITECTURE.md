@@ -1,66 +1,104 @@
 # Architecture
 
-這個 Prototype 把 UI、狀態、內容資料與規則執行拆開，目標是新增角色或技能時，正常情況不修改 `GameEngine`。
+這個 Prototype 把 UI、狀態、內容資料、規則執行與 Online transport 拆開。核心目標：新增／修改角色技能時正常情況不修改 `EngineSession`，Standard AI 與 Online 也不各自維護一份 gameplay rules。
 
 ## External modules
 
 - **React + Vite + TypeScript**：應用程式與 build。
-- **MUI**：UI components 與 theme；避免維護大型手寫 CSS。
+- **MUI**：UI components / theme。
 - **Zustand + Immer**：React game state 與 immutable update integration。
-- **Zod**：角色、技能、卡牌與 effect definition 的 runtime schema validation。
+- **Zod**：character / skill / card / effect runtime schema validation。
 - **nanoid**：card / die / work / log ID。
-- **Vitest**：規則測試。
+- **Vitest**：規則與 UI/source-level regression tests。
+- Browser WebRTC API：Online DataChannel。
 
-Domain-specific 的 Skill / Effect vocabulary 仍由 TypeScript 實作，因為這部分直接代表遊戲規則；不為了取代幾十行規則而引入用途不明的 library。
+Domain-specific Skill / Effect vocabulary 仍由 TypeScript 實作，因為它直接代表遊戲規則。
 
 ## Source layout
 
 ```text
 src/
-  app/                      React app / MUI theme
-  components/               Reusable UI components
+  app/
+    App.tsx                    start / Standard draw / Online draft / tutorial routing
+    BattleRoom.tsx             shared active-match UI for Standard + Online
+    theme.ts
+  components/                  reusable React/MUI UI
   content/
-    catalog.ts              Aggregate + reference validation only
-    <character-id>.ts       CharacterDefinition + character-specific Skills
-    viceLeaderSkill.ts      Shared cross-character Skill definition
-    cards.ts                Card definitions
-    match.ts                Standard match rules / deck / roster config
+    catalog.ts                 aggregate + reference validation + handler bootstrap boundary
+    <character-id>.ts          CharacterDefinition + character-specific Skills
+    viceLeaderSkill.ts         shared cross-character Skill
+    cards.ts                   Card definitions
+    match.ts                   Standard rules / deck / roster eligibility
   game/
-    contentRegistry.ts      Static GameContent interface
-    gameDefinition.ts       GameDefinition / MatchRules boundary
-    schema.ts               Zod schemas + domain types
-    statuses.ts             Named runtime status keys and helpers
-    engine.ts               Turn flow and core invariants
-    skillRuntime.ts         Trigger / condition / usage dispatcher
-    effectRegistry.ts       Reusable built-in effect handlers
-    customEffects.ts        Escape hatch for unique mechanics
-    cardHandlers.ts         Card-only custom handlers
+    contentRegistry.ts         static GameContent interface
+    gameDefinition.ts          GameDefinition / MatchRules boundary
+    schema.ts                  Zod schemas + domain types
+    statuses.ts                named runtime status keys/helpers
+    engine.ts                  turn flow and core invariants
+    onlineTurn.ts              human-vs-human phase handoff using shared Engine rules
+    skillRuntime.ts            trigger / condition / usage / active legality dispatcher
+    effectRegistry.ts          reusable built-in effects
+    customEffects.ts           custom handler registry + generic special mechanics
+    characterSkillEffects.ts   registered character-specific custom handlers
+    cardHandlers.ts            card-only custom handlers
+    targeting.ts               player-facing legality/candidate explanations; delegates to runtime
+  online/
+    onlineSession.ts           peer/session lifecycle + Host authority integration
+    onlineDraft.ts             deterministic selection state / batch order
+    mqttSignaling.ts           short-lived MQTT signaling client
+    protocol.ts                command / snapshot / perspective protocol
   tutorial/
-    config.ts               Fixed tutorial fixture data
-    scenario.ts             Serializable tutorial state + semantic transitions
-    runtime.ts              Tutorial game/session construction
-    TutorialGuide.tsx       Scenario-driven guide UI
-  store/gameStore.ts        Zustand + Immer integration
-  tests/                    Vitest rules tests
-public/assets/               Runtime art only
+    config.ts
+    scenario.ts
+    runtime.ts
+    TutorialGuide.tsx
+  store/gameStore.ts
+  tests/
+public/assets/
 ```
 
-## Character content ownership
+## Ownership boundaries
 
-角色 authoring 採 **per-character package**：每個 `src/content/<character-id>.ts` 同時保存該角色的 `CharacterDefinition` 與角色專屬 `SkillDefinition`。角色的 stats、affinities、tags、source notes、Skill IDs 與 Skill 實作因此有單一 ownership boundary，不再分散在集中式 `characters.ts` / `skills.ts`。
+### Content
 
-只有真正被多個角色共用的內容才獨立成 shared module，例如三角希與流星共用的 `viceLeaderPower` 保留在 `viceLeaderSkill.ts`；不得為了形式一致把 shared Skill 複製到兩個角色 package。
+每個 `src/content/<character-id>.ts` 同時保存該角色的 `CharacterDefinition` 與角色專屬 `SkillDefinition`。Stats、affinities、tags、source notes、skill IDs 與 skill definitions 因此有單一 ownership boundary。
+
+只有真正跨角色共用的內容才放 shared module。
 
 `catalog.ts` 只負責：
 
-- import 各角色 package 與 shared content；
-- 聚合為 `CHARACTERS` / `SKILLS` / `CARDS`；
+- import 各角色 package / shared content；
+- 聚合 `CHARACTERS / SKILLS / CARDS`；
 - resolve runtime asset path；
-- 做 duplicate ID、missing Skill reference、forbidden gameplay Tag 等 validation。
+- duplicate ID、missing reference、forbidden behavior-tag 等 validation；
+- 載入正式 custom-handler bootstrap，使 live registry 在 runtime 已完成註冊。
 
-`catalog.ts` 不應重新定義角色內容，也不應偷偷補 Skill 或轉換角色行為。
+`catalog.ts` 不應重新定義角色規則或偷偷 migration skill behavior。
 
-## Runtime flow
+### Match configuration
+
+`src/content/match.ts` 擁有：
+
+- Standard deck；
+- round/team size defaults；
+- hand / work / scoring constants；
+- Standard roster eligibility。
+
+目前 Standard / Online 一般 roster 只排除 `chaos`。`planned` skill status 不構成 roster exclusion；旁白 `narrator` 與銀櫻 `ginsakura` 保留在一般 selection pool，讓角色可進入真實對局做實機／整合測試。Eligibility 不放 Character Tag。
+
+### Battle UI
+
+`BattleRoom.tsx` 是 Standard AI 與 Online 的**共用 active-match UI**。不要因 Online 加功能而 fork 第二份角色卡、作品 board、技能 dialog、card hand 或 targeting flow。
+
+`App.tsx` 只決定如何進入 BattleRoom：
+
+- Standard：mode → random roster → one reroll → leader selection。
+- Online：connection → synchronized character selection → formal game creation。
+- Tutorial：固定 scenario。
+
+## Core runtime flow
+
+Triggered / passive/event-driven：
 
 ```text
 Game action
@@ -69,154 +107,94 @@ EngineSession emits SkillEvent
    ↓
 SkillRuntime
    ├─ resolve subscriptions
-   ├─ evaluate condition
-   ├─ enforce usage limit
+   ├─ evaluate conditions
+   ├─ enforce usage
    └─ dispatch effects
           ↓
-     EffectRegistry
+ EffectRegistry / custom registry
           ↓
        GameState
 ```
 
-角色 ID 不應出現在 `SkillRuntime` 或 `EngineSession` 的條件分支中。
-
-## Tag boundary
-
-`CharacterDefinition.tags` 只描述「角色是什麼」，不描述「角色會做什麼」。Tag 可以被 UI 顯示，也可以被 selector / condition 用來找出技能效果的合法對象；Tag 本身不得直接產生 gameplay behavior。
-
-允許的用途：
-
-- UI 顯示分類，例如 `leader`、`triangle-creature`、`editorial`。
-- `taggedMember` 等 target selector 用 Tag 篩選技能目標。
-- condition 以 Tag 判斷效果適用對象。
-
-禁止的用途：
-
-- `if (definition.tags.includes(...))` 後直接改變 Stress、骰子、能力值或作品。
-- 用 Tag 禁止角色行動、阻止卡牌、提供免疫或修改權限。
-- 用 Tag 決定 Standard / Boss 等 game mode 的出場資格。
-
-任何會改變遊戲狀態、免疫、權限、行動限制或能力的規則都必須由 `SkillDefinition` 經 Skill / Effect runtime 實現；需要持續存在的效果可以由 Skill 套用 `CharacterState.statuses`。Game mode eligibility 屬於 `content/match.ts` 的 match configuration，而不是角色 Tag。
-
-舊的 behavior-tag migration layer 已移除。Chaos、Weakzhi 等角色在 authoring source 中就直接列出真正的 Skill ID；catalog 不再 strip behavior tags 或自動補 Skill。`validateCatalog()` 只保留 forbidden behavior-tag guard，用來拒絕重新引入 `no-stress`、`cannot-act`、`not-standard-playable` 等錯誤資料模型。
-
-## Immutable content and match state
-
-`CharacterDefinition`、`SkillDefinition`、`CardDefinition` 是靜態內容，建立對局後不得為了當局效果修改 definition。
-
-例如組長「Stress 上限 +2」屬於 match state：由 `CharacterState.statuses` 保存 `leader-stress-cap-bonus`，`EngineSession.getEffectiveMaxStress()` 計算有效上限。不同對局因此不會互相污染，也不需要 reset 時回寫全域 `CHARACTERS`。
-
-UI setup state 也不得透過 module-level mutable variable 傳遞。組長選擇由 `DrawPhaseScreen -> App -> gameStore.startGame()` 明確傳入。
-
-## GameContent and GameDefinition
-
-`GameContent` 只描述靜態卡牌／角色／技能 registry：
-
-```ts
-interface GameContent {
-  skills: Record<string, SkillDefinition>;
-  characters: Record<string, CharacterDefinition>;
-  cards: Record<string, CardDefinition>;
-}
-```
-
-實際一局如何建立與執行，則由完整 `GameDefinition` 注入：
-
-```ts
-interface GameDefinition {
-  id: string;
-  content: GameContent;
-  rules: MatchRules;
-  deck: readonly string[];
-  roster: {
-    excludedCharacterIds: readonly string[];
-  };
-}
-```
-
-`MatchRules` 包含目前會影響 Engine 行為的 match constants，例如：
-
-- `maxRounds`
-- `teamSize`
-- `initialHandSize`
-- `cardsPerRound`
-- `handLimit`
-- `leaderStressBonus`
-- `workLength`
-- `missingWorkStatScore`
-- player / enemy team name
-
-Standard mode 由 `STANDARD_GAME_DEFINITION` 組合 `DEFAULT_CONTENT`、Standard deck、Standard roster eligibility 與 `DEFAULT_MATCH`。
-
-`EngineSession`、`createInitialGame()`、`selectStandardRosters()`、`applyLeaderStressBonuses()` 都只接受完整 `GameDefinition`。不再支援傳入單獨 `GameContent` 後隱式套用 Standard rules / deck / roster config。
-
-需要在測試或其他 mode 替換 content 時，必須明確建立 definition，例如：
-
-```ts
-const customDefinition = withGameContent(STANDARD_GAME_DEFINITION, customContent);
-const engine = new EngineSession(state, rng, customDefinition);
-```
-
-這個邊界讓測試或未來 game mode 可以建立不同的：
-
-- card / skill / character content pack
-- team size
-- round count
-- hand limit / draw rate
-- deck
-- work length / scoring defaults
-- roster eligibility
-
-不需要修改 `EngineSession`，也不需要 mutation global catalog。
-
-## Tutorial state boundary
-
-Tutorial 不使用 module-global mutable cursor，也不讓 `App.tsx` 自己維護 progression state machine。
+Active skill：
 
 ```text
-UI interaction
+UI asks availability / candidates
    ↓
-TutorialEvent
-   ↓
-reduceTutorialEvent(runtime, event)
-   ↓
-TutorialRuntimeState { step, randomIndex }
+SkillRuntime.canUseActive / canActivateSkillTarget
+   ├─ action-blocked / status guard
+   ├─ usage limit
+   ├─ activeTarget structure + relation + die filters
+   └─ activeCondition
+        ↓
+UI shows only runtime-legal choices
+        ↓
+activate()
+        ↓
+EffectRegistry / custom registry
 ```
 
-- `TUTORIAL_SCENARIO` 同時保存 guide copy、highlight selector 與 semantic transition。
-- `TutorialRuntimeState` 是可 JSON serialize 的 plain data。
-- deterministic RNG 由每局自己的 `randomIndex` 消耗固定 `TUTORIAL_DIE_RESULTS`，不同 session 互不共享 cursor。
-- `App.tsx` 只回報 `actionChanged`、`diePlaced`、`skillResolved`、`cardResolved` 等事件，不直接指定下一個 step。
-- `TutorialGuide` 與 controller 共用同一份 scenario definition。
+角色 ID 不應出現在 `EngineSession` / `SkillRuntime` 的條件分支。
 
-詳細規則見 `src/tutorial/README.md`。
+## Active target legality is runtime-authoritative
 
-## Skill definition model
+#68 後，`SkillRuntime` 是 Active skill legality 的單一 runtime source of truth。
 
-一般技能只需要 declarative data：
+- `activeTarget`：描述 target shape / relation / skill / minValue / maxValue / tag 等。
+- `activeCondition`：描述 owner/selected target 的前置條件，例如 work type、Stress、work length、existing progress。
+- `targeting.ts` 可產生人類可讀 blocked reason，但 candidate 是否 allowed 最終委派 `engine.skills.canActivateSkillTarget()`。
+- `SkillActivationDialog` 不應另寫 character ID / skill ID 特判。
 
-```ts
-{
-  id: 'triangleRecovery',
-  name: '滾滾三角生物',
-  description: '每回合開始時自身壓力 -1。',
-  activation: 'triggered',
-  status: 'implemented',
-  triggers: [{
-    event: 'roundStart',
-    effects: [
-      { kind: 'stress.change', target: 'owner', amount: -1 }
-    ]
-  }]
-}
-```
+Invariant：
 
-`SkillRuntime` 做四件事：
+> 任何 UI 標示 allowed 的 Active target，都必須由同一 runtime validator 接受。
 
-1. 收到 `SkillEvent`。
-2. 從目前 `GameContent` 找出訂閱該 event 的技能。
-3. 檢查 condition / target / usage limit。
-4. 把 effects 交給 `EffectRegistry`。
+這個設計防止「玩家看得到／選得到，但按下去 runtime 才拒絕」的 false affordance。
+
+## Usage model
+
+Usage rule 可用：
+
+- `scope: round | game`
+- `limit`
+- optional `key`
+- optional `group`
+
+`group` 讓多個 Skill 共用 counter，例如阿道加長／縮短。共享 quota 不應再藏在 custom handler 自己操作 `skillUsage`。
+
+## Event payload contract
+
+`SkillEvent` 不只是鬆散通知；只要 Skill condition/handler 依賴欄位，emitter 就必須真實提供。
+
+例如：
+
+- `afterDiePlaced.metadata.slotIndex`：阿道第 4/5 slot 規則。
+- `cardPlayed.targetId`：情緒判斷自己是否真的是統籌卡 target。
+- `cardPlayed.workId / skill / sourceKind / metadata.cardId`：card interaction context。
+
+因此 event-dependent tests 至少要有一個透過 production Engine action 觸發 emitter 的 integration case；人工 construct 一個較完整 event 不能證明 production contract 正確。
+
+## Condition coverage
+
+目前 condition vocabulary 包含：
+
+- Boolean：`all / any / not`
+- Relation：self / ally / other ally / enemy
+- `ownerStress`
+- `memberStress`
+- owner effective stat
+- round
+- event amount / skill / source kind / metadata
+- dice batch matching
+- pending dice matching
+- owner status
+- work type
+- work score
+- `workLength`
+- `workHasProgress`
+- probability / chance
+
+若新技能只缺一個可重用 condition，優先擴充 vocabulary，而不是寫 custom handler 隱藏前置條件。
 
 ## Selector coverage
 
@@ -239,21 +217,6 @@ TutorialRuntimeState { step, randomIndex }
 - `lowestScoreAllyWork / highestScoreAllyWork`
 - `lowestScoreEnemyWork / highestScoreEnemyWork`
 
-## Condition coverage
-
-- Boolean composition：`all / any / not`
-- Relation：self / ally / other ally / enemy
-- Owner stress comparison
-- Owner effective stat comparison
-- Round comparison
-- Event amount / skill / source kind / metadata
-- Dice batch matching
-- Pending dice matching
-- Owner status
-- Work type
-- Work score (`any` / `all` quantifier)
-- Probability (`chance`)
-
 ## Effect coverage
 
 ### Stress / Event
@@ -266,6 +229,7 @@ TutorialRuntimeState { step, randomIndex }
 ### Dice
 
 - `dice.grant`
+- `dice.grantBestOf`
 - `dice.rerollBatch`
 - `dice.modifyPending`
 - `dice.modifySelected`
@@ -293,51 +257,185 @@ TutorialRuntimeState { step, randomIndex }
 - `log`
 - `custom`
 
-## Active target UI
+## Custom effect registry
 
-`SkillActivationDialog` 依 `activeTarget` 自動生成常見 target picker：
+只有 generic vocabulary 無法表達 mechanic 時才使用 `custom`。
 
-- `none`
-- `member`
-- `work`
-- `pendingDie`
-- `copyPendingDie`
+Registry contract：
 
-因此新增一個「選敵方角色」「選自己的作品」「選一顆骰」技能，不需要另外新增 React Dialog。
+- `registerCustomSkillEffect(name, handler)` 遇到重複 name 直接 throw；禁止 silent overwrite。
+- `hasCustomSkillEffect(name)` 可讓 contract tests 查詢**實際 live registry**。
+- 所有 non-planned Skill 引用的 custom handler 都必須已由 runtime bootstrap 載入。
+- Character-specific handlers 放在明確的 `characterSkillEffects.ts` 等 runtime module，不把 implementation 塞回 catalog data。
 
-## Custom effect policy
+測試不得只 regex 掃 repository 原始碼證明 handler 名稱存在；那無法證明 module 真正被 runtime import。
 
-只有既有 vocabulary 無法表達全新 mechanic 時才使用 `custom`：
+## Coordination stress bearer
 
-1. 先確認是不是 selector / condition / generic effect 可以組合。
-2. 若只是新的一般動作，新增 reusable effect kind。
-3. 只有高度特殊、無重用價值的規則才註冊 custom handler。
+統籌卡 actor 固定是當前組長。副組長能力只改變共通 +1 Stress 的 bearer。
 
-任何 custom handler 都必須獨立測試，不應在 `engine.ts` 寫角色名稱判斷。
+`coordination.stressBearer` passive 在 card stress resolution **之前**決定承擔者：
+
+- `allowEqual: false`：candidate stress < leader stress。
+- `allowEqual: true`：candidate stress <= leader stress。
+- hidden candidate 不可承擔。
+- 多名 candidate 時 runtime 選一名，不能每個 passive 各自搬一次 Stress。
+
+這避免過去「cardPlayed 後再把組長 Stress 搬走」造成 event ordering / cross-team interaction bug。
+
+## Tag boundary
+
+`CharacterDefinition.tags` 只描述「角色是什麼」，不描述「角色會做什麼」。
+
+Tag 可以：
+
+- UI 顯示分類；
+- target selector / condition 尋找合法對象。
+
+Tag 不得直接：
+
+- 改 Stress / dice / stat / work；
+- 禁止行動；
+- 提供 immunity；
+- 修改 card permission；
+- 控制 Standard / Online roster eligibility。
+
+Gameplay restriction / immunity / permission 必須由 Skill、Effect 或 runtime status 實作；mode eligibility 由 match configuration 實作。
+
+## Immutable content and match state
+
+`CharacterDefinition / SkillDefinition / CardDefinition` 是靜態內容。當局效果寫入 `CharacterState / TeamState / WorkState`，不得 mutation definition。
+
+例如：
+
+- 組長 +2 Stress cap 使用 status。
+- Enki `actingLeaderStressCapBonus` 也是 state status，並由 `getEffectiveMaxStress()` 統一計算。
+
+## GameContent and GameDefinition
+
+`GameContent` 只描述 static registries；`GameDefinition` 描述一局如何建立：
+
+```ts
+interface GameDefinition {
+  id: string;
+  content: GameContent;
+  rules: MatchRules;
+  deck: readonly string[];
+  roster: { excludedCharacterIds: readonly string[] };
+}
+```
+
+Standard mode 使用 `STANDARD_GAME_DEFINITION`。
+
+`EngineSession`、`createInitialGame()`、`selectStandardRosters()` 等接受完整 definition。測試或其他 mode 若替換 content，應建立新 definition，不 mutation global catalog。
+
+### Explicit roster override
+
+`createInitialGame(..., { playerMemberIds, enemyMemberIds })` 是 deterministic scenario / test escape hatch：只驗證角色存在、team size、無重複，不套用 user-facing Standard eligibility。
+
+因此：
+
+- UI / normal Standard selection 仍必須遵守 `roster.excludedCharacterIds`。
+- Online candidate pool 也必須遵守同一 exclusions。
+- `planned` skill status 不會自動加入 exclusions；目前旁白、銀櫻必須存在於 normal Standard selection source 與 Online candidate source，才能覆蓋真實遊戲流程測試。
+- 測試仍可以明確注入真正 excluded 的角色（例如 `chaos`）驗證 special behavior，但不能拿 override API 當作玩家 eligibility 規則。
+
+## Online architecture
+
+Online transport 與玩法規則分層：
+
+```text
+OnlineConnectionDialog
+   ↓
+MQTT signaling (temporary)
+   ↓
+WebRTC DataChannel
+   ↓
+Online session / protocol
+   ↓
+Host-authoritative EngineSession
+   ↓
+shared BattleRoom
+```
+
+### Host authority
+
+- Host 持有 authoritative state / RNG / EngineSession。
+- Guest 送 command，不自行結算。
+- Host 驗證成功後 broadcast snapshot。
+- Guest perspective swap 讓共用 BattleRoom 的 `player` 永遠代表本地使用者。
+
+### Online character selection
+
+- `onlineDraft.ts` 保存 serializable selection state。
+- 3 人 batch `[1,2,2,1]`；5 人 `[1,2,2,2,2,1]`。
+- pool size 固定 `teamSize * 2`。
+- candidate source 使用 Standard roster eligibility；目前只排除 `chaos`，`narrator` 與 `ginsakura` 保留可選。
+- Host 建立正式 GameState 前必須 selection complete 且本地動畫 settled。
+- Guest 收到 gameplay snapshot 也要等自己的 final transfer animation settled 才離開 selection screen。
+
+### Online turn adapter
+
+`onlineTurn.ts` 重用 Engine private round pipeline，但把 Standard 的 AI handoff 改成人類雙方 phase：
+
+`player-plan → player-assign → enemy-plan → enemy-assign → advanceRound`
+
+Online transition 暫時替換 draw/add-card 的 enemy auto-discard 行為，避免把真人 Guest 當 AI 自動棄牌。
+
+更完整內容見 `ONLINE_MULTIPLAYER.md`。
+
+## Tutorial state boundary
+
+Tutorial 使用集中式 scenario + serializable runtime state：
+
+```text
+UI interaction
+   ↓
+TutorialEvent
+   ↓
+reduceTutorialEvent(runtime, event)
+   ↓
+TutorialRuntimeState { step, randomIndex }
+```
+
+Gameplay / ability / target / turn flow 修改必須跑 tutorial regression。
+
+## Test architecture
+
+技能與規則測試分層：
+
+1. **Contract tests**：schema / handler registry / roster eligibility / shared usage invariant；planned-skill characters 的 selection-pool inclusion 也要有回歸保護。
+2. **Isolated skill tests**：`helpers/skillHarness.ts` 的 neutral fixtures，避免 filler 角色技能污染 assertion。
+3. **Runtime integration regressions**：透過真實 Engine action 驗 event payload / ordering。
+4. **Targeting consistency**：UI candidate allowed 必須等於 runtime validator。
+5. **Cross-character interaction**：副組長、immunity、hidden、leader 等會互相影響的規則獨立測。
+6. **Tutorial regression**：任何 gameplay 系統修改的 baseline。
+7. **Online regressions**：draft order、perspective、human turn handoff、setup lifecycle。
+
+不要用「某個 assertion 綠」取代行為隔離；如果 fixture 有其他角色技能能產生同一結果，測試就不可信。
+
+## AI boundary
+
+Standard AI 目前不是完整通用 skill planner：
+
+- 只自動使用 `ai.autoUse` 的 Active skill。
+- 且目前只支援 `activeTarget.kind === 'none'`。
+- 需要指定 member/work/die 的 Active skill 不會自動使用，除非未來新增通用 AI target policy。
+
+這是目前已知能力邊界，不能因 runtime 能由真人合法發動就宣稱 AI 也會使用。
 
 ## Art assets
 
-完整 concept sheet / browser mockup 不放進 runtime bundle。只保留實際引用的裁切素材：
+Runtime art 使用：
 
-- `public/assets/characters/*.webp`
+- `public/assets/characters/portrait/*.webp`
+- `public/assets/characters/compact/*.webp`
 - `public/assets/cards/*`
 
-`CharacterCard` 與 `CardHand` 目前直接引用這些 assets。
+角色卡文字／遊戲資料由 React/MUI render，不烘焙進圖片。詳細見 `CHARACTER_CARD_ART.md`。
 
-## Character art boundary
+## Documentation boundary
 
-角色卡的文字與遊戲資料屬於 React/MUI UI，不烘焙進圖片。runtime portrait 固定使用 `public/assets/characters/*.webp` 的 3:4 asset；`CharacterCard` 只負責 frame、stats、stress 與技能 UI。
+遊戲規則或遊戲數據變更也是 architecture contract 的一部分：同一 PR 必須更新對應 runtime/player/status/online/authoring 文件。完整 mandatory mapping 見 `AGENTS.md`。
 
-這樣角色資料、美術與版面可以各自替換，不需要在新增角色時重新製作整張 raster card，也避免因 responsive layout 造成不規則裁切。詳細規格見 `CHARACTER_CARD_ART.md`。
-
-## Standard roster / special resources
-
-- `selectStandardRosters()` 依注入的 `GameDefinition.roster` 排除不參加該 mode 的角色；Standard mode 的設定來源仍是 `content/match.ts`。
-- `CharacterState.resources` 可保存非 Stress resource；目前卡奧斯使用「體力」。
-- 卡奧斯的壓力免疫由角色直接引用的 Skill 在 `gameStart` 套用 `stress-immune` status，不依角色 ID 或 Tag 特判。
-- 弱智的行動／統籌限制同樣由角色直接引用的 Skill 在 `gameStart` 套用 runtime statuses。
-- 組長 Stress 上限加成保存在當局 `CharacterState`，加成值由當局 `GameDefinition.rules.leaderStressBonus` 提供，不修改 `CHARACTERS`。
-- 目前 custom effect 例子：`addRandomCardsByKind`（高興）與 `changeOwnerResource`（卡奧斯）。
-- trigger event 已包含 `roundEnd` 與 `afterDiePlaced`。
-
-目前實作狀態與美術尺寸請看 `PROJECT_STATUS.md`；架構規格不代表所有 legacy asset 已完成升級。
+架構文件描述 ownership 與 invariant；角色具體數值仍以 `src/content/` 為 authoritative source，現況與 known gaps 見 `PROJECT_STATUS.md`。
