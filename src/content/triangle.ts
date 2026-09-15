@@ -30,6 +30,13 @@ export const triangleSkills = skillDefinitionSchema.array().parse([
     activation: 'active',
     status: 'implemented',
     activeUsage: { scope: 'round', limit: 1 },
+    activeCondition: {
+      kind: 'any',
+      conditions: [
+        { kind: 'ownerStress', op: 'gt', value: 0 },
+        { kind: 'memberStress', target: 'selectedMember', op: 'gt', value: 0 },
+      ],
+    },
     activeHint: '可選擇我方或敵方的三角生物，但不能選擇三角希自己。',
     activeTarget: { kind: 'taggedMember', tag: 'triangle-creature', excludeSelf: true },
     activeEffects: [

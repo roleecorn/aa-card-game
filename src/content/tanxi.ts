@@ -9,5 +9,5 @@ export const tanxiSkills = skillDefinitionSchema.array().parse([
     { event: 'afterRollBatch', priority: 200, condition: { kind: 'relation', field: 'actorId', relation: 'self' }, effects: [{ kind: 'custom', handler: 'normalizeForbiddenEventDice', args: { values: [5, 6], skills: ['text', 'aa'] } }] },
     { event: 'afterDiceGranted', priority: 200, condition: { kind: 'relation', field: 'targetId', relation: 'self' }, effects: [{ kind: 'custom', handler: 'normalizeForbiddenEventDice', args: { values: [5, 6], skills: ['text', 'aa'] } }] },
   ] },
-  { id: 'tanxiThinkHard', name: '竭力思考', description: '每回合一次：自身壓力 +1，將自身一顆 pending die +2（最高 6）。', activation: 'active', status: 'implemented', activeUsage: { scope: 'round', limit: 1 }, activeTarget: { kind: 'pendingDie', relation: 'self' }, activeEffects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '竭力思考' }, { kind: 'dice.modifySelected', add: 2 }] },
+  { id: 'tanxiThinkHard', name: '竭力思考', description: '每回合一次：自身壓力 +1，將自身一顆 pending die +2（最高 6）。', activation: 'active', status: 'implemented', activeUsage: { scope: 'round', limit: 1 }, activeTarget: { kind: 'pendingDie', relation: 'self', maxValue: 5 }, activeEffects: [{ kind: 'stress.change', target: 'owner', amount: 1, source: '竭力思考' }, { kind: 'dice.modifySelected', add: 2 }] },
 ]);

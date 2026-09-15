@@ -284,7 +284,7 @@ describe('檸檬 complete character package', () => {
 
 describe('情緒 complete character package', () => {
   const EMOTION_ROSTER = {
-    playerMemberIds: ['emotion', 'lemon', 'meteor'],
+    playerMemberIds: ['emotion', 'lemon', 'avocado'],
     enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
   };
 

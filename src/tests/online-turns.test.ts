@@ -66,7 +66,10 @@ describe('online human turn flow', () => {
 
   it('does not change the existing AI handoff used by standard play', () => {
     const definition = onlineTestDefinition();
-    const game = createInitialGame(() => 0.27, definition);
+    const game = createInitialGame(() => 0.27, definition, {
+      playerMemberIds: ['pintbox', 'mashiro', 'user79'],
+      enemyMemberIds: ['bluewind', 'ta', 'pigeon'],
+    });
     const engine = new EngineSession(game, () => 0.27, definition);
 
     engine.performPlayerActions(allSlack(engine, 'player'));

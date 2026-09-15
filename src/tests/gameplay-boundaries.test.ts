@@ -29,19 +29,34 @@ describe('gameplay state boundaries', () => {
     });
   });
 
-  it('keeps Standard roster eligibility in match configuration instead of tags', () => {
+  it('keeps Standard roster eligibility in match configuration instead of tags or skill status', () => {
     const selected = selectStandardRosters(() => 0.5, STANDARD_GAME_DEFINITION);
-    expect([
+    const selectionPool = [
       ...selected.playerMemberIds,
       ...selected.enemyMemberIds,
       ...selected.unusedMemberIds,
-    ]).not.toContain('chaos');
+    ];
+
+    expect(selectionPool).not.toContain('chaos');
+    expect(selectionPool).toContain('narrator');
+    expect(selectionPool).toContain('ginsakura');
+    expect(STANDARD_GAME_DEFINITION.roster.excludedCharacterIds).toEqual(['chaos']);
+  });
+
+  it('allows explicit deterministic scenarios without reopening truly excluded characters to Standard selection', () => {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
+      playerMemberIds: ['chaos', 'narrator', 'pintbox'],
+      enemyMemberIds: ['mashiro', 'user79', 'bluewind'],
+    });
+
+    expect(game.player.members.map((member) => member.defId)).toEqual(['chaos', 'narrator', 'pintbox']);
+    expect(STANDARD_GAME_DEFINITION.roster.excludedCharacterIds).toEqual(['chaos']);
   });
 
   it('applies Weakzhi gameplay restrictions through an explicitly assigned skill', () => {
     const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['weakzhi', 'pintbox', 'mashiro'],
-      enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+      enemyMemberIds: ['bluewind', 'happy', 'yashiro'],
     });
     const weakzhi = game.player.members.find((member) => member.defId === 'weakzhi')!;
 

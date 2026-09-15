@@ -5,6 +5,9 @@ export const BASE_DECK = [
   'overtime', 'writerBlock', 'soothe', 'guide', 'voice', 'overtime',
 ] as const;
 
+// Planned skills do not remove a character from the normal roster. Keeping
+// planned characters selectable is important for integration/manual testing;
+// only special-content characters are excluded from Standard/Online here.
 export const STANDARD_EXCLUDED_CHARACTER_IDS = ['chaos'] as const;
 
 export function isStandardPlayableCharacterId(characterId: string): boolean {
