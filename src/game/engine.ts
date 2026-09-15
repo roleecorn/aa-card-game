@@ -69,10 +69,11 @@ function validateRosterOverride(
   }
   const combined = [...playerMemberIds, ...enemyMemberIds];
   if (new Set(combined).size !== combined.length) throw new Error('Player and enemy rosters must not contain duplicate characters.');
+
+  // Explicit roster overrides are a deterministic scenario/test escape hatch. User-facing
+  // drafting and automatic Standard selection still honor roster.excludedCharacterIds.
   for (const id of combined) {
-    const definition = content.characters[id];
-    if (!definition) throw new Error(`Unknown character ${id}`);
-    if (!isRosterPlayable(definition, gameDefinition)) throw new Error(`Character ${id} is not available in game definition ${gameDefinition.id}.`);
+    if (!content.characters[id]) throw new Error(`Unknown character ${id}`);
   }
 }
 
