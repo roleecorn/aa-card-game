@@ -43,10 +43,11 @@ src/
     cardHandlers.ts            card-only custom handlers
     targeting.ts               player-facing legality/candidate explanations; delegates to runtime
   online/
-    onlineSession.ts           peer/session lifecycle + Host authority integration
+    onlineSession.ts           peer/session lifecycle + Host authority + timer resolution
     onlineDraft.ts             deterministic selection state / batch order
+    onlineRope.ts              Online deadline / remaining-time / timeout helpers
     mqttSignaling.ts           short-lived MQTT signaling client
-    protocol.ts                command / snapshot / perspective protocol
+    protocol.ts                command / snapshot / timer / perspective protocol
   tutorial/
     config.ts
     scenario.ts
@@ -95,6 +96,8 @@ public/assets/
 - Standard：mode → random roster → one reroll → leader selection。
 - Online：connection → synchronized character selection → formal game creation。
 - Tutorial：固定 scenario。
+
+Online 額外使用 phase 作為 interaction lifecycle boundary：authoritative phase 改變時，以 phase key 重新建立 BattleRoom 內的暫存互動 state，確保未確認的 card / skill / target / selected-die 不跨 phase 殘留。這個 remount 行為只套用 Online，不改變 Standard / Tutorial lifecycle。
 
 ## Core runtime flow
 
@@ -352,6 +355,8 @@ MQTT signaling (temporary)
 WebRTC DataChannel
    ↓
 Online session / protocol
+   ├─ Host-authoritative rope deadline
+   └─ command / draft / timer synchronization
    ↓
 Host-authoritative EngineSession
    ↓
@@ -361,9 +366,32 @@ shared BattleRoom
 ### Host authority
 
 - Host 持有 authoritative state / RNG / EngineSession。
-- Guest 送 command，不自行結算。
-- Host 驗證成功後 broadcast snapshot。
+- Host 也持有 authoritative Online `deadlineAt` 與 timeout callback；timer 不放進 core `GameState`。
+- Guest 送 command，不自行結算，也不能自行宣告 timeout。
+- Host 在處理 Guest command 前先檢查 deadline；若已過期，先做 timeout resolution。
+- Host 驗證／timeout resolution 完成後 broadcast snapshot。
 - Guest perspective swap 讓共用 BattleRoom 的 `player` 永遠代表本地使用者。
+- Snapshot / draft sync 會帶 `timer` 與 `hostNow`；Guest 用 Host 當下的剩餘時間換算本機顯示 deadline，避免直接假設兩台機器 wall clock 相同。
+
+### Online rope state
+
+`onlineRope.ts` 保存不依賴 React 的 timer helper：
+
+- draft batch：15 秒。
+- battle phase：90 秒。
+- warning threshold：最後 10 秒。
+- draft timer ID：`draft:<batchIndex>`。
+- battle timer ID：`battle:<round>:<phase>`。
+- `deadlineAt` 是 authority；畫面每 100ms 重算剩餘顯示，但不以 UI interval 累積規則時間。
+
+`onlineSession.ts` 保存 session-level mutable authority：
+
+- `timer` / timeout notice。
+- Host timeout handle。
+- Guest Plan `remotePlanChoices` preview。
+- initial draft reveal readiness。
+
+Timeout 行為仍呼叫正式 store / Engine API，不另外 fork gameplay implementation：Plan 走 `performOnlineActions()`，Assign 走 `finishOnlineAssignment()`，超量手牌走 `discardCards()`。
 
 ### Online character selection
 
@@ -371,6 +399,9 @@ shared BattleRoom
 - 3 人 batch `[1,2,2,1]`；5 人 `[1,2,2,2,2,1]`。
 - pool size 固定 `teamSize * 2`。
 - candidate source 使用 Standard roster eligibility；目前只排除 `chaos`，`narrator` 與 `ginsakura` 保留可選。
+- Initial reveal ready 是 timer start gate；後續 pick transfer animation 不控制 timer authority。
+- 每個 batch 共用一條 timer，batch 內的第一個 pick 不會 reset。
+- Timeout auto-completion 只補完目前 batch，之後正常切換下一個 batch / side。
 - Host 建立正式 GameState 前必須 selection complete 且本地動畫 settled。
 - Guest 收到 gameplay snapshot 也要等自己的 final transfer animation settled 才離開 selection screen。
 
@@ -380,7 +411,9 @@ shared BattleRoom
 
 `player-plan → player-assign → enemy-plan → enemy-assign → advanceRound`
 
-Online transition 暫時替換 draw/add-card 的 enemy auto-discard 行為，避免把真人 Guest 當 AI 自動棄牌。
+Online transition 暫時替換 draw/add-card 的 enemy auto-discard 行為，避免把真人 Guest 當 AI 自動棄牌。正常情況由真人自己處理 hand limit；如果 timer deadline 到達且該 side 仍超量，Online session 才用正式 `discardCards()` 隨機棄掉 excess，讓 timeout transition 可繼續。
+
+Guest 的 Plan UI state 不進 core GameState；`planPreview` 只把目前 Work / Slack choice 傳給 Host session，讓 Host Plan timeout 能提交 Guest 當下選擇。Host 自己的 choice 直接讀 authoritative local game store。
 
 更完整內容見 `ONLINE_MULTIPLAYER.md`。
 
@@ -410,7 +443,7 @@ Gameplay / ability / target / turn flow 修改必須跑 tutorial regression。
 4. **Targeting consistency**：UI candidate allowed 必須等於 runtime validator。
 5. **Cross-character interaction**：副組長、immunity、hidden、leader 等會互相影響的規則獨立測。
 6. **Tutorial regression**：任何 gameplay 系統修改的 baseline。
-7. **Online regressions**：draft order、perspective、human turn handoff、setup lifecycle。
+7. **Online regressions**：draft order、perspective、human turn handoff、setup lifecycle、rope duration / deadline / batch timeout helper。
 
 不要用「某個 assertion 綠」取代行為隔離；如果 fixture 有其他角色技能能產生同一結果，測試就不可信。
 

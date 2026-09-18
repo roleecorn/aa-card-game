@@ -4,7 +4,9 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import type { CharacterDefinition } from '../game/schema';
 import { draftTurn, type OnlineDraftSide, type OnlineDraftState } from '../online/onlineDraft';
+import { useOnlineSession } from '../online/onlineSession';
 import { CharacterSelectionCard } from './CharacterSelectionCard';
+import { OnlineRopeStatus } from './OnlineRopeStatus';
 
 interface Props {
   draft: OnlineDraftState;
@@ -48,6 +50,9 @@ function snapshotRect(node: HTMLElement): RectSnapshot {
 }
 
 export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimationSettled }: Props) {
+  const markDraftReady = useOnlineSession((state) => state.markDraftReady);
+  const localTeamName = useOnlineSession((state) => state.localTeamName);
+  const remoteTeamName = useOnlineSession((state) => state.remoteTeamName);
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
@@ -102,6 +107,10 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
     const timer = window.setTimeout(() => setRevealPhase('ready'), 520);
     return () => window.clearTimeout(timer);
   }, [characters.length, revealCount, revealPhase]);
+
+  useEffect(() => {
+    if (revealReady) markDraftReady();
+  }, [markDraftReady, revealReady]);
 
   useEffect(() => {
     const previous = previousPicksRef.current;
@@ -230,6 +239,8 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
           </Typography>
         </Stack>
 
+        <OnlineRopeStatus />
+
         <Box
           sx={{
             width: 'min(1920px, 100%)',
@@ -249,7 +260,7 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
           }}
         >
           <DraftTeamRail
-            title="我的隊伍"
+            title={localTeamName}
             ids={myPicks}
             characterMap={characterMap}
             area="mine"
@@ -310,7 +321,7 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
           </Box>
 
           <DraftTeamRail
-            title="對手隊伍"
+            title={remoteTeamName ?? '對手隊伍'}
             ids={opponentPicks}
             characterMap={characterMap}
             area="rival"
