@@ -51,6 +51,8 @@ function snapshotRect(node: HTMLElement): RectSnapshot {
 
 export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimationSettled }: Props) {
   const markDraftReady = useOnlineSession((state) => state.markDraftReady);
+  const localTeamName = useOnlineSession((state) => state.localTeamName);
+  const remoteTeamName = useOnlineSession((state) => state.remoteTeamName);
   const turn = draftTurn(draft);
   const myPicks = role === 'host' ? draft.hostPicks : draft.guestPicks;
   const opponentPicks = role === 'host' ? draft.guestPicks : draft.hostPicks;
@@ -258,7 +260,7 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
           }}
         >
           <DraftTeamRail
-            title="我的隊伍"
+            title={localTeamName}
             ids={myPicks}
             characterMap={characterMap}
             area="mine"
@@ -319,7 +321,7 @@ export function OnlineDraftScreen({ draft, role, characters, onPick, onAnimation
           </Box>
 
           <DraftTeamRail
-            title="對手隊伍"
+            title={remoteTeamName ?? '對手隊伍'}
             ids={opponentPicks}
             characterMap={characterMap}
             area="rival"
