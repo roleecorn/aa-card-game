@@ -458,7 +458,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
         </>
       )}
 
-      <Container maxWidth={false} sx={{ py: 1.4, px: { xs: .8, md: 1.5 } }}>
+      <Container maxWidth={false} sx={{ maxWidth: 1920, pt: 1.4, pb: 'calc(160px + env(safe-area-inset-bottom))', px: { xs: 1.5, md: 2 }, '& [data-battle-section]': { scrollMarginTop: 120 } }}>
         {onlineActive && !onlineConnected && (
           <Alert severity="error" sx={{ mb: 1.2 }}>連線已中斷。為避免兩邊狀態分歧，目前操作已停用；請重開對局。</Alert>
         )}
@@ -472,7 +472,8 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
           </Alert>
         )}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '300px minmax(0,1fr) 300px' }, gap: 1.25, alignItems: 'start' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', lg: '300px minmax(0,1fr)', xl: '300px minmax(0,1fr) 300px' }, gap: 1.5, alignItems: 'start' }}>
+          <Box id="battle-team" data-battle-section sx={{ minWidth: 0 }}>
           <TeamColumn
             title="我方創作小隊"
             side="player"
@@ -484,9 +485,10 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
             onActivateSkill={localTurn && canInteract ? handleActivate : undefined}
             selection={memberCandidates ? { candidates: memberCandidates, onSelect: handleMemberSelection, onCancel: cancelSelection } : undefined}
           />
+          </Box>
 
           <Stack spacing={1.05} sx={{ minWidth: 0 }}>
-            <Paper sx={{ ...panelSx, py: .75, borderColor: '#ff9ab5', bgcolor: '#fff8fa' }}>
+            <Paper id="battle-works" data-battle-section sx={{ ...panelSx, py: .75, borderColor: '#ff9ab5', bgcolor: '#fff8fa' }}>
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={.8}>
                 <Stack direction="row" spacing={.75} alignItems="center">
                   <Box sx={{ width: 28, height: 28, borderRadius: 1, bgcolor: '#fff', border: '1.5px solid #ffc0d0', display: 'grid', placeItems: 'center', transform: 'rotate(-5deg)' }}>
@@ -522,7 +524,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
               } : undefined}
             />
 
-            <Paper sx={panelSx}>
+            <Paper id="battle-dice" data-battle-section sx={panelSx}>
               <Stack direction="row" alignItems="center" spacing={.7} sx={{ mb: .75 }}>
                 <AutoAwesomeIcon sx={{ color: '#f4ba45', fontSize: 19 }} />
                 <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>本回合骰子</Typography>
@@ -553,8 +555,8 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
               workSelection={workCandidates ? { candidates: workCandidates, onSelect: handleWorkSelection, onCancel: cancelSelection } : undefined}
             />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1fr) 238px' }, gap: 1.05 }}>
-              <Paper sx={panelSx} data-feedback-anchor="hand:player">
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 1.05 }}>
+              <Paper id="battle-hand" data-battle-section sx={{ ...panelSx, minWidth: 0 }} data-feedback-anchor="hand:player">
                 <Stack direction="row" spacing={.7} alignItems="center" sx={{ mb: .7 }}>
                   <HandshakeIcon sx={{ color: '#3bb8a5', fontSize: 19 }} />
                   <Typography sx={{ fontSize: 15.5, fontWeight: 950 }}>我的手牌</Typography>
@@ -586,6 +588,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
             <LogPanel logs={game.logs} />
           </Stack>
 
+          <Box id="battle-opponent" data-battle-section sx={{ minWidth: 0, gridColumn: { lg: '1 / -1', xl: 'auto' } }}>
           <TeamColumn
             title="對手創作小隊"
             side="enemy"
@@ -593,8 +596,24 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
             engine={engine}
             selection={memberCandidates ? { candidates: memberCandidates, onSelect: handleMemberSelection, onCancel: cancelSelection } : undefined}
           />
+          </Box>
         </Box>
       </Container>
+
+      <Paper component="nav" aria-label="對局區域導覽" square sx={{
+        display: { xs: 'flex', xl: selectionMode ? 'flex' : 'none' },
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1250,
+        justifyContent: 'center', gap: .25, px: .5, pt: .5,
+        pb: 'calc(4px + env(safe-area-inset-bottom))', borderTop: '1px solid', borderColor: 'divider',
+      }}>
+        {[
+          ['team', '我方'], ['works', '作品'], ['dice', '骰子'], ['hand', '手牌'], ['opponent', '對手'],
+        ].map(([section, label]) => (
+          <Button key={section} size="small" sx={{ minWidth: 0, minHeight: 48, flex: 1, maxWidth: 120 }} onClick={() => {
+            document.getElementById(`battle-${section}`)?.scrollIntoView({ block: 'start' });
+          }}>{label}</Button>
+        ))}
+      </Paper>
 
       <HandLimitDialog hand={game.player.hand} onDiscard={(instanceIds) => discardLocalCards(instanceIds)} />
 

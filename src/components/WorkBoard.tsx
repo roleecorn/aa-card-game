@@ -36,15 +36,9 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
       sx={{
         position: targeting ? 'relative' : undefined,
         zIndex: targeting ? 1210 : undefined,
-        display: compactLayout ? { xs: 'grid', md: 'flex' } : 'grid',
-        gridTemplateColumns: compactLayout
-          ? { xs: '1fr' }
-          : {
-              xs: '1fr',
-              md: `repeat(${Math.min(3, Math.max(1, works.length))}, minmax(0,1fr))`,
-            },
-        flexWrap: compactLayout ? { md: 'wrap' } : undefined,
-        justifyContent: compactLayout ? { md: 'space-between' } : undefined,
+        display: 'grid',
+        minWidth: 0,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: 1.15,
       }}
     >
@@ -59,9 +53,8 @@ export function WorkBoard({ works, selectedDie, onSlotClick, getWorkScore, workS
             data-tutorial={`work-${work.ownerId}`}
             sx={{
               position: 'relative',
-              width: compactLayout ? { xs: '100%', md: 'max-content' } : undefined,
+              minWidth: 0,
               maxWidth: '100%',
-              flex: compactLayout ? { md: '0 0 auto' } : undefined,
               opacity: workSelection && !workAllowed ? .34 : 1,
               outline: workSelection && workAllowed ? '4px solid rgba(255,180,59,.95)' : '4px solid transparent',
               outlineOffset: 3,

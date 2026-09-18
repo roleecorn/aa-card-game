@@ -50,7 +50,7 @@ export function LogPanel({ logs }: { logs: LogEntry[] }) {
         sx={{
           position: 'fixed',
           right: { xs: 12, md: 20 },
-          bottom: { xs: 12, md: 20 },
+          bottom: { xs: 'calc(68px + env(safe-area-inset-bottom))', xl: 20 },
           zIndex: 1000,
         }}
       >
@@ -83,7 +83,7 @@ export function LogPanel({ logs }: { logs: LogEntry[] }) {
         }}
       >
         <DialogTitle id="game-log-dialog-title" sx={{ py: 1.3, pr: 7 }}>
-          <Stack direction="row" alignItems="baseline" spacing={1}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="baseline" spacing={1}>
             <Typography sx={{ fontSize: 20, fontWeight: 950 }}>遊戲紀錄</Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800 }}>
               {logs.length} entries · newest below

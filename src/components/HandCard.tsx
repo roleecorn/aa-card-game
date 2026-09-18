@@ -93,7 +93,7 @@ export function HandCard({ instance, card, rotation = 0, onPlay, disabledReason 
           <Typography
             sx={{
               mt: .45,
-              fontSize: 10.5,
+              fontSize: { xs: 13, sm: 10.5 },
               color: 'text.secondary',
               lineHeight: 1.35,
               display: '-webkit-box',
@@ -104,6 +104,7 @@ export function HandCard({ instance, card, rotation = 0, onPlay, disabledReason 
           >
             {card.description}
           </Typography>
+          {disabledReason && <Typography sx={{ mt: .5, fontSize: 12, color: 'text.secondary' }}>{disabledReason}</Typography>}
         </CardContent>
       </CardActionArea>
     </Card>

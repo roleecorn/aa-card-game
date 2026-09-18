@@ -63,16 +63,15 @@ describe('three and five member match modes', () => {
     expect(drawPhaseSource).toContain("'& > :nth-of-type(5)': { gridColumn: { xs: 'auto', md: '4 / span 2' } }");
   });
 
-  it('shrinks five-work cards and distributes them edge to edge', () => {
+  it('fits work cards to their container and keeps long works scrollable from the first slot', () => {
     expect(workBoardSource).toContain('const compactLayout = works.length === 5;');
-    expect(workBoardSource).toContain("display: compactLayout ? { xs: 'grid', md: 'flex' } : 'grid'");
-    expect(workBoardSource).toContain("justifyContent: compactLayout ? { md: 'space-between' } : undefined");
-    expect(workBoardSource).toContain("width: compactLayout ? { xs: '100%', md: 'max-content' } : undefined");
-    expect(workBoardSource).toContain("flex: compactLayout ? { md: '0 0 auto' } : undefined");
+    expect(workBoardSource).toContain("gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))'");
+    expect(workBoardSource).toContain('minWidth: 0');
     expect(workBoardSource).toContain('compactSlots={compactLayout}');
     expect(workCardSource).toContain('compactSlots?: boolean;');
     expect(workCardSource).toContain('`repeat(${work.slots.length}, 66px)`');
-    expect(workCardSource).toContain("justifyContent: compactSlots ? 'center' : undefined");
+    expect(workCardSource).toContain("justifyContent: 'start'");
+    expect(workCardSource).toContain("overflowX: 'auto'");
     expect(workCardSource).toContain('`repeat(${work.slots.length}, minmax(54px, 1fr))`');
   });
 });
