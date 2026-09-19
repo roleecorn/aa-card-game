@@ -1,0 +1,339 @@
+from pathlib import Path
+
+
+def read(path: str) -> str:
+    return Path(path).read_text(encoding='utf-8')
+
+
+def write(path: str, content: str) -> None:
+    Path(path).write_text(content, encoding='utf-8')
+
+
+def rep(path: str, old: str, new: str, count: int = 1) -> None:
+    text = read(path)
+    if old not in text:
+        raise SystemExit(f'expected snippet not found in {path}: {old[:160]!r}')
+    write(path, text.replace(old, new, count))
+
+
+# Shared condition: active skills that require the owner to remain below their effective Stress cap.
+rep(
+    'src/game/schema.ts',
+    "  | { kind: 'ownerStress'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }",
+    "  | { kind: 'ownerStress'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }\n  | { kind: 'ownerStressBelowCap' }",
+)
+rep(
+    'src/game/schema.ts',
+    "    z.object({\n      kind: z.literal('ownerStress'),\n      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),\n      value: z.number(),\n    }),",
+    "    z.object({\n      kind: z.literal('ownerStress'),\n      op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),\n      value: z.number(),\n    }),\n    z.object({ kind: z.literal('ownerStressBelowCap') }),",
+)
+rep(
+    'src/game/skillRuntime.ts',
+    "  if (condition.kind === 'ownerStress') {\n    const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);\n    return !!owner && compare(owner.stress, condition.op, condition.value);\n  }",
+    "  if (condition.kind === 'ownerStress') {\n    const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);\n    return !!owner && compare(owner.stress, condition.op, condition.value);\n  }\n  if (condition.kind === 'ownerStressBelowCap') {\n    const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);\n    const cap = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);\n    return !!owner && (cap === null || (cap !== undefined && owner.stress < cap));\n  }",
+)
+
+# Shared dynamic stat passives used by E / Meteor / Enki / Kitsu in the next P2 slice.
+rep(
+    'src/game/schema.ts',
+    "  z.object({ kind: z.literal('roll.forbid'), faces: z.array(z.number().int().min(1).max(6)).min(1) }),\n  z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),",
+    "  z.object({ kind: z.literal('roll.forbid'), faces: z.array(z.number().int().min(1).max(6)).min(1) }),\n  z.object({ kind: z.literal('stat.modify'), skill: skillStatSchema, amount: z.number().int() }),\n  z.object({\n    kind: z.literal('stat.workTypeCount'),\n    skill: skillStatSchema,\n    workType: workTypeSchema,\n    amountPerWork: z.number().int(),\n    offset: z.number().int().default(0),\n    excludeOwnerWork: z.boolean().default(false),\n    minBonus: z.number().int().optional(),\n    maxBonus: z.number().int().optional(),\n  }),\n  z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),",
+)
+rep(
+    'src/game/skillRuntime.ts',
+    "  getRollFloor(memberId: string, base = 1): number {",
+    "  getStatModifier(memberId: string, skill: 'design' | 'text' | 'aa'): number {\n    const teamId = this.engine.findMemberTeam(memberId);\n    if (!teamId) return 0;\n    const team = this.engine.getTeam(teamId);\n    let total = 0;\n    for (const passive of this.passives(memberId)) {\n      if (passive.kind === 'stat.modify' && passive.skill === skill) total += passive.amount;\n      if (passive.kind !== 'stat.workTypeCount' || passive.skill !== skill) continue;\n      const matching = team.works.filter((work) => {\n        if (passive.excludeOwnerWork && work.ownerId === memberId) return false;\n        return this.engine.workHasType(work, passive.workType);\n      }).length;\n      let bonus = matching * passive.amountPerWork + passive.offset;\n      if (passive.minBonus !== undefined) bonus = Math.max(passive.minBonus, bonus);\n      if (passive.maxBonus !== undefined) bonus = Math.min(passive.maxBonus, bonus);\n      total += bonus;\n    }\n    return total;\n  }\n\n  getRollFloor(memberId: string, base = 1): number {",
+)
+rep(
+    'src/game/engine.ts',
+    "    return Math.max(0, member.permanentStats[skill] + member.timedStatModifiers\n      .filter((modifier) => modifier.skill === skill)\n      .reduce((sum, modifier) => sum + modifier.amount, 0));",
+    "    return Math.max(0, member.permanentStats[skill]\n      + this.skills.getStatModifier(memberId, skill)\n      + member.timedStatModifiers\n        .filter((modifier) => modifier.skill === skill)\n        .reduce((sum, modifier) => sum + modifier.amount, 0));",
+)
+
+# New character-specific handlers: Pintbox's team review loop and Avocado's coordination-card reaction.
+rep(
+    'src/game/characterSkillEffects.ts',
+    "registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {",
+    "registerCustomSkillEffect('pintboxTeamReview', (_effect, context, engine) => {\n  const team = engine.getTeam(context.ownerTeamId);\n  let changed = false;\n\n  for (const member of [...team.members]) {\n    let passes = 0;\n    while (passes < 20) {\n      const low = team.pendingDice.filter((die) => die.ownerId === member.defId && die.value <= 2);\n      if (!low.length) break;\n\n      // The Stress change resolves first. If it exceeds the cap, the common Stress rule\n      // clears this member's pending dice before we attempt any reroll.\n      engine.adjustStress(context.ownerTeamId, member.defId, 1, context.definition.name, true, context.ownerId);\n      changed = true;\n      const stillPending = new Set(team.pendingDice.filter((die) => die.ownerId === member.defId).map((die) => die.id));\n      if (!stillPending.size) break;\n\n      for (const die of low) {\n        if (!stillPending.has(die.id)) continue;\n        const rerolled = engine.rollDieFor(die.ownerId);\n        if (rerolled === undefined) {\n          team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);\n          continue;\n        }\n        die.value = rerolled;\n      }\n      passes += 1;\n    }\n    if (passes >= 20 && team.pendingDice.some((die) => die.ownerId === member.defId && die.value <= 2)) {\n      engine.log(`${context.definition.name}：${engine.getDefinition(member.defId).name} 的低點骰重擲達到安全上限，停止本次處理。`);\n    }\n  }\n  return changed;\n});\n\nregisterCustomSkillEffect('avocadoNeedsManual', (_effect, context, engine) => {\n  if (context.event.type !== 'cardPlayed' || context.event.sourceKind !== 'coordination') return false;\n  const cardId = context.event.metadata?.cardId;\n  if (typeof cardId !== 'string') return false;\n  const card = engine.content.cards[cardId];\n  // Latest rule only reacts to a coordination card aimed at another member.\n  // Work-target and team-wide cards are explicit exceptions.\n  if (!card || card.target.kind !== 'member' || !context.event.targetId || context.event.targetId === context.ownerId) return false;\n  engine.adjustStress(context.ownerTeamId, context.ownerId, 1, context.definition.name);\n  return true;\n});\n\nregisterCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {",
+)
+
+# High / 高興: AA 1 and game-start additive 怪 type instead of on-placement replacement.
+write('src/content/happy.ts', """import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+
+export const happyCharacter = characterDefinitionSchema.parse({
+  id: 'happy',
+  name: '高興',
+  stats: { design: 3, text: 0, aa: 1 },
+  maxStress: null,
+  affinities: ['怪'],
+  skillIds: ['happyContagion', 'happyEditor'],
+  portrait: 'assets/characters/portrait/happy.webp',
+  compactPortrait: 'assets/characters/compact/happy.webp',
+  portraitPosition: { x: 50, y: 12 },
+  sourceNotes: [
+    '2026-09-14 final：Design 3 / Text 0 / AA 1，Stress 無上限，適性（怪）。',
+    '「高興素」改為遊戲開始時讓所有組員作品額外獲得（怪），是 add type 而非 replace。',
+    '舊版「高興放骰後把該作品改成怪」已被覆蓋。',
+    '「編輯長」維持遊戲開始時額外取得 3 張統籌卡。',
+  ],
+});
+
+export const happySkills = skillDefinitionSchema.array().parse([
+  {
+    id: 'happyContagion',
+    name: '高興素',
+    description: '遊戲開始時，我方所有組員的作品額外獲得「怪」類型，不覆蓋原本類型。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [{ event: 'gameStart', effects: [{ kind: 'work.type.add', target: 'allAllyWorks', workType: '怪' }] }],
+  },
+  {
+    id: 'happyEditor',
+    name: '編輯長',
+    description: '遊戲開始時額外取得三張統籌卡。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [{
+      event: 'gameStart',
+      effects: [{ kind: 'custom', handler: 'addRandomCardsByKind', args: { cardKind: 'coordination', count: 3 } }],
+    }],
+  },
+]);
+""")
+
+# Avocado / 酪梨 complete rewrite.
+write('src/content/avocado.ts', """import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+
+export const avocadoCharacter = characterDefinitionSchema.parse({
+  id: 'avocado',
+  name: '酪梨',
+  stats: { design: 2, text: 1, aa: 0 },
+  maxStress: 3,
+  affinities: ['謀'],
+  skillIds: ['avocadoGameTech', 'avocadoNeedsManual'],
+  tags: ['technical', 'triangle-creature'],
+  portrait: 'assets/characters/portrait/avocado.webp',
+  compactPortrait: 'assets/characters/compact/avocado.webp',
+  portraitPosition: { x: 50, y: 12 },
+  sourceNotes: [
+    '2026-09-14 final：Design 2 / Text 1 / AA 0，Stress 3，適性（謀）。',
+    '「遊戲技術力」：Stress 未滿時可不限次把我方所有 Design pending dice 轉成同點數 AA dice。',
+    '「需要使用說明」：我方統籌卡指定其他角色時自身 Stress +1；作品目標與全員型統籌卡不觸發。',
+    '舊版遊戲開始額外取得「指導」已被覆蓋。',
+  ],
+});
+
+export const avocadoSkills = skillDefinitionSchema.array().parse([
+  {
+    id: 'avocadoGameTech',
+    name: '遊戲技術力',
+    description: '只要自身 Stress 未滿，可不限次把我方所有 Design pending dice 轉為同點數的 AA dice。',
+    activation: 'active',
+    status: 'implemented',
+    activeTarget: { kind: 'none' },
+    activeCondition: {
+      kind: 'all',
+      conditions: [
+        { kind: 'ownerStressBelowCap' },
+        { kind: 'pendingDice', target: 'allAllies', skill: 'design', countAtLeast: 1 },
+      ],
+    },
+    activeEffects: [{ kind: 'dice.convertPending', target: 'allAllies', fromSkill: 'design', toSkill: 'aa' }],
+  },
+  {
+    id: 'avocadoNeedsManual',
+    name: '需要使用說明',
+    description: '我方使用指定其他角色的統籌卡時，自身 Stress +1；作品目標與全員型統籌卡不觸發。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [{
+      event: 'cardPlayed',
+      condition: {
+        kind: 'all',
+        conditions: [
+          { kind: 'relation', field: 'actorId', relation: 'ally' },
+          { kind: 'sourceKind', value: 'coordination' },
+        ],
+      },
+      effects: [{ kind: 'custom', handler: 'avocadoNeedsManual' }],
+    }],
+  },
+]);
+""")
+
+# Pintbox: latest once-per-round team review and source-kind based AI shield.
+write('src/content/pintbox.ts', """import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema';
+
+export const pintboxCharacter = characterDefinitionSchema.parse({
+  id: 'pintbox',
+  name: 'Pintbox',
+  stats: { design: 2, text: 0, aa: 2 },
+  maxStress: 5,
+  affinities: ['謀'],
+  skillIds: ['pintboxBasicRequirements', 'pintboxAI'],
+  tags: ['leader', 'review'],
+  portrait: 'assets/characters/portrait/pintbox.webp',
+  compactPortrait: 'assets/characters/compact/pintbox.webp',
+  sourceNotes: [
+    '2026-09-16 final：「這只是基本的要求……」每回合一次，逐一處理全隊所有 1 / 2 pending dice。',
+    '每名有低點骰的角色先 Stress +1，再一次重擲其所有 1 / 2；若仍有 1 / 2 則重複。',
+    '若 Stress 增加超過上限，共通規則先清除該角色 pending dice，已清除骰不再重擲。',
+    '「AI」每回合第一次因工作與使用統籌卡以外原因增加 Stress 時，該次增加量 -1，最低 0。',
+    '舊主動「審稿」與 Stress >= 3 自動審稿已被本版覆蓋。',
+  ],
+});
+
+export const pintboxSkills = skillDefinitionSchema.array().parse([
+  {
+    id: 'pintboxBasicRequirements',
+    name: '這只是基本的要求……',
+    description: '每回合一次：逐一處理我方所有有 1 / 2 pending dice 的角色；該角色 Stress +1，重擲其全部 1 / 2，仍有低點則重複。',
+    activation: 'active',
+    status: 'implemented',
+    activeUsage: { scope: 'round', limit: 1 },
+    activeTarget: { kind: 'none' },
+    activeCondition: { kind: 'pendingDice', target: 'allAllies', maxValue: 2, countAtLeast: 1 },
+    activeEffects: [{ kind: 'custom', handler: 'pintboxTeamReview' }],
+  },
+  {
+    id: 'pintboxAI',
+    name: 'AI',
+    description: '每回合第一次因「工作」與「使用統籌卡」以外原因增加 Stress 時，該次增加量 -1（最低 0）。',
+    activation: 'triggered',
+    status: 'implemented',
+    triggers: [{
+      event: 'beforeExternalStress',
+      priority: 100,
+      usage: { scope: 'round', limit: 1, key: 'shield' },
+      condition: {
+        kind: 'all',
+        conditions: [
+          { kind: 'relation', field: 'targetId', relation: 'self' },
+          { kind: 'eventAmount', op: 'gt', value: 0 },
+          { kind: 'not', condition: { kind: 'sourceKind', value: '使用統籌卡' } },
+        ],
+      },
+      effects: [{ kind: 'event.amount', amount: -1, min: 0 }],
+    }],
+  },
+]);
+""")
+
+# New P2A regression coverage.
+write('src/tests/discussion-p2a-characters.test.ts', """import { describe, expect, it } from 'vitest';
+import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { createInitialGame, EngineSession } from '../game/engine';
+
+function createGame(playerMemberIds: string[], enemyMemberIds = ['narrator', 'ginsakura', 'bluewind'], rng: () => number = () => 0.999) {
+  const game = createInitialGame(rng, STANDARD_GAME_DEFINITION, { playerMemberIds, enemyMemberIds });
+  const engine = new EngineSession(game, rng, STANDARD_GAME_DEFINITION);
+  return { game, engine };
+}
+
+describe('2026-09-19 P2A character updates', () => {
+  it('高興 uses AA 1 and 高興素 adds 怪 without replacing the original work type', () => {
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
+      playerMemberIds: ['happy', 'pintbox', 'mashiro'],
+      enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
+      playerWorkTypes: { happy: '怪', pintbox: '謀', mashiro: '燃' },
+    });
+    const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
+    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 1 });
+    const pintboxWork = game.player.works.find((work) => work.ownerId === 'pintbox')!;
+    const mashiroWork = game.player.works.find((work) => work.ownerId === 'mashiro')!;
+    expect(pintboxWork.type).toBe('謀');
+    expect(engine.getWorkTypes(pintboxWork)).toEqual(expect.arrayContaining(['謀', '怪']));
+    expect(mashiroWork.type).toBe('燃');
+    expect(engine.getWorkTypes(mashiroWork)).toEqual(expect.arrayContaining(['燃', '怪']));
+    expect(SKILLS.happyContagion?.name).toBe('高興素');
+  });
+
+  it('酪梨 uses the final stats and converts all allied Design pending dice into same-value AA dice while below cap', () => {
+    const { game, engine } = createGame(['avocado', 'mashiro', 'user79']);
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(3);
+    expect(CHARACTERS.avocado?.affinities).toEqual(['謀']);
+
+    const a = engine.grantDice('player', 'mashiro', 'design', 1, 'setup', false, 2)[0]!;
+    const b = engine.grantDice('player', 'user79', 'design', 1, 'setup', false, 5)[0]!;
+    a.value = 2;
+    b.value = 5;
+    expect(engine.canUseActiveSkill('avocado', 'avocadoGameTech')).toBe(true);
+    expect(engine.activateSkill('player', 'avocado', 'avocadoGameTech')).toBe(true);
+    expect(game.player.pendingDice.find((die) => die.id === a.id)).toMatchObject({ skill: 'aa', value: 2 });
+    expect(game.player.pendingDice.find((die) => die.id === b.id)).toMatchObject({ skill: 'aa', value: 5 });
+
+    engine.grantDice('player', 'mashiro', 'design', 1, 'setup-2', false, 4);
+    engine.getCharacter('player', 'avocado')!.stress = 3;
+    expect(engine.canUseActiveSkill('avocado', 'avocadoGameTech')).toBe(false);
+  });
+
+  it('需要使用說明 reacts to member-target coordination cards aimed elsewhere, but not self/work/team-wide cards', () => {
+    const { game, engine } = createGame(['mashiro', 'avocado', 'user79']);
+    const avocado = engine.getCharacter('player', 'avocado')!;
+    game.player.hand = [];
+
+    engine.addCard('player', 'soothe', 1);
+    let card = game.player.hand.find((item) => item.cardId === 'soothe')!;
+    expect(engine.playCard('player', card.instanceId, { memberId: 'user79' })).toBe(true);
+    expect(avocado.stress).toBe(1);
+
+    engine.addCard('player', 'soothe', 1);
+    card = game.player.hand.find((item) => item.cardId === 'soothe')!;
+    expect(engine.playCard('player', card.instanceId, { memberId: 'avocado' })).toBe(true);
+    expect(avocado.stress).toBe(-2); // soothe itself applies -3; manual skill does not add +1.
+
+    engine.addCard('player', 'inspiration', 1);
+    card = game.player.hand.find((item) => item.cardId === 'inspiration')!;
+    expect(engine.playCard('player', card.instanceId, {})).toBe(true);
+    expect(avocado.stress).toBe(-2);
+  });
+
+  it('Pintbox team review is once per round, charges once per affected member per pass, and rerolls all low pending dice', () => {
+    const { game, engine } = createGame(['pintbox', 'mashiro', 'user79'], undefined, () => 0.999);
+    game.player.pendingDice = [];
+    const mashiro = engine.grantDice('player', 'mashiro', 'design', 2, 'setup', false, 1);
+    const user = engine.grantDice('player', 'user79', 'text', 1, 'setup', false, 2);
+    mashiro.forEach((die) => { die.value = 1; });
+    user[0]!.value = 2;
+
+    expect(engine.canUseActiveSkill('pintbox', 'pintboxBasicRequirements')).toBe(true);
+    expect(engine.activateSkill('player', 'pintbox', 'pintboxBasicRequirements')).toBe(true);
+    expect(game.player.pendingDice.filter((die) => die.ownerId === 'mashiro').every((die) => die.value >= 3)).toBe(true);
+    expect(game.player.pendingDice.filter((die) => die.ownerId === 'user79').every((die) => die.value >= 3)).toBe(true);
+    expect(engine.getCharacter('player', 'mashiro')?.stress).toBe(1);
+    expect(engine.getCharacter('player', 'user79')?.stress).toBe(1);
+    expect(engine.canUseActiveSkill('pintbox', 'pintboxBasicRequirements')).toBe(false);
+  });
+
+  it('Pintbox AI does not consume its shield on normal coordination cost, then reduces the first other Stress gain', () => {
+    const { game, engine } = createGame(['pintbox', 'mashiro', 'user79']);
+    game.player.hand = [];
+    const pintbox = engine.getCharacter('player', 'pintbox')!;
+
+    engine.addCard('player', 'oneOnOne', 1);
+    const coordination = game.player.hand.find((item) => item.cardId === 'oneOnOne')!;
+    expect(engine.playCard('player', coordination.instanceId, { memberId: 'mashiro', skill: 'design' })).toBe(true);
+    expect(pintbox.stress).toBe(1); // normal coordination +1 is not reduced by AI.
+
+    engine.adjustStress('player', 'pintbox', 2, '測試外部壓力', true, 'narrator');
+    expect(pintbox.stress).toBe(2); // +2 becomes +1 on the first eligible gain.
+    engine.adjustStress('player', 'pintbox', 2, '第二次外部壓力', true, 'narrator');
+    expect(pintbox.stress).toBe(4);
+  });
+
+  it('Pintbox review clears pending dice before reroll if the review Stress pushes a member over cap', () => {
+    const { game, engine } = createGame(['pintbox', 'mashiro', 'user79']);
+    game.player.pendingDice = [];
+    const mashiro = engine.getCharacter('player', 'mashiro')!;
+    const max = engine.getEffectiveMaxStress('player', 'mashiro')!;
+    mashiro.stress = max;
+    const die = engine.grantDice('player', 'mashiro', 'design', 1, 'setup', false, 1)[0]!;
+    die.value = 1;
+    expect(engine.activateSkill('player', 'pintbox', 'pintboxBasicRequirements')).toBe(true);
+    expect(game.player.pendingDice.some((candidate) => candidate.ownerId === 'mashiro')).toBe(false);
+  });
+});
+""")
+
+print('P2A core character patch applied successfully.')
