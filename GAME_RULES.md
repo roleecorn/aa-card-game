@@ -74,11 +74,14 @@ Guest：
 - 候選角色來自同一個 Standard playable pool，因此只排除 Chaos；旁白與銀櫻仍可出現在候選池。
 - 已被選走的角色立即失去再次選取資格，並在選角 UI 中由中央候選池移往對應隊伍欄。
 - **每一方第一個選到的角色就是該隊組長**。
+- 每個選角批次共用一條 **15 秒** Host-authoritative timer；2-pick batch 的第一個 pick 不會重設時間。
+- Initial reveal 完成前不開始該 side 的首次選角倒數；後續飛行／落點動畫不暫停 timer。
+- 選角批次逾時時，Host 依候選 pool 順序自動補完該批仍缺少的角色。
 - 最後一張角色卡的移動／落點動畫完成後，才進入正式對局，避免視覺流程被 BattleRoom transition 截斷。
 
 離開／關閉連線設定畫面會視為中斷該次連線流程；不能把關閉 Dialog 當成「連線仍在背景繼續」。
 
-完整 transport 與連線限制見 `ONLINE_MULTIPLAYER.md`。
+完整 transport、timer authority 與連線限制見 `ONLINE_MULTIPLAYER.md`。
 
 ## Turn flow
 
@@ -103,9 +106,17 @@ Online 使用同一 GameState，但兩邊都由真人操作：
 1. Host side：`player-plan → player-assign`。
 2. Host 完成配置後進入 Guest side：`enemy-plan → enemy-assign`。
 3. Guest 完成配置後執行共用 roundEnd / cleanup / draw / roundStart，進入下一回合 Host turn。
-4. Online 不套用 Standard AI 的敵方自動棄牌；兩名真人都必須自行處理超過手牌上限的情況。
+4. 每個 `plan` 與 `assign` phase 都有獨立的 **90 秒** Host-authoritative deadline；phase 內出牌、技能、Work / Slack 選擇與放骰都不會重設時間。
+5. 倒數最後 10 秒進入 warning 狀態。
+6. Plan 逾時時，Host 以該 side 當下已選的 Work / Slack 結算；沒有另行變更的角色沿用目前預設，達有效 Stress cap 的角色仍由正常規則強制 Slack。
+7. Guest 的 Plan 選擇會以 `planPreview` 同步到 Host，只有 Host 能做真正的 timeout resolution。
+8. Assign 逾時時，Host 走正常 `finishOnlineAssignment()`，清除尚未使用的 pending dice 並切換 phase。
+9. 若 timeout 發生時該 side 手牌仍超過上限，Host 先隨機棄掉恰好超出的張數，再執行 Plan / Assign timeout resolution。
+10. Online phase 改變會清除尚未確認的 card / skill / targeting / selected-die UI 暫存，不允許半完成操作跨 phase 殘留。
 
-Host 是 authoritative state owner；Guest 傳 command，由 Host 驗證與結算，再同步 snapshot。這是網路架構，不改變角色技能或計分規則。
+Host 是 authoritative state owner，也同時擁有 authoritative timer deadline；Guest 傳 command / Plan preview，由 Host 先檢查 deadline、再驗證與結算並同步 snapshot。Timer 使用 absolute deadline，因此 background throttling 不會延長規則時間；Guest 顯示倒數不具 authority。
+
+Standard AI 與 Tutorial **不啟用** Online rope timer。
 
 ## Leader
 
@@ -196,6 +207,7 @@ Hidden 是共用 gameplay status：
 - 第 2–5 回合開始時抽 2。
 - 手牌上限 8。
 - 牌庫耗盡時把棄牌堆洗回牌庫。
+- 真人正常操作時若超過上限，需棄到 8 張才能繼續；Online rope timeout 若遇到仍超量的手牌，會由 Host 隨機棄掉恰好超出的張數後再推進 phase。
 
 所有卡牌都由當前組長使用。統籌卡成功使用後，一般由組長承擔 +1 外部 Stress；副組長能力可能依規則在**結算前**改變 Stress bearer。
 
@@ -283,3 +295,6 @@ Game Event
 6. `discussion-notes.md` 保存來源討論與歷史脈絡，不代表目前 runtime snapshot。
 
 遊戲規則或遊戲數據變更時，程式與上述對應文件必須在同一個 PR 中同步；詳細要求見 `AGENTS.md`。
+## Responsive battle UI
+
+Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽。導覽只捲動頁面，技能說明展開只影響顯示；不改變 phase、合法目標、使用次數、事件、計分或角色／卡牌資料。目標選取提示與取消控制現在也顯示於一般對局，仍呼叫原有 cancelSelection。

@@ -1,5 +1,9 @@
 import { create } from 'zustand';
+import { EngineSession } from '../game/engine';
+import type { TeamId } from '../game/schema';
+import type { ActionChoice } from '../game/types';
 import { useGameStore } from '../store/gameStore';
+import { DEFAULT_TEAM_NAME, normalizeTeamName } from '../preferences/teamName';
 import {
   ONLINE_PROTOCOL_VERSION,
   restoreDefinition,
@@ -11,9 +15,19 @@ import {
 import {
   applyOnlineDraftPick,
   createOnlineDraft,
+  draftTurn,
+  type OnlineDraftSide,
   type OnlineDraftState,
   type OnlineTeamSize,
 } from './onlineDraft';
+import {
+  autoCompleteDraftBatch,
+  createBattleRopeTimer,
+  createDraftRopeTimer,
+  localizeRemoteRopeTimer,
+  type OnlineRopeTimer,
+  type OnlineTimeoutNotice,
+} from './onlineRope';
 import { generateRoomCode, MqttSignalingClient, type SignalingMessage } from './mqttSignaling';
 
 type OnlineRole = 'host' | 'guest';
@@ -25,15 +39,21 @@ interface OnlineSessionStore {
   roomCode: string;
   teamSize: OnlineTeamSize | null;
   draft: OnlineDraftState | null;
+  localTeamName: string;
+  remoteTeamName: string | null;
+  timer: OnlineRopeTimer | null;
+  timeoutNotice: OnlineTimeoutNotice | null;
   error: string | null;
-  createHostRoom: (teamSize: OnlineTeamSize) => Promise<void>;
-  joinGuestRoom: (roomCode: string) => Promise<void>;
+  createHostRoom: (teamSize: OnlineTeamSize, teamName: string) => Promise<void>;
+  joinGuestRoom: (roomCode: string, teamName: string) => Promise<void>;
   startHostDraft: (playableIds: string[]) => boolean;
+  markDraftReady: () => void;
   pickDraftCharacter: (characterId: string) => boolean;
   sendCommand: (command: OnlineCommand) => boolean;
   broadcastCurrentGame: () => boolean;
   disconnect: () => void;
   clearError: () => void;
+  clearTimeoutNotice: () => void;
 }
 
 let peer: RTCPeerConnection | null = null;
@@ -42,10 +62,22 @@ let signaling: MqttSignalingClient | null = null;
 let remotePeerId: string | null = null;
 let pendingRemoteCandidates: RTCIceCandidateInit[] = [];
 let guestJoinTimer: ReturnType<typeof setInterval> | null = null;
+let hostRopeHandle: ReturnType<typeof setTimeout> | null = null;
+let remotePlanChoices: Record<string, ActionChoice> = {};
+let timeoutNoticeSequence = 0;
+let draftReadyBySide: Record<OnlineDraftSide, boolean> = { host: false, guest: false };
 
 const rtcConfiguration: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 };
+
+function resetOnlineRuntime(): void {
+  if (hostRopeHandle) clearTimeout(hostRopeHandle);
+  hostRopeHandle = null;
+  remotePlanChoices = {};
+  timeoutNoticeSequence = 0;
+  draftReadyBySide = { host: false, guest: false };
+}
 
 function stopGuestJoinRetry(): void {
   if (guestJoinTimer) clearInterval(guestJoinTimer);
@@ -88,8 +120,191 @@ function publishSignal(
   });
 }
 
+function setHostTimer(timer: OnlineRopeTimer | null): void {
+  if (hostRopeHandle) clearTimeout(hostRopeHandle);
+  hostRopeHandle = null;
+  useOnlineSession.setState({ timer });
+  if (!timer || useOnlineSession.getState().role !== 'host') return;
+  hostRopeHandle = setTimeout(
+    () => resolveHostTimeout(timer.id),
+    Math.max(0, timer.deadlineAt - Date.now()),
+  );
+}
+
+function maybeStartDraftTimer(draft: OnlineDraftState): OnlineRopeTimer | null {
+  const turn = draftTurn(draft);
+  if (!turn) {
+    setHostTimer(null);
+    return null;
+  }
+
+  const current = useOnlineSession.getState().timer;
+  const expectedId = `draft:${draft.batchIndex}`;
+  if (current?.kind === 'draft' && current.id === expectedId) return current;
+
+  if (!draftReadyBySide[turn.side]) {
+    setHostTimer(null);
+    return null;
+  }
+
+  const timer = createDraftRopeTimer(draft);
+  setHostTimer(timer);
+  return timer;
+}
+
+function syncBattleTimer(): OnlineRopeTimer | null {
+  const game = useGameStore.getState().game;
+  if (!game || game.phase === 'finished') {
+    setHostTimer(null);
+    return null;
+  }
+
+  const current = useOnlineSession.getState().timer;
+  const candidate = createBattleRopeTimer(game);
+  if (!candidate) {
+    setHostTimer(null);
+    return null;
+  }
+  if (current?.kind === 'battle' && current.id === candidate.id) return current;
+
+  if (candidate.phase === 'enemy-plan') remotePlanChoices = {};
+  setHostTimer(candidate);
+  return candidate;
+}
+
 function broadcastDraft(draft: OnlineDraftState): boolean {
-  return send({ version: ONLINE_PROTOCOL_VERSION, type: 'draft', draft });
+  const state = useOnlineSession.getState();
+  return send({
+    version: ONLINE_PROTOCOL_VERSION,
+    type: 'draft',
+    draft,
+    timer: state.timer,
+    hostNow: Date.now(),
+    hostTeamName: state.localTeamName,
+    guestTeamName: state.remoteTeamName ?? undefined,
+  });
+}
+
+function publishTimeoutNotice(title: string, message: string): void {
+  const notice: OnlineTimeoutNotice = {
+    id: `${Date.now()}-${timeoutNoticeSequence += 1}`,
+    title,
+    message,
+    createdAt: Date.now(),
+  };
+  useOnlineSession.setState({ timeoutNotice: notice });
+  send({ version: ONLINE_PROTOCOL_VERSION, type: 'timeout', notice });
+}
+
+function updateHostDraft(previous: OnlineDraftState, next: OnlineDraftState): void {
+  useOnlineSession.setState({ draft: next });
+  if (next.status === 'complete') {
+    setHostTimer(null);
+  } else if (next.batchIndex !== previous.batchIndex) {
+    maybeStartDraftTimer(next);
+  }
+  broadcastDraft(next);
+}
+
+function normalizeActionsForTeam(
+  teamId: TeamId,
+  requested: Record<string, ActionChoice>,
+): Record<string, ActionChoice> {
+  const { game, gameDefinition } = useGameStore.getState();
+  if (!game) return {};
+  const engine = new EngineSession(game, Math.random, gameDefinition);
+  const team = teamId === 'player' ? game.player : game.enemy;
+  return Object.fromEntries(team.members.map((member) => [
+    member.defId,
+    engine.isAtStressCap(teamId, member.defId) ? 'slack' : requested[member.defId] ?? 'work',
+  ])) as Record<string, ActionChoice>;
+}
+
+function discardOverflowAtRandom(teamId: TeamId): void {
+  const store = useGameStore.getState();
+  const game = store.game;
+  if (!game) return;
+  const team = teamId === 'player' ? game.player : game.enemy;
+  const excess = team.hand.length - store.gameDefinition.rules.handLimit;
+  if (excess <= 0) return;
+
+  const shuffled = [...team.hand];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  }
+  store.discardCards(teamId, shuffled.slice(0, excess).map((card) => card.instanceId));
+}
+
+function resolveDraftTimeout(timer: OnlineRopeTimer): boolean {
+  const state = useOnlineSession.getState();
+  const current = state.draft;
+  if (!current || current.status !== 'drafting') return false;
+  if (timer.id !== `draft:${current.batchIndex}`) return false;
+  const turn = draftTurn(current);
+  if (!turn || timer.side !== turn.side) return false;
+
+  const { draft: next, pickedIds } = autoCompleteDraftBatch(current);
+  if (!pickedIds.length) return false;
+  const actorName = timer.side === 'host'
+    ? state.localTeamName
+    : state.remoteTeamName ?? '對手隊伍';
+  publishTimeoutNotice('選角逾時', `${actorName} 已自動選擇剩餘角色。`);
+  updateHostDraft(current, next);
+  return true;
+}
+
+function resolveBattleTimeout(timer: OnlineRopeTimer): boolean {
+  const store = useGameStore.getState();
+  const game = store.game;
+  if (!game || game.phase === 'finished' || timer.phase !== game.phase) return false;
+
+  const teamId: TeamId = timer.side === 'host' ? 'player' : 'enemy';
+  const expectedSide = game.phase.startsWith('player-') ? 'host' : 'guest';
+  if (expectedSide !== timer.side) return false;
+
+  discardOverflowAtRandom(teamId);
+  const refreshed = useGameStore.getState();
+  const currentGame = refreshed.game;
+  if (!currentGame || currentGame.phase !== timer.phase) return false;
+  const teamName = teamId === 'player' ? currentGame.player.name : currentGame.enemy.name;
+
+  let advanced = false;
+  if (currentGame.phase.endsWith('-plan')) {
+    const requested = teamId === 'player' ? refreshed.actionChoices : remotePlanChoices;
+    advanced = refreshed.performOnlineActions(teamId, normalizeActionsForTeam(teamId, requested));
+  } else {
+    advanced = refreshed.finishOnlineAssignment(teamId);
+  }
+  if (!advanced) return false;
+
+  publishTimeoutNotice(
+    '操作逾時',
+    timer.phase?.endsWith('-plan')
+      ? `${teamName} 已自動結束規劃並進入骰子配置階段。`
+      : `${teamName} 已自動結束目前階段。`,
+  );
+  useOnlineSession.getState().broadcastCurrentGame();
+  return true;
+}
+
+function resolveHostTimeout(expectedTimerId: string): boolean {
+  hostRopeHandle = null;
+  const state = useOnlineSession.getState();
+  const timer = state.timer;
+  if (state.role !== 'host' || !timer || timer.id !== expectedTimerId) return false;
+  const remaining = timer.deadlineAt - Date.now();
+  if (remaining > 0) {
+    hostRopeHandle = setTimeout(() => resolveHostTimeout(timer.id), remaining);
+    return false;
+  }
+  return timer.kind === 'draft' ? resolveDraftTimeout(timer) : resolveBattleTimeout(timer);
+}
+
+function resolveExpiredHostTimer(): boolean {
+  const timer = useOnlineSession.getState().timer;
+  if (!timer || timer.deadlineAt > Date.now()) return false;
+  return resolveHostTimeout(timer.id);
 }
 
 function canGuestUseTurnAction(): boolean {
@@ -132,24 +347,55 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
     return;
   }
 
+  if (role === 'host' && message.type === 'draftReady') {
+    draftReadyBySide.guest = true;
+    useOnlineSession.setState({ remoteTeamName: normalizeTeamName(message.teamName) });
+    const current = useOnlineSession.getState().draft;
+    if (current) {
+      maybeStartDraftTimer(current);
+      broadcastDraft(current);
+    }
+    return;
+  }
+
   if (role === 'host' && message.type === 'draftPick') {
+    if (resolveExpiredHostTimer()) {
+      send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '選角時間已結束。' });
+      return;
+    }
     const current = useOnlineSession.getState().draft;
     const next = current ? applyOnlineDraftPick(current, 'guest', message.characterId) : null;
-    if (!next) {
+    if (!current || !next) {
       send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '目前不能選擇這張角色卡。' });
       return;
     }
-    useOnlineSession.setState({ draft: next });
-    broadcastDraft(next);
+    useOnlineSession.setState({ remoteTeamName: normalizeTeamName(message.teamName ?? DEFAULT_TEAM_NAME) });
+    updateHostDraft(current, next);
     return;
   }
 
   if (role === 'guest' && message.type === 'draft') {
-    useOnlineSession.setState({ draft: message.draft, teamSize: message.draft.teamSize, error: null });
+    useOnlineSession.setState({
+      draft: message.draft,
+      teamSize: message.draft.teamSize,
+      timer: localizeRemoteRopeTimer(message.timer, message.hostNow),
+      remoteTeamName: normalizeTeamName(message.hostTeamName),
+      error: null,
+    });
+    return;
+  }
+
+  if (role === 'host' && message.type === 'planPreview') {
+    if (resolveExpiredHostTimer()) return;
+    if (useGameStore.getState().game?.phase === 'enemy-plan') remotePlanChoices = message.actions;
     return;
   }
 
   if (role === 'host' && message.type === 'command') {
+    if (resolveExpiredHostTimer()) {
+      send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '操作時間已結束。' });
+      return;
+    }
     const accepted = applyGuestCommand(message.command);
     if (!accepted) {
       send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '此操作在目前回合不可執行。' });
@@ -159,10 +405,16 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
   }
 
   if (role === 'guest' && message.type === 'snapshot') {
+    useOnlineSession.setState({ timer: localizeRemoteRopeTimer(message.timer, message.hostNow) });
     useGameStore.getState().loadOnlineSnapshot(
       swapGamePerspective(message.game),
       restoreDefinition(message.definition),
     );
+    return;
+  }
+
+  if (role === 'guest' && message.type === 'timeout') {
+    useOnlineSession.setState({ timeoutNotice: message.notice });
     return;
   }
 
@@ -313,12 +565,29 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
   roomCode: '',
   teamSize: null,
   draft: null,
+  localTeamName: DEFAULT_TEAM_NAME,
+  remoteTeamName: null,
+  timer: null,
+  timeoutNotice: null,
   error: null,
 
-  createHostRoom: async (teamSize) => {
+  createHostRoom: async (teamSize, requestedTeamName) => {
     closeTransport(false);
+    resetOnlineRuntime();
     const roomCode = generateRoomCode();
-    set({ role: 'host', status: 'preparing', roomCode, teamSize, draft: null, error: null });
+    const localTeamName = normalizeTeamName(requestedTeamName);
+    set({
+      role: 'host',
+      status: 'preparing',
+      roomCode,
+      teamSize,
+      draft: null,
+      localTeamName,
+      remoteTeamName: null,
+      timer: null,
+      timeoutNotice: null,
+      error: null,
+    });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -333,7 +602,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
   },
 
-  joinGuestRoom: async (input) => {
+  joinGuestRoom: async (input, requestedTeamName) => {
     const roomCode = input.trim();
     if (!/^\d{6}$/.test(roomCode)) {
       set({ status: 'error', error: '房間代碼必須是 6 位數字。' });
@@ -341,7 +610,20 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
 
     closeTransport(false);
-    set({ role: 'guest', status: 'preparing', roomCode, teamSize: null, draft: null, error: null });
+    resetOnlineRuntime();
+    const localTeamName = normalizeTeamName(requestedTeamName);
+    set({
+      role: 'guest',
+      status: 'preparing',
+      roomCode,
+      teamSize: null,
+      draft: null,
+      localTeamName,
+      remoteTeamName: null,
+      timer: null,
+      timeoutNotice: null,
+      error: null,
+    });
     try {
       signaling = new MqttSignalingClient({
         roomCode,
@@ -365,8 +647,9 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     if (state.role !== 'host' || state.status !== 'connected' || !state.teamSize) return false;
     if (state.draft) return true;
     try {
+      draftReadyBySide = { host: false, guest: false };
       const draft = createOnlineDraft(state.teamSize, playableIds);
-      set({ draft, error: null });
+      set({ draft, timer: null, error: null });
       broadcastDraft(draft);
       return true;
     } catch (error) {
@@ -375,36 +658,82 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     }
   },
 
+  markDraftReady: () => {
+    const state = get();
+    if (!state.draft || !state.role) return;
+    if (draftReadyBySide[state.role]) return;
+    draftReadyBySide[state.role] = true;
+    if (state.role === 'guest') {
+      send({ version: ONLINE_PROTOCOL_VERSION, type: 'draftReady', teamName: state.localTeamName });
+      return;
+    }
+    maybeStartDraftTimer(state.draft);
+    broadcastDraft(state.draft);
+  },
+
   pickDraftCharacter: (characterId) => {
     const state = get();
     if (!state.draft || state.status !== 'connected' || !state.role) return false;
     if (state.role === 'guest') {
-      return send({ version: ONLINE_PROTOCOL_VERSION, type: 'draftPick', characterId });
+      return send({
+        version: ONLINE_PROTOCOL_VERSION,
+        type: 'draftPick',
+        characterId,
+        teamName: state.localTeamName,
+      });
     }
+    if (resolveExpiredHostTimer()) return false;
     const next = applyOnlineDraftPick(state.draft, 'host', characterId);
     if (!next) return false;
-    set({ draft: next });
-    broadcastDraft(next);
+    updateHostDraft(state.draft, next);
     return true;
   },
 
   sendCommand: (command) => send({ version: ONLINE_PROTOCOL_VERSION, type: 'command', command }),
 
   broadcastCurrentGame: () => {
+    const state = get();
+    if (state.role !== 'host') return false;
     const { game, gameDefinition } = useGameStore.getState();
     if (!game) return false;
+    const timer = syncBattleTimer();
     return send({
       version: ONLINE_PROTOCOL_VERSION,
       type: 'snapshot',
       game,
       definition: snapshotDefinition(gameDefinition),
+      timer,
+      hostNow: Date.now(),
     });
   },
 
   disconnect: () => {
     closeTransport(true);
-    set({ role: null, status: 'idle', roomCode: '', teamSize: null, draft: null, error: null });
+    resetOnlineRuntime();
+    set({
+      role: null,
+      status: 'idle',
+      roomCode: '',
+      teamSize: null,
+      draft: null,
+      remoteTeamName: null,
+      timer: null,
+      timeoutNotice: null,
+      error: null,
+    });
   },
 
   clearError: () => set({ error: null }),
+  clearTimeoutNotice: () => set({ timeoutNotice: null }),
 }));
+
+useGameStore.subscribe((state, previous) => {
+  if (state.actionChoices === previous.actionChoices) return;
+  const online = useOnlineSession.getState();
+  if (online.role !== 'guest' || online.status !== 'connected' || state.game?.phase !== 'player-plan') return;
+  send({
+    version: ONLINE_PROTOCOL_VERSION,
+    type: 'planPreview',
+    actions: state.actionChoices,
+  });
+});

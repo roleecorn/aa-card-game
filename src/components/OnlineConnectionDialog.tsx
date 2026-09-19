@@ -14,22 +14,28 @@ import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import { useOnlineSession } from '../online/onlineSession';
 import type { OnlineTeamSize } from '../online/onlineDraft';
+import { isValidTeamName } from '../preferences/teamName';
+import { TeamNameField } from './TeamNameField';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  teamName: string;
+  onTeamNameChange: (value: string) => void;
+  onTeamNameConfirm: (value: string) => string;
 }
 
 async function copyText(text: string): Promise<void> {
   if (text) await navigator.clipboard.writeText(text);
 }
 
-export function OnlineConnectionDialog({ open, onClose }: Props) {
+export function OnlineConnectionDialog({ open, onClose, teamName, onTeamNameChange, onTeamNameConfirm }: Props) {
   const role = useOnlineSession((state) => state.role);
   const status = useOnlineSession((state) => state.status);
   const roomCode = useOnlineSession((state) => state.roomCode);
   const teamSize = useOnlineSession((state) => state.teamSize);
   const error = useOnlineSession((state) => state.error);
+  const localTeamName = useOnlineSession((state) => state.localTeamName);
   const createHostRoom = useOnlineSession((state) => state.createHostRoom);
   const joinGuestRoom = useOnlineSession((state) => state.joinGuestRoom);
   const disconnect = useOnlineSession((state) => state.disconnect);
@@ -39,9 +45,26 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
 
   const connected = status === 'connected';
   const waiting = status === 'waiting' || status === 'connecting';
+  const validTeamName = isValidTeamName(teamName);
+  const teamNameLocked = status === 'preparing' || waiting || connected;
+
+  const confirmTeamName = () => {
+    const confirmed = onTeamNameConfirm(teamName);
+    onTeamNameChange(confirmed);
+    return confirmed;
+  };
+
   const createRoom = (size: OnlineTeamSize) => {
+    if (!validTeamName) return;
+    const confirmedTeamName = confirmTeamName();
     setChoosingHostMode(false);
-    void createHostRoom(size);
+    void createHostRoom(size, confirmedTeamName);
+  };
+
+  const joinRoom = () => {
+    if (!validTeamName || guestCode.length !== 6) return;
+    const confirmedTeamName = confirmTeamName();
+    void joinGuestRoom(guestCode, confirmedTeamName);
   };
 
   const leaveOnlineSetup = () => {
@@ -56,6 +79,11 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
       <DialogTitle sx={{ fontWeight: 950 }}>連線對戰</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: .5 }}>
+          <TeamNameField
+            value={teamNameLocked ? localTeamName : teamName}
+            onChange={onTeamNameChange}
+            disabled={teamNameLocked}
+          />
           {error && <Alert severity="error" onClose={clearError}>{error}</Alert>}
           {connected && (
             <Alert severity="success">
@@ -85,10 +113,10 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
 
           {!role && choosingHostMode && (
             <Stack spacing={1.2}>
-              <Button variant="outlined" size="large" onClick={() => createRoom(3)} sx={{ fontWeight: 950 }}>
+              <Button variant="outlined" size="large" disabled={!validTeamName} onClick={() => createRoom(3)} sx={{ fontWeight: 950 }}>
                 3 人模式
               </Button>
-              <Button variant="contained" size="large" onClick={() => createRoom(5)} sx={{ fontWeight: 950 }}>
+              <Button variant="contained" size="large" disabled={!validTeamName} onClick={() => createRoom(5)} sx={{ fontWeight: 950 }}>
                 5 人模式
               </Button>
               <Button variant="text" onClick={() => setChoosingHostMode(false)}>返回</Button>
@@ -136,8 +164,8 @@ export function OnlineConnectionDialog({ open, onClose }: Props) {
               />
               <Button
                 variant="contained"
-                disabled={guestCode.length !== 6 || status === 'preparing' || waiting}
-                onClick={() => void joinGuestRoom(guestCode)}
+                disabled={!validTeamName || guestCode.length !== 6 || status === 'preparing' || waiting}
+                onClick={joinRoom}
               >
                 {status === 'preparing' ? '連接中…' : waiting ? '正在配對…' : '加入房間'}
               </Button>

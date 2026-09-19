@@ -71,7 +71,7 @@ describe('online character draft', () => {
     expect(dialogSource).not.toContain('先選擇對戰模式');
     expect(dialogSource).toContain('createRoom(3)');
     expect(dialogSource).toContain('createRoom(5)');
-    expect(dialogSource).toContain('createHostRoom(size)');
+    expect(dialogSource).toContain('createHostRoom(size, confirmedTeamName)');
     expect(appSource).toContain("'online-draft'");
     expect(appSource).toContain('<OnlineDraftScreen');
     expect(appSource).toContain('onlineDraft.hostPicks[0]');

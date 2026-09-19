@@ -14,6 +14,7 @@
 - 一般可出戰池只排除：`chaos`。
 - 旁白 `narrator`、銀櫻 `ginsakura` 雖仍有 `planned` 技能，但保留在一般可出戰池，以支援實機、整合與回歸測試。
 - 基礎牌庫：12 張；初始手牌 2；每回合抽 2；手牌上限 8。
+- Online rope：選角每 batch 15 秒；Battle 每個 Plan / Assign phase 90 秒；最後 10 秒 warning。
 - Tutorial：固定 roster、固定抽牌與 deterministic RNG。
 
 `DEFAULT_MATCH.teamSize` 仍為 3，作為 Standard definition 的基準；3/5 人選擇會建立當局專用的 `GameDefinition`，不 mutation global catalog。
@@ -26,15 +27,17 @@
 - 我方初始隊伍揭曉後，本局有一次重抽一名角色的機會。
 - 我方確認隊伍後手動選組長；AI 初始組長為其 roster 第一名。
 - 玩家完成 assignment 後由 Standard AI 自動執行對手回合。
+- 不使用 Online rope timer。
 
 ### Online multiplayer
 
-2026-09-14 已完成可玩的 serverless Online milestone：
+2026-09-14 已完成可玩的 serverless Online milestone；2026-09-15 再加入 Host-authoritative rope timer / timeout resolution：
 
 - Host 建立房間前先選 3 人或 5 人模式。
 - 使用 6 位數房間代碼配對。
-- WebRTC DataChannel 傳遞 draft / command / snapshot；MQTT 只做短期 signaling。
+- WebRTC DataChannel 傳遞 draft / command / snapshot / timer metadata；MQTT 只做短期 signaling。
 - Host authoritative；Guest 傳 command，由 Host 執行規則並同步 snapshot。
+- Online protocol 已升到 v2，加入 `draftReady`、`planPreview`、authoritative timer metadata 與 timeout notice。
 - 雙方共用同一個 `BattleRoom`，Guest 端透過 perspective swap 讓本地玩家永遠顯示為 player side。
 - Online 不走 Standard 的隨機抽隊／單次重抽；改用共同候選池的 snake-like draft。
 - 3 人 draft：6 候選，`Host 1 → Guest 2 → Host 2 → Guest 1`。
@@ -44,8 +47,14 @@
 - Picked character 會從中央候選池移除並動畫移入隊伍 rail；最終 pick 的動畫 settle 後才進入 BattleRoom。
 - 左右隊伍 rail 保留捲動能力但不顯示 scrollbar。
 - 關閉 Online setup dialog 會立即 disconnect / 取消目前配對流程，不留下背景連線。
+- 選角 timer 是每 batch 15 秒；initial reveal ready 前不開始，batch 內 pick／飛行動畫不重設或暫停，逾時由 Host 自動補完該 batch 剩餘角色。
 - Online human turn 使用 `player-plan → player-assign → enemy-plan → enemy-assign`；Guest assignment 完成後才進下一回合。
-- Online 不使用 Standard AI 的 enemy hand auto-discard；兩名真人都自行處理手牌上限。
+- 每個 Plan / Assign phase 都有新的 90 秒 deadline；操作不重設時間，最後 10 秒進 warning。
+- Plan timeout 提交目前 action choices；Guest choices 透過 `planPreview` 給 Host 做 authoritative timeout resolution。
+- Assign timeout 走正常 `finishOnlineAssignment()`，清掉未使用 pending dice 後 handoff。
+- Online 正常情況仍由真人自行處理手牌上限；timeout 時若仍超量，Host 會先隨機棄到 hand limit。
+- Timer 使用 absolute deadline；browser background throttling 或 callback 延遲不會延長規則時間。
+- Authoritative phase 改變時 Online BattleRoom 重新建立互動狀態，避免半完成 card / skill / target / selected-die UI 跨 phase 殘留。
 
 開發細節與限制見 `ONLINE_MULTIPLAYER.md`。
 
@@ -56,8 +65,10 @@
 這個邊界的目標是：
 
 - Standard 與 Online 使用同一套角色、作品、手牌、技能、targeting UI。
-- Online 只替換 turn authority / transport，不 fork 一份遊戲規則。
+- Online 只替換 turn authority / transport / timer authority，不 fork 一份遊戲規則。
 - UI / gameplay regression 優先在共用 BattleRoom 層驗證。
+
+Online 的暫存互動 state 以 phase 為 lifecycle boundary；phase 變化時重新 mount 共用 BattleRoom，Standard / Tutorial 的 component lifecycle 不受此行為影響。
 
 ## Runtime roster status
 
@@ -123,6 +134,8 @@ PR #68 後，技能測試不再只靠大型 mixed-roster suite：
 
 PR #68 合併前的自動驗證基線：Tutorial 5/5、Vitest 46 files / 230 tests、39 portrait + 39 compact assets、TypeScript + Vite production build 全部通過。
 
+Online rope timer 另有 `src/tests/online-rope.test.ts`，覆蓋 15s / 90s / 10s constants、batch-level deadline、partial batch auto-completion、battle phase timer identity、Host-to-Guest remaining-time localization 與 warning boundary；完整 Online session path 仍以 CI + 雙瀏覽器人工 regression 為必要補充。
+
 ## Gameplay state boundary
 
 - Character Tag 只作為 metadata 或 selector / condition，不承載 gameplay effect。
@@ -141,6 +154,15 @@ PR #68 合併前的自動驗證基線：Tutorial 5/5、Vitest 46 files / 230 tes
 - Match constants、deck、team size 與 roster eligibility 由 definition 注入。
 - UI 的 Standard/Online 一般選角必須遵守 `roster.excludedCharacterIds`。
 - `createInitialGame(..., { playerMemberIds, enemyMemberIds })` 的 explicit roster override 是 deterministic test/custom scenario escape hatch，可以注入一般 roster 排除角色；不能拿這條路徑當作玩家 UI 的 eligibility 規則。
+
+## Online timer state boundary
+
+- Rope timer 不寫入 `GameState`，避免把網路／時間 authority 混進核心規則 state；timer 由 `useOnlineSession` 管理。
+- Host 保存 absolute `deadlineAt`，同時持有 timeout callback；收到 Guest command 前也會先檢查是否已過期。
+- Guest 接收 Host `timer + hostNow` 後只換算為本機顯示 deadline；Guest 本機倒數不能觸發 authoritative phase transition。
+- Guest Plan 以 `planPreview` 將 UI choice 同步到 Host，讓 Host timeout 可使用「目前選擇」而不是猜測 Guest UI state。
+- `src/online/onlineRope.ts` 保存可純測試的 duration / remaining-time / draft auto-completion helpers。
+- Standard / Tutorial 不讀取 Online timer authority。
 
 ## Tutorial state boundary
 
@@ -167,8 +189,9 @@ public/assets/characters/compact/<character-id>.webp
 - Boss mode 尚未完成；卡奧斯排除 Standard / Online 一般 roster。
 - **Standard AI 對 Active skill 的決策仍有限**：目前只會自動使用 `ai.autoUse` 且 `activeTarget.kind === 'none'` 的技能；需要選角色、作品或骰子的 Active skill 尚沒有通用 AI target chooser。
 - Online 目前沒有 TURN relay；嚴格 NAT / 公司網路可能無法建立 P2P。
-- Online 沒有可靠 reconnect / room persistence / public-matchmaking / anti-cheat server authority。
+- Online 沒有可靠 reconnect / room persistence / public-matchmaking / anti-cheat server authority；斷線後 Host 現有 timer 仍可能照 deadline 推進，但沒有安全的 Guest resume path。
 - 6 位數 room code 與 public MQTT signaling broker 適合朋友間 Prototype，不是安全憑證或正式 matchmaking infrastructure。
+- Guest 顯示 timer 以 Host 剩餘時間在收到訊息時換算，網路傳輸延遲可能讓畫面顯示略晚於 Host 真正 deadline；Host 判定仍是唯一 authority。
 - Standard 的隨機抽隊、一次重抽與 3 / 5 人模式屬 Prototype decision，不代表 Discord 原始討論已定案。
 - 部分早期角色資料仍包含 prototype assumption；需查看各角色 `sourceNotes`。
 
@@ -200,3 +223,8 @@ npm run test:tutorial
 CI / release workflow 另外執行資產與 build 驗證。
 
 **CI 綠燈不是 merge 授權。** 任何 PR 在 merge 前仍需人工 review / runtime testing；文件-only PR 至少需人工確認文件內容。AI agent 不自行 merge。
+## 響應式 UI（待人工驗收）
+
+BattleRoom 已增加容器自適應作品／角色排欄、窄螢幕底部區域導覽、44px 觸控按鈕、可點開的技能說明與一般對局目標選擇提示。Standard／Online 維持同一 component tree 與 runtime validator。
+
+Figma 同步尚未完成：此次同步請求被 Starter plan MCP 額度限制拒絕；版面規格與驗證紀錄見 FIGMA.md、docs/responsive-ui-validation.md。真實手機觸控與 Online 人工雙端測試仍須在 merge 前完成。

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { selectStandardRosters } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
+import { persistTeamNameCookie, readTeamNameCookie } from '../preferences/teamName';
 import { useGameStore } from '../store/gameStore';
 import { CharacterRosterDialog } from '../components/CharacterRosterDialog';
 import { OnlineConnectionDialog } from '../components/OnlineConnectionDialog';
@@ -32,10 +33,13 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const onlineStatus = useOnlineSession((state) => state.status);
   const onlineTeamSize = useOnlineSession((state) => state.teamSize);
   const onlineDraft = useOnlineSession((state) => state.draft);
+  const onlineLocalTeamName = useOnlineSession((state) => state.localTeamName);
+  const onlineRemoteTeamName = useOnlineSession((state) => state.remoteTeamName);
   const startHostDraft = useOnlineSession((state) => state.startHostDraft);
   const pickDraftCharacter = useOnlineSession((state) => state.pickDraftCharacter);
   const broadcastCurrentGame = useOnlineSession((state) => state.broadcastCurrentGame);
   const disconnectOnline = useOnlineSession((state) => state.disconnect);
+  const [teamName, setTeamName] = useState(() => readTeamNameCookie());
   const [rosterOpen, setRosterOpen] = useState(false);
   const [onlineOpen, setOnlineOpen] = useState(false);
   const [appStage, setAppStage] = useState<AppStage>('start');
@@ -48,6 +52,12 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       .filter((character) => !excluded.has(character.id))
       .map((character) => character.id);
   }, [gameDefinition]);
+
+  const confirmTeamName = useCallback((value: string) => {
+    const confirmed = persistTeamNameCookie(value);
+    setTeamName(confirmed);
+    return confirmed;
+  }, []);
 
   useEffect(() => {
     if (!onlineDraft || onlineDraft.status !== 'complete') {
@@ -91,6 +101,8 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       rules: {
         ...gameDefinition.rules,
         teamSize: onlineDraft.teamSize,
+        player: { ...gameDefinition.rules.player, name: onlineLocalTeamName },
+        enemy: { ...gameDefinition.rules.enemy, name: onlineRemoteTeamName ?? gameDefinition.rules.enemy.name },
       },
     };
     startGame(
@@ -100,16 +112,18 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       selectedGameDefinition,
     );
     broadcastCurrentGame();
-  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineRole, onlineStatus, startGame]);
+  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineLocalTeamName, onlineRemoteTeamName, onlineRole, onlineStatus, startGame]);
 
-  const handleStart = (teamSize: TeamSizeOption) => {
+  const handleStart = (teamSize: TeamSizeOption, requestedTeamName: string) => {
     if (onlineRole) disconnectOnline();
     reset();
+    const confirmedTeamName = confirmTeamName(requestedTeamName);
     const selectedGameDefinition: GameDefinition = {
       ...gameDefinition,
       rules: {
         ...gameDefinition.rules,
         teamSize,
+        player: { ...gameDefinition.rules.player, name: confirmedTeamName },
       },
     };
     const selected = selectStandardRosters(Math.random, selectedGameDefinition);
@@ -159,16 +173,28 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     setAppStage('start');
   };
 
+  const onlineDialog = (
+    <OnlineConnectionDialog
+      open={onlineOpen}
+      onClose={() => setOnlineOpen(false)}
+      teamName={teamName}
+      onTeamNameChange={setTeamName}
+      onTeamNameConfirm={confirmTeamName}
+    />
+  );
+
   const startView = (
     <>
       <StartScreen
+        teamName={teamName}
+        onTeamNameChange={setTeamName}
         onStart={handleStart}
         onStartTutorial={handleStartTutorial}
         onOpenRoster={() => setRosterOpen(true)}
         onOpenOnline={() => setOnlineOpen(true)}
       />
       <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
-      <OnlineConnectionDialog open={onlineOpen} onClose={() => setOnlineOpen(false)} />
+      {onlineDialog}
     </>
   );
 
@@ -188,7 +214,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
           onConfirm={handleConfirmRoster}
         />
         <CharacterRosterDialog open={rosterOpen} onClose={() => setRosterOpen(false)} />
-        <OnlineConnectionDialog open={onlineOpen} onClose={() => setOnlineOpen(false)} />
+        {onlineDialog}
       </>
     );
   }
@@ -210,7 +236,9 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   }
 
   if (appStage === 'battle' && game) {
-    return <BattleRoom onRestart={handleRestart} />;
+    return onlineRole
+      ? <BattleRoom key={`online-${game.phase}`} onRestart={handleRestart} />
+      : <BattleRoom onRestart={handleRestart} />;
   }
 
   return startView;

@@ -11,12 +11,12 @@ interface Props {
 
 export function CardHand({ hand, onPlay, getDisabledReason }: Props) {
   return (
-    <Stack direction="row" spacing={.9} sx={{ overflowX: 'auto', pb: .6 }}>
+    <Stack direction="row" spacing={.9} sx={{ minWidth: 0, overflowX: 'auto', p: .6, scrollSnapType: 'x proximity' }}>
       {hand.map((instance, index) => {
         const card = CARDS[instance.cardId];
         if (!card) return null;
         return (
-          <Box key={instance.instanceId} data-tutorial={`card-${card.id}`} sx={{ flexShrink: 0 }}>
+          <Box key={instance.instanceId} data-tutorial={`card-${card.id}`} sx={{ flexShrink: 0, scrollSnapAlign: 'start' }}>
             <HandCard
               instance={instance}
               card={card}

@@ -61,11 +61,14 @@ describe('online draft character UI', () => {
     expect(appSource).toContain('onAnimationSettled={handleOnlineDraftAnimationSettled}');
   });
 
-  it('renders both selected teams with the same vertical selection-card visual language', () => {
+  it('renders both selected teams with the same vertical selection-card visual language and session names', () => {
     expect(draftSource).not.toContain('import { CharacterCard }');
     expect(draftSource).toContain('variant="rail"');
-    expect(draftSource).toContain('title="我的隊伍"');
-    expect(draftSource).toContain('title="對手隊伍"');
+    expect(draftSource).toContain('const localTeamName = useOnlineSession((state) => state.localTeamName)');
+    expect(draftSource).toContain('const remoteTeamName = useOnlineSession((state) => state.remoteTeamName)');
+    expect(draftSource).toContain('title={localTeamName}');
+    expect(draftSource).toContain("title={remoteTeamName ?? '對手隊伍'}");
+    expect(draftSource).not.toContain('title="我的隊伍"');
   });
 
   it('removes the redundant candidate summary and name-only empty summaries', () => {

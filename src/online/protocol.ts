@@ -3,8 +3,9 @@ import type { GameDefinition, MatchRules } from '../game/gameDefinition';
 import type { TeamId } from '../game/schema';
 import type { ActionChoice, GameState, Phase, SkillActivationTarget } from '../game/types';
 import type { OnlineDraftState } from './onlineDraft';
+import type { OnlineRopeTimer, OnlineTimeoutNotice } from './onlineRope';
 
-export const ONLINE_PROTOCOL_VERSION = 1;
+export const ONLINE_PROTOCOL_VERSION = 2;
 
 export type OnlineCommand =
   | { type: 'performActions'; actions: Record<string, ActionChoice> }
@@ -27,6 +28,8 @@ export type OnlineMessage =
       type: 'snapshot';
       game: GameState;
       definition: OnlineDefinitionSnapshot;
+      timer: OnlineRopeTimer | null;
+      hostNow: number;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
@@ -35,13 +38,33 @@ export type OnlineMessage =
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'planPreview';
+      actions: Record<string, ActionChoice>;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
       type: 'draft';
       draft: OnlineDraftState;
+      timer: OnlineRopeTimer | null;
+      hostNow: number;
+      hostTeamName: string;
+      guestTeamName?: string;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'draftReady';
+      teamName: string;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
       type: 'draftPick';
       characterId: string;
+      teamName?: string;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'timeout';
+      notice: OnlineTimeoutNotice;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
@@ -96,8 +119,8 @@ export function swapGamePerspective(source: GameState): GameState {
   const host = game.player;
   const guest = game.enemy;
 
-  game.player = { ...guest, id: 'player', name: source.player.name };
-  game.enemy = { ...host, id: 'enemy', name: source.enemy.name };
+  game.player = { ...guest, id: 'player', name: source.enemy.name };
+  game.enemy = { ...host, id: 'enemy', name: source.player.name };
   game.phase = swapPhase(source.phase);
   if (source.winner === 'player' || source.winner === 'enemy') game.winner = swapTeamId(source.winner);
 

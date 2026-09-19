@@ -11,7 +11,7 @@
 - 支援 **Standard AI** 與 **Online 兩人連線對戰**。
 - Runtime catalog 共 **39 名角色**；一般 Standard / Online 可出戰 **38 名**，目前只排除特殊內容角色卡奧斯。旁白、銀櫻雖仍有 `planned` 技能，但照常保留在可選池以支援實機與整合測試。
 - Standard AI：隨機抽隊、我方全局一次重抽、手動選組長、對手 AI 回合。
-- Online：Host 先選 3/5 人模式，使用 6 位數房間代碼配對，再從共同候選池輪流選角；雙方第一個選到的角色各自成為組長。
+- Online：Host 先選 3/5 人模式，使用 6 位數房間代碼配對，再從共同候選池輪流選角；選角每個 batch 15 秒，Battle 每個 Plan / Assign phase 90 秒，逾時由 Host authoritative resolution 自動推進。
 - 支援角色主動／被動／觸發技能、統籌卡與事件卡、Stress、作品適性、作品進度、組長接任、hidden／神隱等 runtime mechanic。
 - Active skill 的可用性與 target legality 由 SkillRuntime 統一判定，UI 不應提供 runtime 會拒絕的假目標。
 - 另有固定 roster / 固定抽牌 / deterministic RNG 的教學關卡。
@@ -73,11 +73,13 @@ npm run storybook
 1. Host 選 3 人或 5 人模式後建立 6 位數房間代碼。
 2. Guest 輸入代碼加入。
 3. 連線成功後，3 人模式從 6 名候選、5 人模式從 10 名候選輪流選角。
-4. 選擇批次分別為 `1-2-2-1` 與 `1-2-2-2-2-1`。
+4. 選擇批次分別為 `1-2-2-1` 與 `1-2-2-2-2-1`；每個 batch 共用 15 秒，逾時由 Host 自動補完該批剩餘選擇。
 5. 雙方第一個選到的角色就是初始組長。
 6. 選角完成後共用同一個 `BattleRoom` 進行真人對真人回合。
+7. 每個 Plan / Assign phase 各有新的 90 秒倒數；同一 phase 的出牌、技能、Work / Slack 或放骰不會重設時間。
+8. Plan 逾時會提交目前選擇；Assign 逾時會正常結束配置並清掉未用骰。若手牌仍超過上限，先隨機棄掉超出張數。
 
-Online 使用 WebRTC DataChannel，MQTT 僅做短期 signaling；目前沒有 TURN relay 或可靠 reconnect。詳細見 [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)。
+Online 使用 WebRTC DataChannel，MQTT 僅做短期 signaling；rope deadline 與 timeout resolution 由 Host authoritative。倒數最後 10 秒會進入 warning。Timer 使用 absolute deadline，因此背景分頁不會取得額外規則時間。目前沒有 TURN relay 或可靠 reconnect。詳細見 [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)。
 
 ## 部署與資源路徑
 
@@ -142,7 +144,7 @@ Game Event / Active request
 src/content/<character-id>.ts
 ```
 
-`src/content/catalog.ts` 負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。Standard AI 與 Online 共用 `BattleRoom` 與核心 Engine；Online 只另外處理 connection、draft、command authority 與 human turn ownership。
+`src/content/catalog.ts` 負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。Standard AI 與 Online 共用 `BattleRoom` 與核心 Engine；Online 只另外處理 connection、draft、command / timer authority 與 human turn ownership。
 
 詳細內容：
 
@@ -183,7 +185,7 @@ aa-card-game/
 │  ├─ components/
 │  ├─ content/            # character/card/match/catalog
 │  ├─ game/               # engine / skill runtime / online turn
-│  ├─ online/             # signaling / session / draft / protocol
+│  ├─ online/             # signaling / session / draft / rope / protocol
 │  ├─ store/
 │  ├─ tutorial/
 │  └─ tests/
@@ -200,6 +202,7 @@ aa-card-game/
 
 - 5 回合；3 人或 5 人小隊。
 - Standard AI 或兩人 Online。
+- Online 選角每 batch 15 秒；Battle 每個 Plan / Assign phase 90 秒；倒數由 Host authoritative。
 - 每名角色各有一部作品。
 - Progress 依 `Design → Text → AA`。
 - 高骰可以覆蓋同類型低骰。

@@ -105,7 +105,7 @@ export function WorkCard({
             gridTemplateColumns: compactSlots
               ? `repeat(${work.slots.length}, 66px)`
               : `repeat(${work.slots.length}, minmax(54px, 1fr))`,
-            justifyContent: compactSlots ? 'center' : undefined,
+            justifyContent: 'start',
             gap: .55,
             overflowX: 'auto',
             px: 1.05,

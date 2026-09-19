@@ -59,7 +59,7 @@ export function CharacterCard({
 
   return (
     <Card sx={{ overflow: 'hidden', bgcolor: '#fff', borderWidth: 1.5 }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: portrait ? (compact ? '56% 44%' : { xs: '118px minmax(0,1fr)', sm: '148px minmax(0,1fr)' }) : '1fr', minHeight: compact ? 138 : 188 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: portrait ? (compact ? 'minmax(0, 1fr) minmax(140px, 1fr)' : { xs: '118px minmax(0,1fr)', sm: '148px minmax(0,1fr)' }) : '1fr', minHeight: compact ? 138 : 188 }}>
         {portrait && (
           <Box sx={{ position: 'relative', overflow: 'hidden', minHeight: compact ? 138 : 188, bgcolor: '#f1f5fa' }}>
             <Box

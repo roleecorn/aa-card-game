@@ -4,11 +4,15 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import WifiRoundedIcon from '@mui/icons-material/WifiRounded';
+import { isValidTeamName } from '../preferences/teamName';
+import { TeamNameField } from './TeamNameField';
 
 export type TeamSizeOption = 3 | 5;
 
 interface Props {
-  onStart: (teamSize: TeamSizeOption) => void;
+  teamName: string;
+  onTeamNameChange: (value: string) => void;
+  onStart: (teamSize: TeamSizeOption, teamName: string) => void;
   onStartTutorial: () => void;
   onOpenRoster: () => void;
   onOpenOnline?: () => void;
@@ -17,12 +21,14 @@ interface Props {
 const releasedAtTaiwan = import.meta.env.VITE_RELEASED_AT_TW as string | undefined;
 const gameManualUrl = 'https://github.com/roleecorn/aa-card-game/blob/main/GAME_MANUAL.md';
 
-export function StartScreen({ onStart, onStartTutorial, onOpenRoster, onOpenOnline }: Props) {
+export function StartScreen({ teamName, onTeamNameChange, onStart, onStartTutorial, onOpenRoster, onOpenOnline }: Props) {
   const [modeDialogOpen, setModeDialogOpen] = useState(false);
+  const validTeamName = isValidTeamName(teamName);
 
   const chooseTeamSize = (teamSize: TeamSizeOption) => {
+    if (!validTeamName) return;
     setModeDialogOpen(false);
-    onStart(teamSize);
+    onStart(teamSize, teamName);
   };
 
   return (
@@ -118,18 +124,21 @@ export function StartScreen({ onStart, onStartTutorial, onOpenRoster, onOpenOnli
       </Paper>
 
       <Dialog open={modeDialogOpen} onClose={() => setModeDialogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 950, textAlign: 'center', pb: 1 }}>選擇對局人數</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 950, textAlign: 'center', pb: 1 }}>設定隊伍</DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 2, color: 'text.secondary', textAlign: 'center', fontSize: 13 }}>
-            隊伍有幾名角色，就會同時有幾個作品。
-          </Typography>
-          <Stack spacing={1.2}>
-            <Button variant="outlined" size="large" onClick={() => chooseTeamSize(3)} sx={{ py: 1.25, fontWeight: 950 }}>
-              3 人模式
-            </Button>
-            <Button variant="contained" size="large" onClick={() => chooseTeamSize(5)} sx={{ py: 1.25, fontWeight: 950 }}>
-              5 人模式
-            </Button>
+          <Stack spacing={2} sx={{ pt: .5 }}>
+            <TeamNameField value={teamName} onChange={onTeamNameChange} autoFocus />
+            <Typography sx={{ color: 'text.secondary', textAlign: 'center', fontSize: 13 }}>
+              隊伍有幾名角色，就會同時有幾個作品。
+            </Typography>
+            <Stack spacing={1.2}>
+              <Button variant="outlined" size="large" disabled={!validTeamName} onClick={() => chooseTeamSize(3)} sx={{ py: 1.25, fontWeight: 950 }}>
+                3 人模式
+              </Button>
+              <Button variant="contained" size="large" disabled={!validTeamName} onClick={() => chooseTeamSize(5)} sx={{ py: 1.25, fontWeight: 950 }}>
+                5 人模式
+              </Button>
+            </Stack>
           </Stack>
         </DialogContent>
       </Dialog>
