@@ -44,6 +44,226 @@ jobs:
       - name: Apply P0 changes
         run: node scripts/apply-20260919-p0.mjs
 
+      - name: Adapt existing callers to disappearing-die semantics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def rep(file, old, new):
+              path = Path(file)
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'expected snippet not found in {file}: {old[:100]}')
+              path.write_text(text.replace(old, new), encoding='utf-8')
+
+          # Keep old fixtures/network snapshots source-compatible while initializing the new fields in new games.
+          rep('src/game/types.ts', '  timedRollConstraints: TimedRollConstraint[];', '  timedRollConstraints?: TimedRollConstraint[];')
+          rep('src/game/types.ts', '  extraTypes: WorkType[];', '  extraTypes?: WorkType[];')
+          rep('src/game/engine.ts', '    return [...new Set([work.type, ...work.extraTypes])];', '    return [...new Set([work.type, ...(work.extraTypes ?? [])])];')
+          rep('src/game/engine.ts', '        member.timedRollConstraints = member.timedRollConstraints.filter((constraint) => constraint.expiresAfterRound > this.state.round);', '        member.timedRollConstraints = (member.timedRollConstraints ?? []).filter((constraint) => constraint.expiresAfterRound > this.state.round);')
+          rep('src/game/effectRegistry.ts', '      if (!engine.workHasType(work, effect.workType)) work.extraTypes.push(effect.workType);', "      if (!engine.workHasType(work, effect.workType)) {\n        work.extraTypes ??= [];\n        work.extraTypes.push(effect.workType);\n      }")
+          rep('src/tests/discussion-p0-rules.test.ts', "    member.timedRollConstraints.push({ id: 'partial', forbiddenFaces: [1, 2, 5, 6], expiresAfterRound: 1 });", "    (member.timedRollConstraints ??= []).push({ id: 'partial', forbiddenFaces: [1, 2, 5, 6], expiresAfterRound: 1 });")
+          rep('src/tests/discussion-p0-rules.test.ts', "    member.timedRollConstraints.push({ id: 'rest', forbiddenFaces: [3, 4], expiresAfterRound: 1 });", "    member.timedRollConstraints!.push({ id: 'rest', forbiddenFaces: [3, 4], expiresAfterRound: 1 });")
+
+          # Removed work type must also disappear from UI maps and neutral fixtures.
+          rep('src/components/WorkCard.tsx', "import PaletteIcon from '@mui/icons-material/Palette';\n", '')
+          rep('src/components/WorkCard.tsx', '  色: <PaletteIcon fontSize="small" />,\n', '')
+          rep('src/tests/helpers/skillHarness.ts', "const ALL_AFFINITIES = ['燃', '謀', '笑', '情', '色', '怪'] as const;", "const ALL_AFFINITIES = ['燃', '謀', '笑', '情', '怪'] as const;")
+
+          # Existing Pintbox review handler: a reroll can now remove the die.
+          rep('src/game/characterSkillEffects.ts', '''function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): void {
+            const before = die.value;
+            die.value = engine.rollDieFor(die.ownerId);
+            const teamId = engine.findMemberTeam(die.ownerId);
+            if (teamId) {
+              engine.adjustStress(
+                teamId,
+                die.ownerId,
+                1,
+                sourceName,
+                die.ownerId !== sourceId,
+                sourceId,
+              );
+            }
+            engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
+          }'''.replace('          ', ''), '''function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): boolean {
+            const before = die.value;
+            const rerolled = engine.rollDieFor(die.ownerId);
+            const teamId = engine.findMemberTeam(die.ownerId);
+            if (teamId) {
+              engine.adjustStress(
+                teamId,
+                die.ownerId,
+                1,
+                sourceName,
+                die.ownerId !== sourceId,
+                sourceId,
+              );
+            }
+            if (rerolled === undefined) {
+              if (teamId) {
+                const team = engine.getTeam(teamId);
+                team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+              }
+              engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 的骰子因沒有合法骰面而消失。`);
+              return false;
+            }
+            die.value = rerolled;
+            engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
+            return true;
+          }'''.replace('          ', ''))
+
+          rep('src/game/characterSkillEffects.ts', '''  let rerolls = 0;
+          for (const die of candidates.values()) {
+            if (!repeatUntilThree) {
+              rerollLowDie(die, engine, context.ownerId, context.definition.name);
+              rerolls += 1;
+              continue;
+            }
+
+            let attempts = 0;
+            while (die.value <= 2 && attempts < 20) {
+              rerollLowDie(die, engine, context.ownerId, context.definition.name);
+              rerolls += 1;
+              attempts += 1;
+            }
+            if (die.value <= 2) {
+              // Deterministic/faulty RNG must not be able to hang a triggered skill forever.
+              die.value = 3;
+              engine.log(`${context.definition.name}：重擲安全上限已達，將骰值固定為 3。`);
+            }
+          }'''.replace('          ', ''), '''  let rerolls = 0;
+          for (const die of candidates.values()) {
+            if (!repeatUntilThree) {
+              const survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
+              rerolls += 1;
+              if (!survived && context.event.dice) {
+                context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+              }
+              continue;
+            }
+
+            let attempts = 0;
+            let survived = true;
+            while (die.value <= 2 && attempts < 20) {
+              survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
+              rerolls += 1;
+              attempts += 1;
+              if (!survived) {
+                if (context.event.dice) {
+                  context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+                }
+                break;
+              }
+            }
+            if (!survived) continue;
+            if (die.value <= 2) {
+              // Deterministic/faulty RNG must not be able to hang a triggered skill forever.
+              die.value = 3;
+              engine.log(`${context.definition.name}：重擲安全上限已達，將骰值固定為 3。`);
+            }
+          }'''.replace('          ', ''))
+
+          # Custom effects that directly build/reroll dice must respect undefined as disappearance.
+          rep('src/game/customEffects.ts', "    const rolled = Array.from({ length: count }, () => engine.rollDieFor(context.ownerId));", "    const rolled = Array.from({ length: count }, () => engine.rollDieFor(context.ownerId))\n      .filter((value): value is NonNullable<typeof value> => value !== undefined);")
+
+          rep('src/game/customEffects.ts', '''  const die = {
+            id: engine.uid('die'),
+            ownerId: context.ownerId,
+            skill: 'design' as const,
+            value: engine.rollDieFor(context.ownerId),
+            round: engine.state.round,
+            origin: context.definition.name,
+          };
+          team.pendingDice.push(die);'''.replace('          ', ''), '''  const value = engine.rollDieFor(context.ownerId);
+          if (value === undefined) return false;
+          const die: DieToken = {
+            id: engine.uid('die'),
+            ownerId: context.ownerId,
+            skill: 'design',
+            value,
+            round: engine.state.round,
+            origin: context.definition.name,
+          };
+          team.pendingDice.push(die);'''.replace('          ', ''))
+
+          old_normalize = '''registerCustomSkillEffect('normalizeForbiddenEventDice', (effect, context, engine) => {
+            const dice = context.event.dice;
+            const rawValues = effect.args?.values;
+            const rawSkills = effect.args?.skills;
+            if (!dice?.length || !Array.isArray(rawValues)) return false;
+            const forbidden = new Set(rawValues.filter((value): value is number => typeof value === 'number'));
+            const restrictedSkills = Array.isArray(rawSkills)
+              ? new Set(rawSkills.filter((skill): skill is SkillStat => SKILLS.includes(skill as SkillStat)))
+              : undefined;
+            let changed = false;
+
+            for (const die of dice) {
+              if (restrictedSkills && !restrictedSkills.has(die.skill)) continue;
+              if (!forbidden.has(die.value)) continue;
+              const original = die.value;
+              let next = original;
+              for (let attempt = 0; attempt < 20 && forbidden.has(next); attempt += 1) next = engine.rollDieFor(die.ownerId);
+              if (forbidden.has(next)) {
+                const allowed = ([1, 2, 3, 4, 5, 6] as const).filter((value) => !forbidden.has(value));
+                next = allowed.sort((a, b) => Math.abs(a - original) - Math.abs(b - original))[0] ?? 1;
+              }
+              die.value = engine.asDieValue(next);
+              changed = true;
+            }
+            return changed;
+          });'''.replace('          ', '')
+          new_normalize = '''registerCustomSkillEffect('normalizeForbiddenEventDice', (effect, context, engine) => {
+            const dice = context.event.dice;
+            const rawValues = effect.args?.values;
+            const rawSkills = effect.args?.skills;
+            if (!dice?.length || !Array.isArray(rawValues)) return false;
+            const forbidden = new Set(rawValues.filter((value): value is number => typeof value === 'number'));
+            const restrictedSkills = Array.isArray(rawSkills)
+              ? new Set(rawSkills.filter((skill): skill is SkillStat => SKILLS.includes(skill as SkillStat)))
+              : undefined;
+            let changed = false;
+
+            for (const die of [...dice]) {
+              if (restrictedSkills && !restrictedSkills.has(die.skill)) continue;
+              if (!forbidden.has(die.value)) continue;
+              const original = die.value;
+              let next: DieToken['value'] | undefined = original;
+              for (let attempt = 0; attempt < 20 && next !== undefined && forbidden.has(next); attempt += 1) {
+                next = engine.rollDieFor(die.ownerId);
+              }
+              if (next === undefined) {
+                dice.splice(0, dice.length, ...dice.filter((candidate) => candidate.id !== die.id));
+                for (const teamId of ['player', 'enemy'] as const) {
+                  const team = engine.getTeam(teamId);
+                  team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+                }
+                engine.log(`${context.definition.name}：骰子因沒有任何合法骰面而消失。`);
+                changed = true;
+                continue;
+              }
+              if (forbidden.has(next)) {
+                const globallyForbidden = engine.skills.getForbiddenRollFaces(die.ownerId);
+                const allowed = ([1, 2, 3, 4, 5, 6] as const)
+                  .filter((value) => !forbidden.has(value) && !globallyForbidden.has(value));
+                if (!allowed.length) {
+                  dice.splice(0, dice.length, ...dice.filter((candidate) => candidate.id !== die.id));
+                  changed = true;
+                  continue;
+                }
+                next = allowed.sort((a, b) => Math.abs(a - original) - Math.abs(b - original))[0];
+              }
+              die.value = engine.asDieValue(next);
+              changed = true;
+            }
+            return changed;
+          });'''.replace('          ', '')
+          rep('src/game/customEffects.ts', old_normalize, new_normalize)
+
+          rep('src/game/customEffects.ts', "  for (const die of dice) die.value = engine.rollDieFor(context.ownerId);", "  const team = engine.getTeam(context.ownerTeamId);\n  for (const die of dice) {\n    const rerolled = engine.rollDieFor(context.ownerId);\n    if (rerolled === undefined) {\n      team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);\n      continue;\n    }\n    die.value = rerolled;\n  }")
+          rep('src/game/customEffects.ts', "  die.value = engine.rollDieFor(context.ownerId);\n  return true;\n});\n\nregisterCustomSkillEffect('rerollOwnerWorkProgress'", "  const rerolled = engine.rollDieFor(context.ownerId);\n  if (rerolled === undefined) {\n    const team = engine.getTeam(context.ownerTeamId);\n    team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);\n    return true;\n  }\n  die.value = rerolled;\n  return true;\n});\n\nregisterCustomSkillEffect('rerollOwnerWorkProgress'")
+          PY
+
       - name: Typecheck
         run: npm run typecheck
 
