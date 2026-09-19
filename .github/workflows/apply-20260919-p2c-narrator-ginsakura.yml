@@ -30,8 +30,28 @@ jobs:
       - name: Apply P2C patch
         run: python scripts/apply-20260919-p2c-narrator-ginsakura.py
 
-      - name: Align P2C test API calls
-        run: sed -i "s/engine\.canActivateSkillTarget(/engine.skills.canActivateSkillTarget(/g" src/tests/discussion-p2c-narrator-ginsakura.test.ts
+      - name: Align P2C tests
+        run: |
+          sed -i "s/engine\.canActivateSkillTarget(/engine.skills.canActivateSkillTarget(/g" src/tests/discussion-p2c-narrator-ginsakura.test.ts
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/tests/skill-contracts.test.ts')
+          text = p.read_text(encoding='utf-8')
+          old = "    expect(plannedPlayableCharacters).toEqual(['ginsakura', 'narrator']);"
+          new = "    expect(plannedPlayableCharacters).toEqual([]);"
+          if old not in text:
+              raise SystemExit('old planned-character assertion not found')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          p = Path('src/tests/skills.test.ts')
+          text = p.read_text(encoding='utf-8')
+          old = "    expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');"
+          new = "    expect(SKILLS.ginsakuraSupport?.status).toBe('implemented');\n    expect(SKILLS.narratorLongForm?.status).toBe('implemented');\n    expect(SKILLS.narratorOsaka?.status).toBe('implemented');"
+          if old not in text:
+              raise SystemExit('old unsupported Ginsakura assertion not found')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
 
       - name: Typecheck
         run: npm run typecheck
