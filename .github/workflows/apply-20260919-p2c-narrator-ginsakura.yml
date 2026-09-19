@@ -30,6 +30,9 @@ jobs:
       - name: Apply P2C patch
         run: python scripts/apply-20260919-p2c-narrator-ginsakura.py
 
+      - name: Align P2C test API calls
+        run: sed -i "s/engine\.canActivateSkillTarget(/engine.skills.canActivateSkillTarget(/g" src/tests/discussion-p2c-narrator-ginsakura.test.ts
+
       - name: Typecheck
         run: npm run typecheck
 
