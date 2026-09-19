@@ -30,6 +30,30 @@ jobs:
       - name: Apply P0 work-type setup patch
         run: python scripts/apply-20260919-p0-work-type-ui.py
 
+      - name: Align legacy setup source assertions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'expected legacy assertion not found in {path}: {old}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace(
+              'src/tests/online-draft-ui.test.ts',
+              "    expect(appSource).toContain('if (onlineDraft && !onlineDraftSettled)');",
+              "    expect(appSource).toContain(\"onlineDraft.status === 'complete' && onlineDraftSettled ? 'online-work-types' : 'online-draft'\");",
+          )
+          replace(
+              'src/tests/team-size-mode.test.ts',
+              "    expect(appSource).toContain('startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition)');",
+              "    expect(appSource).toContain(\"setAppStage('work-types')\");\n    expect(appSource).toContain('draftRoster.gameDefinition,');\n    expect(appSource).toContain('selections,');",
+          )
+          PY
+
       - name: Typecheck
         run: npm run typecheck
 
