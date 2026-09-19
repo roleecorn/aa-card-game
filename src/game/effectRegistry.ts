@@ -49,7 +49,15 @@ export const builtInEffects = new EffectRegistry()
     const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     const amount = numberValue(effect.amount, context);
     for (const { teamId, member } of targets) {
-      engine.adjustStress(teamId, member.defId, amount, effect.source ?? context.definition.name, effect.external ?? false, context.ownerId);
+      engine.adjustStress(
+        teamId,
+        member.defId,
+        amount,
+        effect.source ?? context.definition.name,
+        effect.external ?? false,
+        context.ownerId,
+        effect.allowNegative ?? false,
+      );
     }
     return selectedMembers.length > 0;
   })

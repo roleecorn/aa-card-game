@@ -119,6 +119,7 @@ export interface SkillActivationTarget {
   targetDieId?: string;
   skill?: SkillStat;
   voiceMode?: 'relief' | 'design' | 'text';
+  polishMode?: 'work' | 'pending';
 }
 
 export interface EffectContext {

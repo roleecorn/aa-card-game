@@ -116,8 +116,6 @@ describe('target legality', () => {
 
     engine.addCard('player', 'soothe', 1);
     const soothe = game.player.hand.find((card) => card.cardId === 'soothe')!;
-    expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(false);
-    engine.getCharacter('player', 'grimm')!.stress = 1;
     expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(true);
 
     engine.addCard('player', 'polish', 1);

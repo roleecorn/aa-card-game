@@ -174,6 +174,7 @@ export const effectSchema = z.discriminatedUnion('kind', [
     target: memberSelectorSchema,
     amount: numberValueSchema,
     external: z.boolean().optional(),
+    allowNegative: z.boolean().optional(),
     source: z.string().optional(),
   }),
   z.object({
@@ -407,6 +408,7 @@ export const cardDefinitionSchema = z.object({
     z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'enemy']), skillPicker: z.boolean().optional() }),
     z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy']) }),
     z.object({ kind: z.literal('voiceMode') }),
+    z.object({ kind: z.literal('polishMode') }),
   ]),
   effects: z.array(effectSchema).optional(),
   customHandler: z.string().optional(),

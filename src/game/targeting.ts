@@ -99,9 +99,6 @@ export function getCardMemberCandidates(engine: EngineSession, teamId: TeamId, c
     if (card.id === 'guide' && getGuideEligibleSkills(engine, member.defId).length === 0) {
       return { id: member.defId, ...blocked('此角色沒有 0 或 1 的能力可供「指導」。') };
     }
-    if (card.id === 'soothe' && member.stress <= 0 && !warning) {
-      return { id: member.defId, ...blocked('此角色目前沒有 Stress 可降低。') };
-    }
     return { id: member.defId, ...allowed(warning) };
   });
 }
@@ -156,6 +153,11 @@ export function getCardAvailability(
     return blocked('目前組長不能使用統籌卡。');
   }
   if (card.target.kind === 'none' || card.target.kind === 'voiceMode') return allowed();
+  if (card.target.kind === 'polishMode') {
+    const hasPending = team.pendingDice.length > 0;
+    const hasWorkProgress = team.works.some(workHasProgress);
+    return hasPending || hasWorkProgress ? allowed() : blocked('目前沒有可供精修重擲的骰子。');
+  }
   if (card.target.kind === 'member') {
     return getCardMemberCandidates(engine, teamId, card).some((candidate) => candidate.allowed)
       ? allowed()

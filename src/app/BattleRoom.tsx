@@ -337,6 +337,7 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
   const useLegacyCardDialog = !!pendingCard && (
     mode === 'tutorial'
     || pendingCard.target.kind === 'voiceMode'
+    || pendingCard.target.kind === 'polishMode'
     || (pendingCard.target.kind === 'member' && !!pendingCard.target.skillPicker)
   );
   const useLegacySkillDialog = mode === 'tutorial' || pendingSkill?.id === 'grimmBurningFrame';

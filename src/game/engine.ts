@@ -231,6 +231,8 @@ export class EngineSession {
     const teamId = this.findMemberTeam(memberId);
     const member = teamId ? this.getCharacter(teamId, memberId) : undefined;
     if (!member) return 0;
+    if (skill === 'text' && getStatusStacks(member, GAMEPLAY_STATUS.textStatZero) > 0) return 0;
+    if (skill === 'aa' && getStatusStacks(member, GAMEPLAY_STATUS.aaStatZero) > 0) return 0;
     return Math.max(0, member.permanentStats[skill] + member.timedStatModifiers
       .filter((modifier) => modifier.skill === skill)
       .reduce((sum, modifier) => sum + modifier.amount, 0));
@@ -306,7 +308,7 @@ export class EngineSession {
     return dice;
   }
 
-  adjustStress(teamId: TeamId, memberId: string, amount: number, source: string, external = false, sourceId?: string): void {
+  adjustStress(teamId: TeamId, memberId: string, amount: number, source: string, external = false, sourceId?: string, allowNegative = false): void {
     const member = this.getCharacter(teamId, memberId);
     if (!member || amount === 0) return;
     if (hasGameplayStatus(member, GAMEPLAY_STATUS.stressImmune)) return;
@@ -317,7 +319,7 @@ export class EngineSession {
       actual = event.amount ?? amount;
     }
     const before = member.stress;
-    member.stress = Math.max(0, member.stress + actual);
+    member.stress = allowNegative ? member.stress + actual : Math.max(0, member.stress + actual);
     const delta = member.stress - before;
     if (delta !== 0) this.log(`${this.getDefinition(memberId).name} 因「${source}」壓力 ${delta > 0 ? '+' : ''}${delta}。`);
     if (external && amount > 0) {
@@ -786,6 +788,12 @@ export class EngineSession {
 
   private validateCardTarget(teamId: TeamId, card: CardDefinition, target: SkillActivationTarget): boolean {
     if (card.target.kind === 'none' || card.target.kind === 'voiceMode') return true;
+    if (card.target.kind === 'polishMode') {
+      if (target.polishMode === 'pending') return this.getTeam(teamId).pendingDice.length > 0;
+      if (target.polishMode !== 'work' || !target.workId) return false;
+      const work = this.getTeam(teamId).works.find((candidate) => candidate.id === target.workId);
+      return !!work && work.slots.some((slot) => slot.design !== undefined || slot.text !== undefined || slot.aa !== undefined);
+    }
     if (card.target.kind === 'member') {
       if (!target.memberId) return false;
       const targetTeam = this.findMemberTeam(target.memberId);

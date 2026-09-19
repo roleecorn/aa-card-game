@@ -156,7 +156,7 @@ describe('audited character skill regressions', () => {
     expect(engine.playCard('player', card.instanceId, { memberId: SKILL_FIXTURES.playerA })).toBe(true);
     expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
     expect(engine.getCharacter('player', 'enki')?.stress).toBe(0);
-    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(0);
+    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(-1);
   });
 
   it('秋影 拖延症 removes low extra dice from both the event payload and pending state', () => {
