@@ -30,6 +30,42 @@ jobs:
       - name: Apply P1 card pool patch
         run: python scripts/apply-20260919-p1-cards.py
 
+      - name: Align superseded card-rule tests
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'expected legacy test snippet not found in {path}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace(
+              'src/tests/skill-runtime-regressions.test.ts',
+              "    expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);\n    expect(engine.getCharacter('player', 'enki')?.stress).toBe(0);\n    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(0);",
+              "    expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);\n    expect(engine.getCharacter('player', 'enki')?.stress).toBe(0);\n    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(-1);",
+          )
+
+          replace(
+              'src/tests/targeting.test.ts',
+              "    expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(false);\n    engine.getCharacter('player', 'grimm')!.stress = 1;\n    expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(true);",
+              "    expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(true);",
+          )
+
+          replace(
+              'src/tests/action-feedback.test.ts',
+              "  it('preserves the card caster for delayed writer block and marks the debuff', () => {",
+              "  it('records the immediate round-scoped writer-block debuff at its target', () => {",
+          )
+          replace(
+              'src/tests/action-feedback.test.ts',
+              "    expect(event.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', tone: 'negative' }));\n\n    state.phase = 'player-assign';\n    engine.finishPlayerAssignment();\n\n    const delayed = state.feedback!.find((item) => item.name === '卡文（延遲觸發）')!;\n    expect(delayed).toMatchObject({ actorId: 'mashiro', teamId: 'player', kind: 'card' });\n    expect(delayed.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', part: '壓力', tone: 'negative' }));",
+              "    expect(event).toMatchObject({ actorId: 'mashiro', teamId: 'player', kind: 'card' });\n    expect(event.impacts).toContainEqual(expect.objectContaining({\n      anchor: 'member:pintbox',\n      part: '卡文 · 特殊狀態',\n      tone: 'neutral',\n    }));\n\n    state.phase = 'player-assign';\n    engine.finishPlayerAssignment();\n    expect(state.feedback!.some((item) => item.name === '卡文（延遲觸發）')).toBe(false);",
+          )
+          PY
+
       - name: Typecheck
         run: npm run typecheck
 
