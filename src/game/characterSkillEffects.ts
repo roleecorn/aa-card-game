@@ -71,6 +71,53 @@ registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
   return rerolls > 0;
 });
 
+registerCustomSkillEffect('pintboxTeamReview', (_effect, context, engine) => {
+  const team = engine.getTeam(context.ownerTeamId);
+  let changed = false;
+
+  for (const member of [...team.members]) {
+    let passes = 0;
+    while (passes < 20) {
+      const low = team.pendingDice.filter((die) => die.ownerId === member.defId && die.value <= 2);
+      if (!low.length) break;
+
+      // The Stress change resolves first. If it exceeds the cap, the common Stress rule
+      // clears this member's pending dice before we attempt any reroll.
+      engine.adjustStress(context.ownerTeamId, member.defId, 1, context.definition.name, true, context.ownerId);
+      changed = true;
+      const stillPending = new Set(team.pendingDice.filter((die) => die.ownerId === member.defId).map((die) => die.id));
+      if (!stillPending.size) break;
+
+      for (const die of low) {
+        if (!stillPending.has(die.id)) continue;
+        const rerolled = engine.rollDieFor(die.ownerId);
+        if (rerolled === undefined) {
+          team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+          continue;
+        }
+        die.value = rerolled;
+      }
+      passes += 1;
+    }
+    if (passes >= 20 && team.pendingDice.some((die) => die.ownerId === member.defId && die.value <= 2)) {
+      engine.log(`${context.definition.name}：${engine.getDefinition(member.defId).name} 的低點骰重擲達到安全上限，停止本次處理。`);
+    }
+  }
+  return changed;
+});
+
+registerCustomSkillEffect('avocadoNeedsManual', (_effect, context, engine) => {
+  if (context.event.type !== 'cardPlayed' || context.event.sourceKind !== 'coordination') return false;
+  const cardId = context.event.metadata?.cardId;
+  if (typeof cardId !== 'string') return false;
+  const card = engine.content.cards[cardId];
+  // Latest rule only reacts to a coordination card aimed at another member.
+  // Work-target and team-wide cards are explicit exceptions.
+  if (!card || card.target.kind !== 'member' || !context.event.targetId || context.event.targetId === context.ownerId) return false;
+  engine.adjustStress(context.ownerTeamId, context.ownerId, 1, context.definition.name);
+  return true;
+});
+
 registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
   const team = engine.getTeam(context.ownerTeamId);

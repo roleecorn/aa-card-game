@@ -35,6 +35,11 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
     const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
     return !!owner && compare(owner.stress, condition.op, condition.value);
   }
+  if (condition.kind === 'ownerStressBelowCap') {
+    const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
+    const cap = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
+    return !!owner && (cap === null || (cap !== undefined && owner.stress < cap));
+  }
   if (condition.kind === 'memberStress') {
     return engine.resolveMembers(condition.target, context).some(({ member }) => compare(member.stress, condition.op, condition.value));
   }
@@ -258,6 +263,26 @@ export class SkillRuntime {
       else if (result !== 'all') result = [...new Set([...result, ...passive.types])];
     }
     return result;
+  }
+
+  getStatModifier(memberId: string, skill: 'design' | 'text' | 'aa'): number {
+    const teamId = this.engine.findMemberTeam(memberId);
+    if (!teamId) return 0;
+    const team = this.engine.getTeam(teamId);
+    let total = 0;
+    for (const passive of this.passives(memberId)) {
+      if (passive.kind === 'stat.modify' && passive.skill === skill) total += passive.amount;
+      if (passive.kind !== 'stat.workTypeCount' || passive.skill !== skill) continue;
+      const matching = team.works.filter((work) => {
+        if (passive.excludeOwnerWork && work.ownerId === memberId) return false;
+        return this.engine.workHasType(work, passive.workType);
+      }).length;
+      let bonus = matching * passive.amountPerWork + passive.offset;
+      if (passive.minBonus !== undefined) bonus = Math.max(passive.minBonus, bonus);
+      if (passive.maxBonus !== undefined) bonus = Math.min(passive.maxBonus, bonus);
+      total += bonus;
+    }
+    return total;
   }
 
   getRollFloor(memberId: string, base = 1): number {

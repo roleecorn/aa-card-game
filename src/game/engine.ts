@@ -233,9 +233,11 @@ export class EngineSession {
     if (!member) return 0;
     if (skill === 'text' && getStatusStacks(member, GAMEPLAY_STATUS.textStatZero) > 0) return 0;
     if (skill === 'aa' && getStatusStacks(member, GAMEPLAY_STATUS.aaStatZero) > 0) return 0;
-    return Math.max(0, member.permanentStats[skill] + member.timedStatModifiers
-      .filter((modifier) => modifier.skill === skill)
-      .reduce((sum, modifier) => sum + modifier.amount, 0));
+    return Math.max(0, member.permanentStats[skill]
+      + this.skills.getStatModifier(memberId, skill)
+      + member.timedStatModifiers
+        .filter((modifier) => modifier.skill === skill)
+        .reduce((sum, modifier) => sum + modifier.amount, 0));
   }
 
   getEffectiveAffinity(memberId: string): WorkType[] | 'all' {

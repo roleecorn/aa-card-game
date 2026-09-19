@@ -4,48 +4,29 @@ import type { DieToken } from '../game/types';
 import { createSkillHarness, SKILL_FIXTURES } from './helpers/skillHarness';
 
 describe('audited character skill regressions', () => {
-  it('Pintbox 審稿 rerolls every allied low pending die and charges each die owner', () => {
-    const { game, engine } = createSkillHarness({ player: ['pintbox'] });
-    const own = engine.grantDice('player', 'pintbox', 'design', 1, 'setup', false)[0]!;
-    const ally = engine.grantDice('player', SKILL_FIXTURES.playerA, 'text', 1, 'setup', false)[0]!;
-    own.value = 1;
-    ally.value = 2;
-
-    expect(engine.activateSkill('player', 'pintbox', 'pintboxReview', { targetDieId: ally.id })).toBe(true);
-    expect(own.value).toBe(4);
-    expect(ally.value).toBe(4);
-    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(1);
-    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(1);
-    expect(game.player.pendingDice).toEqual(expect.arrayContaining([own, ally]));
+  it('Pintbox legacy 審稿 active skill is removed', () => {
+    const { engine } = createSkillHarness({ player: ['pintbox'] });
+    const die = engine.grantDice('player', SKILL_FIXTURES.playerA, 'text', 1, 'setup', false)[0]!;
+    die.value = 2;
+    expect(engine.activateSkill('player', 'pintbox', 'pintboxReview', { targetDieId: die.id })).toBe(false);
   });
 
-  it('Pintbox 基本要求 repeatedly reviews both the work batch and existing pending dice until they are at least 3', () => {
+  it('Pintbox 基本要求 no longer auto-triggers on a work batch and manually reviews pending dice only', () => {
     const { game, engine } = createSkillHarness({ player: ['pintbox'] });
-    engine.getCharacter('player', 'pintbox')!.stress = 3;
     const pending = engine.grantDice('player', SKILL_FIXTURES.playerB, 'design', 1, 'setup', false)[0]!;
     pending.value = 1;
     const batch: DieToken[] = [{
-      id: 'batch-low',
-      ownerId: SKILL_FIXTURES.playerA,
-      skill: 'text',
-      value: 2,
-      round: game.round,
-      origin: '工作',
+      id: 'batch-low', ownerId: SKILL_FIXTURES.playerA, skill: 'text', value: 2, round: game.round, origin: '工作',
     }];
 
-    engine.skills.emit({
-      type: 'afterRollBatch',
-      teamId: 'player',
-      actorId: SKILL_FIXTURES.playerA,
-      dice: batch,
-      amount: 1,
-      sourceKind: 'work',
-    });
+    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: SKILL_FIXTURES.playerA,
+      dice: batch, amount: 1, sourceKind: 'work' });
+    expect(pending.value).toBe(1);
+    expect(batch[0]!.value).toBe(2);
 
+    expect(engine.activateSkill('player', 'pintbox', 'pintboxBasicRequirements')).toBe(true);
     expect(pending.value).toBeGreaterThanOrEqual(3);
-    expect(batch[0]!.value).toBeGreaterThanOrEqual(3);
-    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(1);
-    expect(engine.getCharacter('player', SKILL_FIXTURES.playerB)?.stress).toBe(1);
+    expect(batch[0]!.value).toBe(2);
   });
 
   it('風揚 起來 transfers one Stress to the leader at cap and cancels when 風揚 is the leader', () => {

@@ -59,6 +59,7 @@ export type SkillCondition =
   | { kind: 'not'; condition: SkillCondition }
   | { kind: 'relation'; field: 'actorId' | 'targetId' | 'sourceId'; relation: 'self' | 'ally' | 'otherAlly' | 'enemy' }
   | { kind: 'ownerStress'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
+  | { kind: 'ownerStressBelowCap' }
   | { kind: 'memberStress'; target: z.infer<typeof memberSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventAmount'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventSkill'; skill: 'design' | 'text' | 'aa' }
@@ -91,6 +92,7 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
       op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
       value: z.number(),
     }),
+    z.object({ kind: z.literal('ownerStressBelowCap') }),
     z.object({
       kind: z.literal('memberStress'),
       target: memberSelectorSchema,
@@ -317,6 +319,17 @@ export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('affinity.grant'), types: z.union([z.array(workTypeSchema), z.literal('all')]) }),
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
   z.object({ kind: z.literal('roll.forbid'), faces: z.array(z.number().int().min(1).max(6)).min(1) }),
+  z.object({ kind: z.literal('stat.modify'), skill: skillStatSchema, amount: z.number().int() }),
+  z.object({
+    kind: z.literal('stat.workTypeCount'),
+    skill: skillStatSchema,
+    workType: workTypeSchema,
+    amountPerWork: z.number().int(),
+    offset: z.number().int().default(0),
+    excludeOwnerWork: z.boolean().default(false),
+    minBonus: z.number().int().optional(),
+    maxBonus: z.number().int().optional(),
+  }),
   z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),
   z.object({ kind: z.literal('effect.immunity'), source: z.literal('external') }),
 ]);

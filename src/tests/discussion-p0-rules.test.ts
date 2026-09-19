@@ -73,12 +73,12 @@ describe('2026-09-19 discussion P0 rules', () => {
     state.player.hand = [{ instanceId: 'guide-test', cardId: 'guide' }];
     const leader = state.player.members.find((member) => member.defId === 'user79')!;
     const target = state.player.members.find((member) => member.defId === 'avocado')!;
-    expect(target.permanentStats.design).toBe(1);
+    expect(target.permanentStats.aa).toBe(0);
 
-    expect(engine.playCard('player', 'guide-test', { memberId: 'avocado', skill: 'design' })).toBe(true);
+    expect(engine.playCard('player', 'guide-test', { memberId: 'avocado', skill: 'aa' })).toBe(true);
     expect(leader.stress).toBe(0);
     expect(target.stress).toBe(1);
-    expect(target.permanentStats.design).toBe(2);
+    expect(target.permanentStats.aa).toBe(1);
   });
 
   it('removes a die when every face is forbidden instead of retrying forever', () => {

@@ -150,10 +150,12 @@ describe('additional discussion-ranked character cards', () => {
     expect(SKILLS.yashiroCute?.status).toBe('implemented');
     expect(SKILLS.yashiroStudious?.status).toBe('implemented');
 
-    for (const id of ['lemon', 'avocado', 'kitsu'] as const) {
+    for (const id of ['lemon', 'kitsu'] as const) {
       expect(CHARACTERS[id]?.stats).toEqual({ design: 1, text: 1, aa: 1 });
       expect(CHARACTERS[id]?.maxStress).toBe(5);
     }
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(3);
     expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 2 });
     expect(CHARACTERS.emotion?.maxStress).toBe(5);
     expect(SKILLS.emotionSpinningTop?.status).toBe('implemented');
@@ -319,18 +321,18 @@ describe('酪梨 complete character package', () => {
     enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
   };
 
-  it('uses the prototype baseline and production assets', () => {
-    expect(CHARACTERS.avocado?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-    expect(CHARACTERS.avocado?.maxStress).toBe(5);
-    expect(CHARACTERS.avocado?.portrait).toBe('/assets/characters/portrait/avocado.webp');
-    expect(CHARACTERS.avocado?.compactPortrait).toBe('/assets/characters/compact/avocado.webp');
-    expect(SKILLS.avocadoManual?.status).toBe('implemented');
+  it('uses the final P2 stats, affinity and skills', () => {
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(3);
+    expect(CHARACTERS.avocado?.affinities).toEqual(['謀']);
+    expect(CHARACTERS.avocado?.skillIds).toEqual(['avocadoGameTech', 'avocadoNeedsManual']);
+    expect(SKILLS.avocadoGameTech?.status).toBe('implemented');
+    expect(SKILLS.avocadoNeedsManual?.status).toBe('implemented');
   });
 
-  it('使用說明 adds one 指導 card at game start', () => {
+  it('no longer adds a Guide card at game start', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, AVOCADO_ROSTER);
-    expect(game.player.hand).toHaveLength(3);
-    expect(game.player.hand.some((item) => item.cardId === 'guide')).toBe(true);
+    expect(game.player.hand).toHaveLength(STANDARD_GAME_DEFINITION.rules.initialHandSize);
   });
 });
 
@@ -494,7 +496,7 @@ describe('random standard roster selection', () => {
 
 describe('高興 complete character package', () => {
   it('uses the discussion-backed stats and unlimited stress', () => {
-    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 0 });
+    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 1 });
     expect(CHARACTERS.happy?.maxStress).toBeNull();
     expect(CHARACTERS.happy?.portrait).toBe('/assets/characters/portrait/happy.webp');
     expect(CHARACTERS.happy?.compactPortrait).toBe('/assets/characters/compact/happy.webp');
@@ -522,15 +524,16 @@ describe('高興 complete character package', () => {
     expect(added.every((instance) => DEFAULT_CONTENT.cards[instance.cardId]?.kind === 'coordination')).toBe(true);
   });
 
-  it('turns a work into 怪 when 高興 places a die into it', () => {
+  it('高興素 adds 怪 at game start and no longer replaces a work type on placement', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, HAPPY_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    const work = game.player.works.find((item) => item.ownerId === 'happy')!;
-    work.type = '謀';
+    const work = game.player.works.find((item) => item.ownerId === 'pintbox')!;
+    expect(engine.getWorkTypes(work)).toEqual(expect.arrayContaining([work.type, '怪']));
+    const beforeType = work.type;
     const die = engine.grantDice('player', 'happy', 'design', 1, 'test', false, 4)[0]!;
     die.value = 4;
     expect(engine.placeDie('player', die.id, work.id, 0)).toBe(true);
-    expect(work.type).toBe('怪');
+    expect(work.type).toBe(beforeType);
   });
 });
 
