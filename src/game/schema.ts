@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const skillStatSchema = z.enum(['design', 'text', 'aa']);
-export const workTypeSchema = z.enum(['燃', '謀', '笑', '情', '色', '怪']);
+export const workTypeSchema = z.enum(['燃', '謀', '笑', '情', '怪']);
 export const teamIdSchema = z.enum(['player', 'enemy']);
 export const usageScopeSchema = z.enum(['round', 'game']);
 
@@ -266,6 +266,13 @@ export const effectSchema = z.discriminatedUnion('kind', [
     min: z.number().int().positive().optional(),
   }),
   z.object({ kind: z.literal('work.type'), target: workSelectorSchema, workType: workTypeSchema }),
+  z.object({ kind: z.literal('work.type.add'), target: workSelectorSchema, workType: workTypeSchema }),
+  z.object({
+    kind: z.literal('roll.forbid'),
+    target: memberSelectorSchema,
+    faces: z.array(z.number().int().min(1).max(6)).min(1),
+    duration: z.literal('round').default('round'),
+  }),
   z.object({
     kind: z.literal('work.progress.add'),
     target: workSelectorSchema,
@@ -308,6 +315,7 @@ export const effectSchema = z.discriminatedUnion('kind', [
 export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('affinity.grant'), types: z.union([z.array(workTypeSchema), z.literal('all')]) }),
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
+  z.object({ kind: z.literal('roll.forbid'), faces: z.array(z.number().int().min(1).max(6)).min(1) }),
   z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),
   z.object({ kind: z.literal('effect.immunity'), source: z.literal('external') }),
 ]);
@@ -393,6 +401,7 @@ export const cardDefinitionSchema = z.object({
   kind: z.enum(['coordination', 'event']),
   description: z.string().min(1),
   art: z.string().optional(),
+  coordinationStressCost: z.number().int().nonnegative().optional(),
   target: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('none') }),
     z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'enemy']), skillPicker: z.boolean().optional() }),

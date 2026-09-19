@@ -298,3 +298,12 @@ Game Event
 ## Responsive battle UI
 
 Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽。導覽只捲動頁面，技能說明展開只影響顯示；不改變 phase、合法目標、使用次數、事件、計分或角色／卡牌資料。目標選取提示與取消控制現在也顯示於一般對局，仍呼叫原有 cancelSelection。
+
+## 2026-09-19 P0 discussion rules
+
+- Live work types are now **燃 / 謀 / 笑 / 情 / 怪**; **色** is removed from the runtime vocabulary.
+- A work has one primary type plus optional extra types. Affinity checks and work-type skill conditions match any current type. A replace-type effect clears extra types; an add-type effect preserves the primary type.
+- Initial game construction supports an explicit legal work-type choice per character; choices must be within that character's effective affinity (including all-affinity passives). The player-facing selection UI is tracked separately from this engine contract.
+- Dice rolls resolve against a shared forbidden-face set. If no legal face remains, that die disappears instead of retrying indefinitely.
+- Coordination-card stress cost must have a legal bearer before the card can be used. Vice-leader bearers are chosen by remaining Stress headroom, not raw Stress.
+- 指導 has coordination stress cost 0; it instead gives its target +1 Stress. A stat 0 target succeeds on 5–6, a stat 1 target succeeds on 6.

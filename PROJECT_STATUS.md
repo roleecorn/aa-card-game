@@ -228,3 +228,16 @@ CI / release workflow 另外執行資產與 build 驗證。
 BattleRoom 已增加容器自適應作品／角色排欄、窄螢幕底部區域導覽、44px 觸控按鈕、可點開的技能說明與一般對局目標選擇提示。Standard／Online 維持同一 component tree 與 runtime validator。
 
 Figma 同步尚未完成：此次同步請求被 Starter plan MCP 額度限制拒絕；版面規格與驗證紀錄見 FIGMA.md、docs/responsive-ui-validation.md。真實手機觸控與 Online 人工雙端測試仍須在 merge 前完成。
+
+### 2026-09-19 P0 discussion update
+
+In progress on branch `feature/20260919-discussion-update-p0`:
+
+- removed live work type `色`;
+- added additive/multi-type work runtime support;
+- added shared forbidden-face roll constraints and no-legal-face die removal;
+- changed coordination stress-bearer selection to Stress headroom and reject cards with no legal bearer;
+- added engine support for explicit initial work-type choices;
+- updated 指導 pressure semantics.
+
+The player-facing initial work-type selection screen remains the next P0 UI task.

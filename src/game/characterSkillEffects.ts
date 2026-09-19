@@ -2,9 +2,9 @@ import { registerCustomSkillEffect } from './customEffects';
 import type { EngineSession } from './engine';
 import type { DieToken } from './types';
 
-function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): void {
+function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): boolean {
   const before = die.value;
-  die.value = engine.rollDieFor(die.ownerId);
+  const rerolled = engine.rollDieFor(die.ownerId);
   const teamId = engine.findMemberTeam(die.ownerId);
   if (teamId) {
     engine.adjustStress(
@@ -16,7 +16,17 @@ function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, so
       sourceId,
     );
   }
+  if (rerolled === undefined) {
+    if (teamId) {
+      const team = engine.getTeam(teamId);
+      team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+    }
+    engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 的骰子因沒有合法骰面而消失。`);
+    return false;
+  }
+  die.value = rerolled;
   engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
+  return true;
 }
 
 registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
@@ -30,17 +40,28 @@ registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
   let rerolls = 0;
   for (const die of candidates.values()) {
     if (!repeatUntilThree) {
-      rerollLowDie(die, engine, context.ownerId, context.definition.name);
+      const survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
       rerolls += 1;
+      if (!survived && context.event.dice) {
+        context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+      }
       continue;
     }
 
     let attempts = 0;
+    let survived = true;
     while (die.value <= 2 && attempts < 20) {
-      rerollLowDie(die, engine, context.ownerId, context.definition.name);
+      survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
       rerolls += 1;
       attempts += 1;
+      if (!survived) {
+        if (context.event.dice) {
+          context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+        }
+        break;
+      }
     }
+    if (!survived) continue;
     if (die.value <= 2) {
       // Deterministic/faulty RNG must not be able to hang a triggered skill forever.
       die.value = 3;

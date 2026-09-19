@@ -28,14 +28,19 @@ export function executeCardHandler(name: string, team: TeamState, card: CardDefi
 registerCardHandler('guide', (team, _card, target, engine) => {
   const member = team.members.find((item) => item.defId === target.memberId);
   const skill = target.skill;
-  if (!member || !skill || engine.getEffectiveStat(member.defId, skill) > 1) return false;
+  if (!member || !skill) return false;
+  const current = engine.getEffectiveStat(member.defId, skill);
+  if (current > 1) return false;
   if (isCardEffectBlocked(engine, member.defId)) return true;
   const die = engine.grantDice(team.id, member.defId, skill, 1, '指導', true)[0];
-  if (die?.value === 6) {
+  if (!die) return false;
+  engine.adjustStress(team.id, member.defId, 1, '指導', true, team.leaderId);
+  const threshold = 5 + current;
+  if (die.value >= threshold) {
     member.permanentStats[skill] += 1;
-    engine.log(`「指導」擲出 6：${engine.getDefinition(member.defId).name} 的 ${skill.toUpperCase()} 永久 +1。`);
+    engine.log(`「指導」擲出 ${die.value}：${engine.getDefinition(member.defId).name} 的 ${skill.toUpperCase()} 永久 +1。`);
   }
-  return !!die;
+  return true;
 });
 
 registerCardHandler('voice', (team, _card, target, engine) => {

@@ -63,7 +63,7 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
   }
   if (condition.kind === 'workType') {
     const works = engine.resolveWorks(condition.target, context);
-    return works.some((work) => condition.types.includes(work.type));
+    return works.some((work) => condition.types.some((type) => engine.workHasType(work, type)));
   }
   if (condition.kind === 'workScore') {
     const works = engine.resolveWorks(condition.target, context);
@@ -268,18 +268,42 @@ export class SkillRuntime {
     return Math.min(6, Math.max(1, floor));
   }
 
-  getCoordinationStressBearer(teamId: 'player' | 'enemy'): string | undefined {
+  getForbiddenRollFaces(memberId: string): Set<number> {
+    const result = new Set<number>();
+    for (const passive of this.passives(memberId)) {
+      if (passive.kind === 'roll.forbid') passive.faces.forEach((face) => result.add(face));
+    }
+    const teamId = this.engine.findMemberTeam(memberId);
+    const member = teamId ? this.engine.getCharacter(teamId, memberId) : undefined;
+    for (const constraint of member?.timedRollConstraints ?? []) {
+      constraint.forbiddenFaces.forEach((face) => result.add(face));
+    }
+    return result;
+  }
+
+  getCoordinationStressBearer(teamId: 'player' | 'enemy', amount = 1): string | undefined {
     const team = this.engine.getTeam(teamId);
     const leader = this.engine.getCharacter(teamId, team.leaderId);
     if (!leader) return undefined;
 
-    return team.members.find((member) => {
-      if (member.defId === team.leaderId || hasGameplayStatus(member, GAMEPLAY_STATUS.hidden)) return false;
-      return this.passives(member.defId).some((passive) => {
-        if (passive.kind !== 'coordination.stressBearer') return false;
-        return passive.allowEqual ? member.stress <= leader.stress : member.stress < leader.stress;
-      });
-    })?.defId;
+    const headroom = (memberId: string): number => {
+      const member = this.engine.getCharacter(teamId, memberId);
+      const maxStress = this.engine.getEffectiveMaxStress(teamId, memberId);
+      if (!member || maxStress === undefined) return -Infinity;
+      if (maxStress === null) return Infinity;
+      return Math.max(0, maxStress - member.stress);
+    };
+
+    const leaderHeadroom = headroom(team.leaderId);
+    const viceCandidates = team.members
+      .filter((member) => member.defId !== team.leaderId && !hasGameplayStatus(member, GAMEPLAY_STATUS.hidden))
+      .filter((member) => this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer'))
+      .map((member) => ({ member, headroom: headroom(member.defId) }))
+      .filter((entry) => entry.headroom >= amount && entry.headroom > leaderHeadroom)
+      .sort((a, b) => b.headroom - a.headroom);
+
+    if (viceCandidates[0]) return viceCandidates[0].member.defId;
+    return leaderHeadroom >= amount ? team.leaderId : undefined;
   }
 
   private passives(memberId: string): SkillPassive[] {

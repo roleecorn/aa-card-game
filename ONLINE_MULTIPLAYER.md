@@ -317,3 +317,7 @@ npm run test:tutorial
 Online 使用與 Standard 相同的 BattleRoom 響應式版面。窄螢幕底部導覽只捲動到我方／作品／骰子／手牌／對手，不送出網路 command，也不改變 authority、選角、倒數或回合規則。選擇目標時可保留選取並跳轉，取消按鈕沿用既有取消行為。
 
 人工雙端 regression：Host 手機／Guest 桌面及交換角色各測一次；確認導覽不出牌、不結束回合，合法目標仍可選取，等待對手與斷線時仍禁用遊戲操作，重連限制與原規則一致。此 PR 的自動測試不替代上述人工驗收。
+
+## 2026-09-19 shared-state compatibility note
+
+Core match state now includes work `extraTypes` and member `timedRollConstraints`. Online continues to use the shared `GameState` snapshot/engine path; peers must run the same game version so these fields and their semantics stay deterministic.

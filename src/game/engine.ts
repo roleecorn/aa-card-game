@@ -28,6 +28,8 @@ function cloneStats(stats: CharacterDefinition['stats']): CharacterDefinition['s
 export interface InitialGameOptions {
   playerMemberIds?: string[];
   enemyMemberIds?: string[];
+  playerWorkTypes?: Partial<Record<string, WorkType>>;
+  enemyWorkTypes?: Partial<Record<string, WorkType>>;
 }
 
 function isRosterPlayable(definition: CharacterDefinition, gameDefinition: GameDefinition): boolean {
@@ -56,6 +58,15 @@ function chooseWorkType(engine: EngineSession, memberId: string): WorkType {
   const candidates = characterWorkTypes(definition, engine.content);
   if (!candidates.length) return '謀';
   return candidates[Math.floor(engine.random() * candidates.length)] ?? candidates[0] ?? '謀';
+}
+
+export function getInitialWorkTypeChoices(
+  memberId: string,
+  gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
+): WorkType[] {
+  const definition = gameDefinition.content.characters[memberId];
+  if (!definition) throw new Error(`Unknown character ${memberId}`);
+  return characterWorkTypes(definition, gameDefinition.content);
 }
 
 function validateRosterOverride(
@@ -226,6 +237,14 @@ export class EngineSession {
     return this.skills.getAffinity(memberId, definition.affinities);
   }
 
+  getWorkTypes(work: WorkState): WorkType[] {
+    return [...new Set([work.type, ...(work.extraTypes ?? [])])];
+  }
+
+  workHasType(work: WorkState, type: WorkType): boolean {
+    return this.getWorkTypes(work).includes(type);
+  }
+
   scoreWork(work: WorkState): number {
     const missing = this.gameDefinition.rules.missingWorkStatScore;
     return work.slots.reduce((sum, slot) => sum + Math.min(slot.design ?? missing, slot.text ?? missing, slot.aa ?? missing), 0);
@@ -245,29 +264,37 @@ export class EngineSession {
     this.skills.emit({ type: 'roundStart' });
   }
 
-  rollDieFor(memberId: string, explicitFloor?: number): DieValue {
-    return this.randomDie(this.skills.getRollFloor(memberId, explicitFloor ?? 1));
+  rollDieFor(memberId: string, explicitFloor?: number): DieValue | undefined {
+    const floor = this.skills.getRollFloor(memberId, explicitFloor ?? 1);
+    const forbidden = this.skills.getForbiddenRollFaces(memberId);
+    const weightedFaces = ([1, 2, 3, 4, 5, 6] as DieValue[])
+      .map((value) => this.asDieValue(Math.max(floor, value)))
+      .filter((value) => !forbidden.has(value));
+    if (!weightedFaces.length) return undefined;
+    return weightedFaces[Math.floor(this.random() * weightedFaces.length)] ?? weightedFaces[0];
   }
 
   grantDice(teamId: TeamId, memberId: string, skill: SkillStat, count: number, origin: string, extra: boolean, explicitFloor?: number): DieToken[] {
     const team = this.getTeam(teamId);
     if (!team.members.some((member) => member.defId === memberId) || count <= 0) return [];
-    const dice = Array.from({ length: count }, (): DieToken => ({
-      id: this.uid('die'),
-      ownerId: memberId,
-      skill,
-      value: this.rollDieFor(memberId, explicitFloor),
-      round: this.state.round,
-      origin,
-    }));
+    const dice: DieToken[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const value = this.rollDieFor(memberId, explicitFloor);
+      if (value === undefined) continue;
+      dice.push({ id: this.uid('die'), ownerId: memberId, skill, value, round: this.state.round, origin });
+    }
+    if (!dice.length) {
+      this.log(`${this.getDefinition(memberId).name} 因所有骰面皆被限制，沒有獲得 ${skill.toUpperCase()} 骰。`);
+      return [];
+    }
     team.pendingDice.push(...dice);
-    this.log(`${this.getDefinition(memberId).name} 因「${origin}」獲得 ${count} 顆 ${skill.toUpperCase()} 骰。`);
+    this.log(`${this.getDefinition(memberId).name} 因「${origin}」獲得 ${dice.length} 顆 ${skill.toUpperCase()} 骰。`);
     this.skills.emit({
       type: 'afterDiceGranted',
       teamId,
       targetId: memberId,
       skill,
-      amount: count,
+      amount: dice.length,
       dice,
       sourceKind: 'skill-or-card',
       metadata: { extra },
@@ -463,7 +490,7 @@ export class EngineSession {
     if (slotIndex < 0 || slotIndex >= work.slots.length) return false;
     if (die.skill !== 'aa' && work.ownerId !== die.ownerId) {
       const affinity = this.getEffectiveAffinity(die.ownerId);
-      if (affinity !== 'all' && !affinity.includes(work.type)) return false;
+      if (affinity !== 'all' && !this.getWorkTypes(work).some((type) => affinity.includes(type))) return false;
     }
     const slot = work.slots[slotIndex];
     if (!slot) return false;
@@ -525,7 +552,12 @@ export class EngineSession {
         const batch: DieToken[] = [];
         for (const skill of ['design', 'text', 'aa'] as const) {
           for (let i = 0; i < this.getEffectiveStat(member.defId, skill); i += 1) {
-            batch.push({ id: this.uid('die'), ownerId: member.defId, skill, value: this.rollDieFor(member.defId), round: this.state.round, origin: '工作' });
+            const value = this.rollDieFor(member.defId);
+            if (value === undefined) {
+              this.log(`${definition.name} 的 ${skill.toUpperCase()} 骰因沒有任何合法骰面而消失。`);
+              continue;
+            }
+            batch.push({ id: this.uid('die'), ownerId: member.defId, skill, value, round: this.state.round, origin: '工作' });
           }
         }
         this.skills.emit({ type: 'afterRollBatch', teamId, actorId: member.defId, dice: batch, amount: batch.length, sourceKind: 'work' });
@@ -575,6 +607,14 @@ export class EngineSession {
       this.log(`${this.getDefinition(actorId).name} 擔任組長時不能使用統籌卡。`);
       return false;
     }
+    const coordinationStressCost = card.kind === 'coordination' ? card.coordinationStressCost ?? 1 : 0;
+    const coordinationStressBearer = coordinationStressCost > 0
+      ? this.skills.getCoordinationStressBearer(teamId, coordinationStressCost)
+      : undefined;
+    if (coordinationStressCost > 0 && !coordinationStressBearer) {
+      this.log(`${team.name} 沒有任何組員能合法承擔統籌卡的 ${coordinationStressCost} 點壓力，因此不能使用「${card.name}」。`);
+      return false;
+    }
     if (!this.validateCardTarget(teamId, card, target)) return false;
 
     const cardEvent = {
@@ -615,9 +655,8 @@ export class EngineSession {
       team.hand.splice(index, 1);
       team.discard.push(card.id);
       this.log(`${team.name} 使用「${card.name}」。`);
-      if (card.kind === 'coordination') {
-        const bearerId = this.skills.getCoordinationStressBearer(teamId) ?? actorId;
-        this.adjustStress(teamId, bearerId, 1, '使用統籌卡', true, actorId);
+      if (coordinationStressCost > 0 && coordinationStressBearer) {
+        this.adjustStress(teamId, coordinationStressBearer, coordinationStressCost, '使用統籌卡', true, actorId);
       }
       this.skills.emit(cardEvent);
       return true;
@@ -733,6 +772,7 @@ export class EngineSession {
     for (const team of [this.state.player, this.state.enemy]) {
       for (const member of team.members) {
         member.timedStatModifiers = member.timedStatModifiers.filter((modifier) => modifier.expiresAfterRound > this.state.round);
+        member.timedRollConstraints = (member.timedRollConstraints ?? []).filter((constraint) => constraint.expiresAfterRound > this.state.round);
         for (const [status, value] of Object.entries(member.statuses)) {
           if (value.expiresAfterRound !== undefined && value.expiresAfterRound <= this.state.round) delete member.statuses[status];
         }
@@ -770,7 +810,13 @@ export class EngineSession {
   }
 }
 
-function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: string[]): TeamState {
+function createTeam(
+  engine: EngineSession,
+  id: TeamId,
+  name: string,
+  memberIds: string[],
+  initialWorkTypes: Partial<Record<string, WorkType>> = {},
+): TeamState {
   const members: CharacterState[] = memberIds.map((defId) => {
     const definition = engine.content.characters[defId];
     if (!definition) throw new Error(`Unknown character ${defId}`);
@@ -779,20 +825,33 @@ function createTeam(engine: EngineSession, id: TeamId, name: string, memberIds: 
       stress: 0,
       permanentStats: cloneStats(definition.stats),
       timedStatModifiers: [],
+      timedRollConstraints: [],
       skillUsage: {},
       statuses: {},
       resources: definition.resource ? { [definition.resource.name]: definition.resource.initial } : undefined,
     };
   });
   const workLength = engine.gameDefinition.rules.workLength;
-  const works: WorkState[] = memberIds.map((ownerId) => ({
-    id: engine.uid('work'),
-    ownerId,
-    title: `${engine.content.characters[ownerId]?.name ?? ownerId} 的作品`,
-    type: chooseWorkType(engine, ownerId),
-    length: workLength,
-    slots: Array.from({ length: workLength }, () => ({})),
-  }));
+  const works: WorkState[] = memberIds.map((ownerId) => {
+    const requestedType = initialWorkTypes[ownerId];
+    if (requestedType) {
+      const definition = engine.content.characters[ownerId];
+      if (!definition) throw new Error(`Unknown character ${ownerId}`);
+      const legalTypes = characterWorkTypes(definition, engine.content);
+      if (!legalTypes.includes(requestedType)) {
+        throw new Error(`Character ${ownerId} cannot start with work type ${requestedType}.`);
+      }
+    }
+    return {
+      id: engine.uid('work'),
+      ownerId,
+      title: `${engine.content.characters[ownerId]?.name ?? ownerId} 的作品`,
+      type: requestedType ?? chooseWorkType(engine, ownerId),
+      extraTypes: [],
+      length: workLength,
+      slots: Array.from({ length: workLength }, () => ({})),
+    };
+  });
   return {
     id,
     name,
@@ -839,8 +898,8 @@ export function createInitialGame(
     enemyMemberIds = selected.enemyMemberIds;
   }
 
-  const player = createTeam(bootstrap, 'player', rules.player.name, playerMemberIds);
-  const enemy = createTeam(bootstrap, 'enemy', rules.enemy.name, enemyMemberIds);
+  const player = createTeam(bootstrap, 'player', rules.player.name, playerMemberIds, options.playerWorkTypes);
+  const enemy = createTeam(bootstrap, 'enemy', rules.enemy.name, enemyMemberIds, options.enemyWorkTypes);
   const state: GameState = { round: 1, maxRounds: rules.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
   const engine = new EngineSession(state, rng, gameDefinition);
   engine.drawCards('player', rules.initialHandSize);

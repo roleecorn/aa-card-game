@@ -61,7 +61,7 @@ describe('audited character skill regressions', () => {
     expect(leaderCase.engine.getCharacter('player', 'fengyang')?.stress).toBe(2);
   });
 
-  it('情緒 屬陀螺的 observes the actual coordination-card target and only triggers once per round', () => {
+  it('情緒 屬陀螺的 observes 指導 target while 指導 skips the normal coordination fee', () => {
     const { game, engine } = createSkillHarness({ player: [SKILL_FIXTURES.playerA, 'emotion'] });
     const leader = engine.getCharacter('player', SKILL_FIXTURES.playerA)!;
     leader.stress = 1;
@@ -69,9 +69,9 @@ describe('audited character skill regressions', () => {
     const cards = game.player.hand.filter((card) => card.cardId === 'guide');
 
     expect(engine.playCard('player', cards[0]!.instanceId, { memberId: 'emotion', skill: 'design' })).toBe(true);
-    expect(leader.stress).toBe(1);
+    expect(leader.stress).toBe(0);
     expect(engine.playCard('player', cards[1]!.instanceId, { memberId: 'emotion', skill: 'text' })).toBe(true);
-    expect(leader.stress).toBe(2);
+    expect(leader.stress).toBe(0);
   });
 
   it('阿道 開個回憶篇 receives slotIndex from real die placement', () => {
@@ -119,36 +119,44 @@ describe('audited character skill regressions', () => {
     expect(engine.getEffectiveMaxStress('player', 'enki')).toBe(6);
   });
 
-  it('Enki 副組長力 is resolved before coordination Stress and never reacts to the opponent card event', () => {
+  it('Enki 副組長力 uses headroom for normal coordination cost but does not intercept 指導 target Stress', () => {
     const { game, engine } = createSkillHarness({ player: [SKILL_FIXTURES.playerA, 'enki'] });
     const leader = engine.getCharacter('player', SKILL_FIXTURES.playerA)!;
     const enki = engine.getCharacter('player', 'enki')!;
-    leader.stress = 2;
+    const target = engine.getCharacter('player', SKILL_FIXTURES.playerB)!;
+    leader.stress = 4;
     enki.stress = 2;
-    engine.addCard('player', 'guide', 1);
-    const playerCard = game.player.hand.find((card) => card.cardId === 'guide')!;
 
-    expect(engine.playCard('player', playerCard.instanceId, { memberId: SKILL_FIXTURES.playerB, skill: 'design' })).toBe(true);
-    expect(leader.stress).toBe(2);
+    engine.addCard('player', 'guide', 1);
+    const guide = game.player.hand.find((card) => card.cardId === 'guide')!;
+    expect(engine.playCard('player', guide.instanceId, { memberId: SKILL_FIXTURES.playerB, skill: 'design' })).toBe(true);
+    expect(leader.stress).toBe(4);
+    expect(enki.stress).toBe(2);
+    expect(target.stress).toBe(1);
+
+    engine.addCard('player', 'soothe', 1);
+    const soothe = game.player.hand.find((card) => card.cardId === 'soothe')!;
+    expect(engine.playCard('player', soothe.instanceId, { memberId: SKILL_FIXTURES.playerB })).toBe(true);
+    expect(leader.stress).toBe(4);
     expect(enki.stress).toBe(3);
 
     engine.addCard('enemy', 'guide', 1);
     const enemyCard = game.enemy.hand.find((card) => card.cardId === 'guide')!;
     expect(engine.playCard('enemy', enemyCard.instanceId, { memberId: SKILL_FIXTURES.enemyB, skill: 'design' })).toBe(true);
-    expect(leader.stress).toBe(2);
+    expect(leader.stress).toBe(4);
     expect(enki.stress).toBe(3);
   });
 
-  it('multiple vice leaders choose exactly one coordination Stress bearer', () => {
+  it('multiple vice leaders choose exactly one normal coordination Stress bearer', () => {
     const { game, engine } = createSkillHarness({ player: [SKILL_FIXTURES.playerA, 'meteor', 'enki'] });
     engine.getCharacter('player', SKILL_FIXTURES.playerA)!.stress = 2;
-    engine.addCard('player', 'guide', 1);
-    const card = game.player.hand.find((item) => item.cardId === 'guide')!;
+    engine.addCard('player', 'soothe', 1);
+    const card = game.player.hand.find((item) => item.cardId === 'soothe')!;
 
-    expect(engine.playCard('player', card.instanceId, { memberId: SKILL_FIXTURES.playerA, skill: 'design' })).toBe(true);
+    expect(engine.playCard('player', card.instanceId, { memberId: SKILL_FIXTURES.playerA })).toBe(true);
     expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
     expect(engine.getCharacter('player', 'enki')?.stress).toBe(0);
-    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(2);
+    expect(engine.getCharacter('player', SKILL_FIXTURES.playerA)?.stress).toBe(0);
   });
 
   it('秋影 拖延症 removes low extra dice from both the event payload and pending state', () => {

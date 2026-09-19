@@ -210,16 +210,18 @@ describe('流星 complete character package', () => {
     expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(false);
   });
 
-  it('副組長力 makes 流星 take coordination-card stress when below the leader', () => {
+  it('副組長力 makes 流星 take coordination-card stress when it has more headroom than the leader', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    engine.getCharacter('player', 'pintbox')!.stress = 2;
+    // Pintbox leader: effective cap 7, Stress 4 => headroom 3.
+    // Meteor: cap 4, Stress 0 => headroom 4.
+    engine.getCharacter('player', 'pintbox')!.stress = 4;
     engine.addCard('player', 'soothe', 1);
     const card = game.player.hand.find((item) => item.cardId === 'soothe')!;
 
     expect(engine.playCard('player', card.instanceId, { memberId: 'mashiro' })).toBe(true);
     expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
-    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(2);
+    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(4);
   });
 });
 

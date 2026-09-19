@@ -3,7 +3,6 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import PaletteIcon from '@mui/icons-material/Palette';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -17,7 +16,6 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
   謀: <PsychologyIcon fontSize="small" />,
   笑: <SentimentVerySatisfiedIcon fontSize="small" />,
   情: <FavoriteIcon fontSize="small" />,
-  色: <PaletteIcon fontSize="small" />,
   怪: <AutoAwesomeIcon fontSize="small" />,
 };
 
