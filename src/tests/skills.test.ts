@@ -150,10 +150,10 @@ describe('additional discussion-ranked character cards', () => {
     expect(SKILLS.yashiroCute?.status).toBe('implemented');
     expect(SKILLS.yashiroStudious?.status).toBe('implemented');
 
-    for (const id of ['lemon', 'kitsu'] as const) {
-      expect(CHARACTERS[id]?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-      expect(CHARACTERS[id]?.maxStress).toBe(5);
-    }
+    expect(CHARACTERS.lemon?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.lemon?.maxStress).toBe(5);
+    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 2 });
+    expect(CHARACTERS.kitsu?.maxStress).toBe(4);
     expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
     expect(CHARACTERS.avocado?.maxStress).toBe(3);
     expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 2 });
@@ -338,30 +338,13 @@ describe('酪梨 complete character package', () => {
 });
 
 describe('キツ complete character package', () => {
-  const KITSU_ROSTER = {
-    playerMemberIds: ['kitsu', 'avocado', 'emotion'],
-    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
-  };
-
-  it('uses the prototype baseline and production assets', () => {
-    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-    expect(CHARACTERS.kitsu?.maxStress).toBe(5);
-    expect(CHARACTERS.kitsu?.portrait).toBe('/assets/characters/portrait/kitsu.webp');
-    expect(CHARACTERS.kitsu?.compactPortrait).toBe('/assets/characters/compact/kitsu.webp');
-    expect(SKILLS.kitsuReplayThirty?.status).toBe('implemented');
-  });
-
-  it('重播三十次 rerolls the first self work die of 1 once per round', () => {
-    const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, KITSU_ROSTER);
-    const engine = new EngineSession(game, fixedRng(0.999));
-
-    const first = { id: 'kitsu-low-a', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [first], amount: 1, sourceKind: 'work' });
-    expect(first.value).toBe(6);
-
-    const second = { id: 'kitsu-low-b', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [second], amount: 1, sourceKind: 'work' });
-    expect(second.value).toBe(1);
+  it('uses the final discussion-backed stats and passive skills', () => {
+    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 2 });
+    expect(CHARACTERS.kitsu?.maxStress).toBe(4);
+    expect(CHARACTERS.kitsu?.affinities).toEqual(['笑', '怪']);
+    expect(SKILLS.kitsuHappyElement?.status).toBe('implemented');
+    expect(SKILLS.kitsuAkihabara?.status).toBe('implemented');
+    expect(SKILLS.kitsuReplayThirty).toBeUndefined();
   });
 });
 
