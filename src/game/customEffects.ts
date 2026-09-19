@@ -476,11 +476,13 @@ registerCustomSkillEffect('orangeangelResonanceIfNeeded', (effect, context, engi
   const key = 'orangeangelResonance:game';
   if ((member.skillUsage[key] ?? 0) > 0) return false;
   const projected = typeof effect.args?.projectedStress === 'number' ? effect.args.projectedStress : 0;
-  if (member.stress + projected < 3) return false;
+  const maxStress = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
+  if (maxStress === undefined || maxStress === null || member.stress + projected <= maxStress) return false;
   const work = ownerWork(context, engine);
   if (!work) return false;
   const filled = fillOwnerRemainingRandom(context, engine);
   work.type = '怪';
+  work.extraTypes = [];
   member.skillUsage[key] = 1;
   engine.log(`${engine.getDefinition(context.ownerId).name} 發動「姆咪共鳴」，作品轉為（怪）並補完剩餘進度。`);
   return filled > 0 || true;
