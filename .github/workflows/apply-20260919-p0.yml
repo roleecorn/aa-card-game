@@ -47,6 +47,19 @@ jobs:
       - name: Adapt existing callers
         run: python scripts/apply-20260919-p0-compat.py
 
+      - name: Initialize optional roll constraints in effect handler
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/game/effectRegistry.ts')
+          text = path.read_text(encoding='utf-8')
+          old = '      member.timedRollConstraints.push({'
+          new = '      (member.timedRollConstraints ??= []).push({'
+          if old not in text:
+              raise SystemExit('roll constraint push not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Typecheck
         run: npm run typecheck
 
