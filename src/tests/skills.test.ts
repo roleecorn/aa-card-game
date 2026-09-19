@@ -197,19 +197,20 @@ describe('流星 complete character package', () => {
     expect(CHARACTERS.meteor?.skillIds).toContain('viceLeaderPower');
   });
 
-  it('軌言軌語 gives Design +1 for a 燃 work and 軌之共鳴 rerolls one die once per round', () => {
+  it('軌之共鳴 scales with every allied 燃 work and 軌言軌語 applies the fixed -1', () => {
     const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.999));
-    const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
-    work.type = '燃';
-    engine.skills.emit({ type: 'roundStart' });
-    expect(engine.getEffectiveStat('meteor', 'design')).toBe(1);
+    for (const work of game.player.works) {
+      work.extraTypes = [];
+      work.type = work.ownerId === 'mashiro' ? '情' : '燃';
+    }
+    expect(engine.getEffectiveStat('meteor', 'design')).toBe(1); // base 0 + 2 燃 - 1
 
-    const die = engine.grantDice('player', 'meteor', 'text', 1, 'test', false, 1)[0]!;
-    die.value = 1;
-    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(true);
-    expect(die.value).toBe(6);
-    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(false);
+    const mashiroWork = game.player.works.find((item) => item.ownerId === 'mashiro')!;
+    mashiroWork.extraTypes = ['燃'];
+    expect(engine.getEffectiveStat('meteor', 'design')).toBe(2); // base 0 + 3 燃 - 1
+    expect(SKILLS.meteorBurnDesign?.activation).toBe('passive');
+    expect(SKILLS.meteorResonance?.activation).toBe('passive');
   });
 
   it('副組長力 makes 流星 take coordination-card stress when it has more headroom than the leader', () => {
