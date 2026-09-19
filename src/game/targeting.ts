@@ -277,31 +277,38 @@ export function getSkillSelectionPlan(
   }
   if (spec.kind === 'copyPendingDie') {
     const team = engine.getTeam(teamId);
+    const relationMatches = (relation: 'self' | 'otherAlly', die: DieToken) =>
+      relation === 'self' ? die.ownerId === ownerId : die.ownerId !== ownerId;
     if (!partialTarget.sourceDieId) {
       return {
         stage: 'sourceDie',
         candidates: team.pendingDice.map((die): TargetCandidate => {
-          if (die.ownerId === ownerId) return { id: die.id, ...blocked('來源骰必須來自另一名我方角色。') };
+          if (!relationMatches(spec.source, die)) {
+            return { id: die.id, ...blocked(spec.source === 'self' ? '來源骰必須是自己的骰。' : '來源骰必須來自另一名我方角色。') };
+          }
           const destination = team.pendingDice.find((target) =>
             engine.skills.canActivateSkillTarget(ownerId, skill.id, { sourceDieId: die.id, targetDieId: target.id }));
-          return {
-            id: die.id,
-            ...(destination
-              ? allowed(skillExternalWarning(engine, ownerId, die.ownerId))
-              : blocked('目前沒有合法的自己的骰可作為目標。')),
-          };
+          return { id: die.id, ...(destination ? allowed() : blocked('目前沒有合法的目標骰。')) };
         }),
       };
     }
     return {
       stage: 'targetDie',
-      candidates: team.pendingDice.map((die): TargetCandidate => ({
-        id: die.id,
-        ...runtimeTargetLegality(engine, ownerId, skill, {
-          sourceDieId: partialTarget.sourceDieId,
-          targetDieId: die.id,
-        }),
-      })),
+      candidates: team.pendingDice.map((die): TargetCandidate => {
+        if (!relationMatches(spec.target, die)) {
+          return { id: die.id, ...blocked(spec.target === 'self' ? '目標骰必須是自己的骰。' : '目標骰必須來自另一名我方角色。') };
+        }
+        return {
+          id: die.id,
+          ...runtimeTargetLegality(
+            engine,
+            ownerId,
+            skill,
+            { sourceDieId: partialTarget.sourceDieId, targetDieId: die.id },
+            skillExternalWarning(engine, ownerId, die.ownerId),
+          ),
+        };
+      }),
     };
   }
 

@@ -88,6 +88,14 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
     const matches = (work: (typeof works)[number]) => workHasProgress(work, condition.skill);
     return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
   }
+  if (condition.kind === 'workHasEmptyProgress') {
+    const works = engine.resolveWorks(condition.target, context);
+    if (!works.length) return false;
+    const matches = (work: (typeof works)[number]) => work.slots.some((slot) =>
+      condition.skill ? slot[condition.skill] === undefined :
+        slot.design === undefined || slot.text === undefined || slot.aa === undefined);
+    return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
+  }
   if (condition.kind === 'chance') return engine.random() < condition.probability;
   if (condition.kind === 'relation') {
     const other = context.event[condition.field];
@@ -402,15 +410,14 @@ export class SkillRuntime {
       return enemyTeam.works.some((work) => work.id === target.workId);
     }
     if (spec.kind === 'copyPendingDie') {
-      if (!target.sourceDieId || !target.targetDieId) return false;
+      if (!target.sourceDieId || !target.targetDieId || target.sourceDieId === target.targetDieId) return false;
       const team = this.engine.getTeam(teamId);
       const source = team.pendingDice.find((die) => die.id === target.sourceDieId);
       const destination = team.pendingDice.find((die) => die.id === target.targetDieId);
-      return !!source
-        && !!destination
-        && source.ownerId !== memberId
-        && destination.ownerId === memberId
-        && source.value !== destination.value;
+      if (!source || !destination) return false;
+      const sourceMatches = spec.source === 'self' ? source.ownerId === memberId : source.ownerId !== memberId;
+      const targetMatches = spec.target === 'self' ? destination.ownerId === memberId : destination.ownerId !== memberId;
+      return sourceMatches && targetMatches && (!spec.requireValueChange || source.value !== destination.value);
     }
     if (!target.targetDieId) return false;
     const ownerTeam = this.engine.getTeam(teamId);

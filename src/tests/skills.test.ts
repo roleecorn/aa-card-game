@@ -446,7 +446,9 @@ describe('discussion-backed character catalog', () => {
   it('keeps genuinely unsupported mechanics explicit without preserving obsolete permissions', () => {
     expect(SKILLS.triangleCoordination).toBeUndefined();
     expect(SKILLS.chaosVitality?.status).toBe('implemented');
-    expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
+    expect(SKILLS.ginsakuraSupport?.status).toBe('implemented');
+    expect(SKILLS.narratorLongForm?.status).toBe('implemented');
+    expect(SKILLS.narratorOsaka?.status).toBe('implemented');
   });
 });
 

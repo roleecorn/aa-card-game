@@ -1,6 +1,7 @@
 import { registerCustomSkillEffect } from './customEffects';
 import type { EngineSession } from './engine';
 import type { DieToken } from './types';
+import { isExternalEffectBlocked } from './externalImmunity';
 
 function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): boolean {
   const before = die.value;
@@ -118,6 +119,50 @@ registerCustomSkillEffect('avocadoNeedsManual', (_effect, context, engine) => {
   return true;
 });
 
+registerCustomSkillEffect('narratorAlligator', (_effect, context, engine) => {
+  const workId = context.activationTarget?.workId;
+  if (!workId) return false;
+  const work = engine.getTeam(context.ownerTeamId).works.find((candidate) => candidate.id === workId);
+  if (!work) return false;
+  if (isExternalEffectBlocked(engine, context, work.ownerId)) return true;
+  const slotIndex = work.slots.findIndex((slot) => slot.design === undefined);
+  const slot = work.slots[slotIndex];
+  if (!slot) return false;
+  const value = engine.rollDieFor(context.ownerId);
+  if (value === undefined) return false;
+  slot.design = value;
+  work.type = '笑';
+  work.extraTypes = [];
+  engine.skills.emit({
+    type: 'afterDiePlaced', teamId: context.ownerTeamId, actorId: context.ownerId,
+    skill: 'design', workId: work.id, amount: value, metadata: { slotIndex, reason: context.definition.id },
+  });
+  return true;
+});
+
+registerCustomSkillEffect('ginsakuraSupport', (_effect, context, engine) => {
+  const sourceId = context.activationTarget?.sourceDieId;
+  const targetId = context.activationTarget?.targetDieId;
+  if (!sourceId || !targetId || sourceId === targetId) return false;
+  const team = engine.getTeam(context.ownerTeamId);
+  const source = team.pendingDice.find((die) => die.id === sourceId);
+  const target = team.pendingDice.find((die) => die.id === targetId);
+  if (!source || !target || source.ownerId !== context.ownerId || target.ownerId === context.ownerId) return false;
+  if (isExternalEffectBlocked(engine, context, target.ownerId)) return true;
+
+  const event = engine.skills.emit({
+    type: 'beforeDieModified', teamId: context.ownerTeamId, actorId: context.ownerId,
+    targetId: target.ownerId, sourceId: source.ownerId, dieId: target.id, skill: target.skill,
+    metadata: { reason: context.definition.id },
+  });
+  if (event.cancelled) return false;
+  target.value = source.value;
+  engine.skills.emit({ ...event, type: 'afterDieModified' });
+  team.pendingDice = team.pendingDice.filter((die) => die.id !== source.id);
+  engine.adjustStress(context.ownerTeamId, context.ownerId, -1, context.definition.name);
+  return true;
+});
+
 registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
   const team = engine.getTeam(context.ownerTeamId);
@@ -125,7 +170,7 @@ registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   if (!owner || maxStress === null || maxStress === undefined || owner.stress < maxStress) return false;
 
   if (team.leaderId === context.ownerId) {
-    engine.log(`${context.definition.name}：風揚就是組長，-1 與 +1 Stress 互相抵消。`);
+    engine.log(`${context.definition.name}：${engine.getDefinition(context.ownerId).name} 就是組長，-1 與 +1 Stress 互相抵消。`);
     return true;
   }
 

@@ -74,6 +74,7 @@ export type SkillCondition =
   | { kind: 'workScore'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
   | { kind: 'workLength'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
   | { kind: 'workHasProgress'; target: z.infer<typeof workSelectorSchema>; skill?: 'design' | 'text' | 'aa'; quantifier?: 'any' | 'all' }
+  | { kind: 'workHasEmptyProgress'; target: z.infer<typeof workSelectorSchema>; skill?: 'design' | 'text' | 'aa'; quantifier?: 'any' | 'all' }
   | { kind: 'chance'; probability: number };
 
 export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
@@ -159,6 +160,12 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
     }),
     z.object({
       kind: z.literal('workHasProgress'),
+      target: workSelectorSchema,
+      skill: skillStatSchema.optional(),
+      quantifier: z.enum(['any', 'all']).optional(),
+    }),
+    z.object({
+      kind: z.literal('workHasEmptyProgress'),
       target: workSelectorSchema,
       skill: skillStatSchema.optional(),
       quantifier: z.enum(['any', 'all']).optional(),
@@ -360,7 +367,12 @@ export const activeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'otherAlly', 'enemy']) }),
   z.object({ kind: z.literal('taggedMember'), tag: z.string().min(1), excludeSelf: z.boolean().default(false) }),
   z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy', 'owner']) }),
-  z.object({ kind: z.literal('copyPendingDie'), source: z.literal('otherAlly'), target: z.literal('self') }),
+  z.object({
+    kind: z.literal('copyPendingDie'),
+    source: z.enum(['self', 'otherAlly']),
+    target: z.enum(['self', 'otherAlly']),
+    requireValueChange: z.boolean().default(true),
+  }),
   z.object({
     kind: z.literal('pendingDie'),
     relation: z.enum(['self', 'ally', 'otherAlly', 'enemy']),
