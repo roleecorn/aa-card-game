@@ -30,6 +30,19 @@ jobs:
       - name: Apply P3 regression patch
         run: python scripts/apply-20260919-p3-regressions.py
 
+      - name: Fix P3 roster fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/tests/discussion-p3-regressions.test.ts')
+          text = p.read_text(encoding='utf-8')
+          old = "    const { game, engine } = createCase(['narrator', 'happy', 'avocado']);"
+          new = "    const { game, engine } = createCase(['narrator', 'happy', 'avocado'], ['ginsakura', 'bluewind', 'lemon']);"
+          if old not in text:
+              raise SystemExit('P3 roster fixture not found')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Typecheck
         run: npm run typecheck
 
