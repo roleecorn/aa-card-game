@@ -30,6 +30,9 @@ jobs:
       - name: Apply P2B patch
         run: python scripts/apply-20260919-p2b-scaling.py
 
+      - name: Align superseded Meteor tests
+        run: python scripts/migrate-20260919-p2b-tests.py
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -39,9 +42,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Remove temporary applicator
+      - name: Remove temporary applicators
         run: |
           rm scripts/apply-20260919-p2b-scaling.py
+          rm scripts/migrate-20260919-p2b-tests.py
           rm .github/workflows/apply-20260919-p2b-scaling.yml
 
       - name: Commit validated changes
