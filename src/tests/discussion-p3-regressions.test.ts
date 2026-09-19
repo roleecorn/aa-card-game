@@ -1,6 +1,4 @@
-from pathlib import Path
-
-Path('src/tests/discussion-p3-regressions.test.ts').write_text(r'''import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 import { GAMEPLAY_STATUS } from '../game/statuses';
@@ -94,7 +92,7 @@ describe('2026-09-19 P3 cross-mechanic regressions', () => {
   });
 
   it('distinguishes High add-type from Alligator replace-type and still lets the owner fill its now-unsupported own work', () => {
-    const { game, engine } = createCase(['narrator', 'happy', 'avocado']);
+    const { game, engine } = createCase(['narrator', 'happy', 'avocado'], ['ginsakura', 'bluewind', 'lemon']);
     const avocadoWork = game.player.works.find((work) => work.ownerId === 'avocado')!;
 
     // High has already fired at game start: original type is retained and 怪 is additive.
@@ -129,6 +127,3 @@ describe('2026-09-19 P3 cross-mechanic regressions', () => {
     expect(remoteMember.timedRollConstraints).toEqual(member.timedRollConstraints);
   });
 });
-''', encoding='utf-8')
-
-print('P3 cross-mechanic regression patch applied successfully.')
