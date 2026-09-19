@@ -1,0 +1,53 @@
+name: Apply 2026-09-19 P3 regressions
+
+on:
+  push:
+    branches:
+      - feature/20260919-discussion-update-p3
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/20260919-discussion-update-p3
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply P3 regression patch
+        run: python scripts/apply-20260919-p3-regressions.py
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Remove temporary applicator
+        run: |
+          rm scripts/apply-20260919-p3-regressions.py
+          rm .github/workflows/apply-20260919-p3-regressions.yml
+
+      - name: Commit validated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: add discussion P3 cross-mechanic regressions"
+          git push origin HEAD:feature/20260919-discussion-update-p3
