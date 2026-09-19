@@ -241,3 +241,7 @@ In progress on branch `feature/20260919-discussion-update-p0`:
 - updated 指導 pressure semantics.
 
 The player-facing initial work-type selection screen remains the next P0 UI task.
+
+### 2026-09-19 P0 setup UI completion
+
+The P0 initial-work-type contract is now wired into user-facing setup: offline play inserts a work-type selection screen after leader choice, and online protocol v3 collects Host/Guest selections independently before the authoritative game is created. Legacy characters with no explicit affinity keep the existing `謀` fallback until their P2 character calibration lands.

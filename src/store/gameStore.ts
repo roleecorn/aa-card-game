@@ -7,7 +7,7 @@ import { finishOnlineAssignment, performOnlineTeamActions } from '../game/online
 import { placeDieWithLegality } from '../game/placement';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
-import type { TeamId } from '../game/schema';
+import type { TeamId, WorkType } from '../game/schema';
 import { createTutorialGame, createTutorialSession } from '../tutorial/runtime';
 import {
   createTutorialRuntimeState,
@@ -30,6 +30,8 @@ interface GameStore {
     enemyMemberIds: string[],
     playerLeaderId?: string,
     gameDefinition?: GameDefinition,
+    playerWorkTypes?: Partial<Record<string, WorkType>>,
+    enemyWorkTypes?: Partial<Record<string, WorkType>>,
   ) => void;
   startTutorial: () => void;
   loadOnlineSnapshot: (game: GameState, gameDefinition: GameDefinition) => void;
@@ -95,7 +97,7 @@ export const useGameStore = create<GameStore>()(
       state.tutorial = null;
       state.actionChoices = {};
     }),
-    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId, requestedGameDefinition) => set((state) => {
+    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId, requestedGameDefinition, playerWorkTypes, enemyWorkTypes) => set((state) => {
       const gameDefinition = requestedGameDefinition ?? state.gameDefinition ?? STANDARD_GAME_DEFINITION;
       const selectedLeaderId = requestedLeaderId && playerMemberIds.includes(requestedLeaderId)
         ? requestedLeaderId
@@ -108,6 +110,8 @@ export const useGameStore = create<GameStore>()(
       state.game = createInitialGame(Math.random, gameDefinition, {
         playerMemberIds: orderedPlayerMemberIds,
         enemyMemberIds,
+        playerWorkTypes,
+        enemyWorkTypes,
       });
       state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
     }),

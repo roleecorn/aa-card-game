@@ -52,11 +52,15 @@ function characterWorkTypes(definition: CharacterDefinition, content: GameConten
   return all ? [...WORK_TYPES] : [...types];
 }
 
+function initialWorkTypeChoices(definition: CharacterDefinition, content: GameContent): WorkType[] {
+  const candidates = characterWorkTypes(definition, content);
+  return candidates.length ? candidates : ['謀'];
+}
+
 function chooseWorkType(engine: EngineSession, memberId: string): WorkType {
   const definition = engine.content.characters[memberId];
   if (!definition) throw new Error(`Unknown character ${memberId}`);
-  const candidates = characterWorkTypes(definition, engine.content);
-  if (!candidates.length) return '謀';
+  const candidates = initialWorkTypeChoices(definition, engine.content);
   return candidates[Math.floor(engine.random() * candidates.length)] ?? candidates[0] ?? '謀';
 }
 
@@ -66,7 +70,7 @@ export function getInitialWorkTypeChoices(
 ): WorkType[] {
   const definition = gameDefinition.content.characters[memberId];
   if (!definition) throw new Error(`Unknown character ${memberId}`);
-  return characterWorkTypes(definition, gameDefinition.content);
+  return initialWorkTypeChoices(definition, gameDefinition.content);
 }
 
 function validateRosterOverride(
@@ -837,7 +841,7 @@ function createTeam(
     if (requestedType) {
       const definition = engine.content.characters[ownerId];
       if (!definition) throw new Error(`Unknown character ${ownerId}`);
-      const legalTypes = characterWorkTypes(definition, engine.content);
+      const legalTypes = initialWorkTypeChoices(definition, engine.content);
       if (!legalTypes.includes(requestedType)) {
         throw new Error(`Character ${ownerId} cannot start with work type ${requestedType}.`);
       }

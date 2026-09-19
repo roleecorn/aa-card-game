@@ -321,3 +321,7 @@ Online 使用與 Standard 相同的 BattleRoom 響應式版面。窄螢幕底部
 ## 2026-09-19 shared-state compatibility note
 
 Core match state now includes work `extraTypes` and member `timedRollConstraints`. Online continues to use the shared `GameState` snapshot/engine path; peers must run the same game version so these fields and their semantics stay deterministic.
+
+### Initial work-type handshake
+
+Online protocol v3 adds a pre-game `workTypes` handshake after character draft animations settle. Host and Guest submit only their own roster's work-type mapping. Host creates and broadcasts the authoritative GameState only after both mappings are present and validated against each character's initial choices. This keeps work-type selection before all `gameStart` effects and avoids Host choosing Guest setup on their behalf.
