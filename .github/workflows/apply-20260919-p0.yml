@@ -60,95 +60,8 @@ jobs:
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
           PY
 
-      - name: Align legacy tests with P0 rule changes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def rep(file, old, new, count=1):
-              path = Path(file)
-              text = path.read_text(encoding='utf-8')
-              if old not in text:
-                  raise SystemExit(f'expected test snippet not found in {file}: {old[:100]}')
-              path.write_text(text.replace(old, new, count), encoding='utf-8')
-
-          rep(
-              'src/tests/character-calibration.test.ts',
-              "  it('副組長力 only transfers coordination stress when the vice leader is below the leader', () => {",
-              "  it('副組長力 transfers coordination stress only when the vice leader has more remaining headroom', () => {",
-          )
-          rep('src/tests/character-calibration.test.ts', '    leader.stress = 2;\n    viceLeader.stress = 1;', '    leader.stress = 5;\n    viceLeader.stress = 1;')
-          rep('src/tests/character-calibration.test.ts', "    viceLeader.stress = 2;\n    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();", "    viceLeader.stress = 2;\n    expect(engine.skills.getCoordinationStressBearer('player')).toBe('pintbox');")
-          rep('src/tests/character-calibration.test.ts', "    viceLeader.stress = 3;\n    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();", "    viceLeader.stress = 3;\n    expect(engine.skills.getCoordinationStressBearer('player')).toBe('pintbox');")
-
-          rep(
-              'src/tests/skills.test.ts',
-              "  it('副組長力 makes 流星 take coordination-card stress when below the leader', () => {",
-              "  it('副組長力 makes 流星 take coordination-card stress when it has more headroom than the leader', () => {",
-          )
-          rep('src/tests/skills.test.ts', "    engine.getCharacter('player', 'pintbox')!.stress = 2;", "    engine.getCharacter('player', 'pintbox')!.stress = 4;", 1)
-          rep('src/tests/skills.test.ts', "    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(2);", "    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(4);", 1)
-
-          rep('src/tests/leader-succession.test.ts', '    leader.stress = 2;\n    viceLeader.stress = 0;', '    leader.stress = 4;\n    viceLeader.stress = 0;')
-          rep('src/tests/leader-succession.test.ts', '    expect(leader.stress).toBe(1);', '    expect(leader.stress).toBe(3);', 1)
-
-          rep(
-              'src/tests/skill-runtime-regressions.test.ts',
-              "    expect(leader.stress).toBe(1);\n    expect(engine.playCard('player', cards[1]!.instanceId, { memberId: 'emotion', skill: 'text' })).toBe(true);\n    expect(leader.stress).toBe(2);",
-              "    expect(leader.stress).toBe(0);\n    expect(engine.playCard('player', cards[1]!.instanceId, { memberId: 'emotion', skill: 'text' })).toBe(true);\n    expect(leader.stress).toBe(0);",
-          )
-
-          old_enki = """  it('Enki 副組長力 is resolved before coordination Stress and never reacts to the opponent card event', () => {
-            const { game, engine } = createSkillHarness({ player: [SKILL_FIXTURES.playerA, 'enki'] });
-            const leader = engine.getCharacter('player', SKILL_FIXTURES.playerA)!;
-            const enki = engine.getCharacter('player', 'enki')!;
-            leader.stress = 2;
-            enki.stress = 2;
-            engine.addCard('player', 'guide', 1);
-            const playerCard = game.player.hand.find((card) => card.cardId === 'guide')!;
-
-            expect(engine.playCard('player', playerCard.instanceId, { memberId: SKILL_FIXTURES.playerB, skill: 'design' })).toBe(true);
-            expect(leader.stress).toBe(2);
-            expect(enki.stress).toBe(3);
-
-            engine.addCard('enemy', 'guide', 1);
-            const enemyCard = game.enemy.hand.find((card) => card.cardId === 'guide')!;
-            expect(engine.playCard('enemy', enemyCard.instanceId, { memberId: SKILL_FIXTURES.enemyB, skill: 'design' })).toBe(true);
-            expect(leader.stress).toBe(2);
-            expect(enki.stress).toBe(3);
-          });""".replace('          ', '')
-          new_enki = """  it('Enki 副組長力 uses headroom for normal coordination cost but does not intercept 指導 target Stress', () => {
-            const { game, engine } = createSkillHarness({ player: [SKILL_FIXTURES.playerA, 'enki'] });
-            const leader = engine.getCharacter('player', SKILL_FIXTURES.playerA)!;
-            const enki = engine.getCharacter('player', 'enki')!;
-            const target = engine.getCharacter('player', SKILL_FIXTURES.playerB)!;
-            leader.stress = 4;
-            enki.stress = 2;
-
-            engine.addCard('player', 'guide', 1);
-            const guide = game.player.hand.find((card) => card.cardId === 'guide')!;
-            expect(engine.playCard('player', guide.instanceId, { memberId: SKILL_FIXTURES.playerB, skill: 'design' })).toBe(true);
-            expect(leader.stress).toBe(4);
-            expect(enki.stress).toBe(2);
-            expect(target.stress).toBe(1);
-
-            engine.addCard('player', 'soothe', 1);
-            const soothe = game.player.hand.find((card) => card.cardId === 'soothe')!;
-            expect(engine.playCard('player', soothe.instanceId, { memberId: SKILL_FIXTURES.playerB })).toBe(true);
-            expect(leader.stress).toBe(4);
-            expect(enki.stress).toBe(3);
-
-            engine.addCard('enemy', 'guide', 1);
-            const enemyCard = game.enemy.hand.find((card) => card.cardId === 'guide')!;
-            expect(engine.playCard('enemy', enemyCard.instanceId, { memberId: SKILL_FIXTURES.enemyB, skill: 'design' })).toBe(true);
-            expect(leader.stress).toBe(4);
-            expect(enki.stress).toBe(3);
-          });""".replace('          ', '')
-          rep('src/tests/skill-runtime-regressions.test.ts', old_enki, new_enki)
-
-          rep("src/tests/skill-runtime-regressions.test.ts", "    engine.addCard('player', 'guide', 1);\n    const card = game.player.hand.find((item) => item.cardId === 'guide')!;", "    engine.addCard('player', 'soothe', 1);\n    const card = game.player.hand.find((item) => item.cardId === 'soothe')!;")
-          rep("src/tests/skill-runtime-regressions.test.ts", "    expect(engine.playCard('player', card.instanceId, { memberId: SKILL_FIXTURES.playerA, skill: 'design' })).toBe(true);", "    expect(engine.playCard('player', card.instanceId, { memberId: SKILL_FIXTURES.playerA })).toBe(true);")
-          PY
+      - name: Align legacy tests with P0 rules
+        run: python scripts/update-20260919-p0-tests.py
 
       - name: Typecheck
         run: npm run typecheck
@@ -163,6 +76,7 @@ jobs:
         run: |
           rm scripts/apply-20260919-p0.mjs
           rm scripts/apply-20260919-p0-compat.py
+          rm scripts/update-20260919-p0-tests.py
           rm .github/workflows/apply-20260919-p0.yml
 
       - name: Commit validated P0 changes
