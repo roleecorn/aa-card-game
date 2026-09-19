@@ -21,7 +21,10 @@ export const theme = createTheme({
   },
   components: {
     MuiCard: { styleOverrides: { root: { border: '1px solid #e4e7ee' } } },
-    MuiButton: { defaultProps: { disableElevation: true } },
+    MuiButton: { defaultProps: { disableElevation: true }, styleOverrides: { root: { '@media (pointer: coarse), (max-width: 599px)': { minHeight: 44 } } } },
+    MuiIconButton: { styleOverrides: { root: { '@media (pointer: coarse), (max-width: 599px)': { minWidth: 44, minHeight: 44 } } } },
+    MuiToggleButton: { styleOverrides: { root: { '@media (pointer: coarse), (max-width: 599px)': { minWidth: 44, minHeight: 44 } } } },
+    MuiDialog: { styleOverrides: { paper: { '@media (max-width: 599px)': { margin: 12, width: 'calc(100% - 24px)', maxHeight: 'calc(100dvh - 24px)' } } } },
     MuiChip: { styleOverrides: { root: { fontWeight: 700 } } },
   },
 });

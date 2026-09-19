@@ -311,3 +311,9 @@ npm run test:tutorial
 - 6 位數 code 可在兩個瀏覽器 session 完成配對，不需人工交換 SDP。
 - 玩家可見 copy 不洩漏 WebRTC / P2P / signaling / SDP / ICE / STUN / TURN / MQTT / broker / DataChannel 等實作術語。
 - 斷線後 Guest 不再允許繼續修改 authoritative state；Host 既有 timer 不獲得額外時間。
+
+## 響應式對局介面驗收
+
+Online 使用與 Standard 相同的 BattleRoom 響應式版面。窄螢幕底部導覽只捲動到我方／作品／骰子／手牌／對手，不送出網路 command，也不改變 authority、選角、倒數或回合規則。選擇目標時可保留選取並跳轉，取消按鈕沿用既有取消行為。
+
+人工雙端 regression：Host 手機／Guest 桌面及交換角色各測一次；確認導覽不出牌、不結束回合，合法目標仍可選取，等待對手與斷線時仍禁用遊戲操作，重連限制與原規則一致。此 PR 的自動測試不替代上述人工驗收。

@@ -33,7 +33,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
       spacing={1}
       data-feedback-anchor={`hand:${side}`}
       onClick={selection ? selection.onCancel : undefined}
-      sx={selection ? { position: 'relative', zIndex: 1210 } : undefined}
+      sx={{ minWidth: 0, position: 'relative', zIndex: selection ? 1210 : undefined }}
     >
       <Stack direction="row" spacing={.7} alignItems="center" sx={{ px: .3 }}>
         <AutoAwesomeIcon sx={{ color: side === 'player' ? '#f4ba45' : '#5ca9e8', fontSize: 19 }} />
@@ -42,6 +42,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
           {side === 'player' ? 'My Team' : 'Rival Team'}
         </Typography>
       </Stack>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 1.25 }}>
       {team.members.map((member, index) => {
         const definition = CHARACTERS[member.defId];
         if (!definition) return null;
@@ -100,6 +101,7 @@ export function TeamColumn({ title, team, engine, showActions, actionChoices, on
           </Box>
         );
       })}
+      </Box>
     </Stack>
   );
 }

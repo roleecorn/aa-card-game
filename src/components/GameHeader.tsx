@@ -19,7 +19,7 @@ const sketchBorder = '2px solid #dce6f4';
 
 export function GameHeader({ game, playerScore, enemyScore, onReset, onOpenRoster }: Props) {
   return (
-    <Paper square elevation={0} sx={{ position: 'sticky', top: 0, zIndex: 20, px: { xs: 1.5, md: 2.5 }, py: 1.15, border: 0, borderBottom: sketchBorder, bgcolor: 'rgba(255,253,248,.97)', backdropFilter: 'blur(12px)' }}>
+    <Paper square elevation={0} sx={{ position: { xs: 'static', xl: 'sticky' }, top: 0, zIndex: 20, px: { xs: 1.5, md: 2.5 }, py: 1.15, border: 0, borderBottom: sketchBorder, bgcolor: 'rgba(255,253,248,.97)', backdropFilter: 'blur(12px)' }}>
       <Stack direction={{ xs: 'column', lg: 'row' }} gap={1.2} alignItems={{ lg: 'center' }} justifyContent="space-between">
         <Stack direction="row" spacing={1.2} alignItems="center">
           <Box sx={{ color: '#f2b72d', transform: 'rotate(-8deg)' }}><EditIcon /></Box>

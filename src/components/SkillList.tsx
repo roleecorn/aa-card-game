@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Box, Button, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import BoltIcon from '@mui/icons-material/Bolt';
 import { SKILLS } from '../content/catalog';
@@ -15,6 +16,7 @@ const labels = { implemented: '已實裝', partial: '部分實裝', planned: '�
 const colors = { implemented: 'success', partial: 'warning', planned: 'default' } as const;
 
 export function SkillList({ character, onActivate, canActivate, getDisabledReason, compact }: Props) {
+  const [expandedSkill, setExpandedSkill] = useState<string>();
   return (
     <Stack spacing={compact ? .45 : .8}>
       {character.skillIds.map((skillId) => {
@@ -24,14 +26,16 @@ export function SkillList({ character, onActivate, canActivate, getDisabledReaso
         const enabled = canActivate ? canActivate(skillId) : true;
         const disabledReason = enabled ? undefined : getDisabledReason?.(skillId) ?? '目前沒有合法目標，或技能的使用次數已耗盡。';
         return (
-          <Box key={skillId} sx={{ display: 'flex', gap: .5, alignItems: 'center', minWidth: 0 }}>
+          <Box key={skillId} sx={{ display: 'flex', flexWrap: 'wrap', gap: .5, alignItems: 'center', minWidth: 0 }}>
             <Tooltip title={skill.description} arrow>
               <Chip
                 size="small"
                 label={compact ? skill.name : `${skill.name} · ${labels[skill.status]}`}
                 color={colors[skill.status]}
                 variant="outlined"
-                sx={{ height: compact ? 22 : 26, maxWidth: '100%', bgcolor: '#fff', '& .MuiChip-label': { px: compact ? .7 : 1, fontSize: compact ? 10 : 11, overflow: 'hidden', textOverflow: 'ellipsis' } }}
+                onClick={() => setExpandedSkill(expandedSkill === skillId ? undefined : skillId)}
+                aria-expanded={expandedSkill === skillId}
+                sx={{ height: 'auto', minHeight: compact ? 22 : 26, '@media (pointer: coarse), (max-width: 599px)': { minHeight: 44 }, maxWidth: '100%', bgcolor: '#fff', '& .MuiChip-label': { px: compact ? .7 : 1, fontSize: { xs: 12, sm: compact ? 10 : 11 }, whiteSpace: 'normal' } }}
               />
             </Tooltip>
             {active && onActivate && (
@@ -50,6 +54,11 @@ export function SkillList({ character, onActivate, canActivate, getDisabledReaso
                   </Button>
                 </span>
               </Tooltip>
+            )}
+            {expandedSkill === skillId && (
+              <Typography sx={{ width: '100%', fontSize: 13, lineHeight: 1.65, color: 'text.secondary' }}>
+                {skill.description}{active && disabledReason && onActivate ? `（${disabledReason}）` : ''}
+              </Typography>
             )}
           </Box>
         );

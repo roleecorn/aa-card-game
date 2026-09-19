@@ -87,3 +87,11 @@ Figma 處理 design intent；Storybook 顯示真正 React/MUI component 的執�
 若使用者問「目前程式實際跑起來長什麼樣」，必須先跑指定 Git SHA 的 Vite app 並用 browser/Chrome 擷取真正 runtime screenshot，再與 Figma 比較。Figma screenshot 不能代替 runtime screenshot。
 
 詳細流程：`skills/runtime-ui-validation/SKILL.md`。
+
+## Responsive UI sync pending
+
+`codex/responsive-mobile-ui` 的同步寫入遭 Figma Starter MCP tool call limit 拒絕，未完成畫布更新。請勿把既有 Desktop frame 視為此次 responsive 實作的驗證證據。
+
+待同步設計規格：內容上限 1920px；<1200px 單欄，1200–1535px 我方 300px + 中央彈性欄、對手在下一列，≥1536px 左右 300px + 中央彈性欄。角色／作品 grid 使用容器 auto-fit（最小 280px，但不超過容器）。手牌維持獨立橫向捲動；長作品進度格從左側開始且可捲動。窄螢幕 header 隨頁面捲動，底部導覽五個區域、48px 按鈕並預留 safe area；Log 位於導覽上方。選取提示在底部導覽上方，一般與教學對局共用。技能名稱點擊可展開說明，觸控按鈕最小高度 44px。
+
+待額度恢復後，於 `01 Game Board` 補 390px／768px／1280px／1600px 版面 reference，重用 `02 Components` 的可編輯元件與 ART placeholder，不上傳 runtime raster。完成後再進行人工 design-to-code review。

@@ -295,3 +295,6 @@ Game Event
 6. `discussion-notes.md` 保存來源討論與歷史脈絡，不代表目前 runtime snapshot。
 
 遊戲規則或遊戲數據變更時，程式與上述對應文件必須在同一個 PR 中同步；詳細要求見 `AGENTS.md`。
+## Responsive battle UI
+
+Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽。導覽只捲動頁面，技能說明展開只影響顯示；不改變 phase、合法目標、使用次數、事件、計分或角色／卡牌資料。目標選取提示與取消控制現在也顯示於一般對局，仍呼叫原有 cancelSelection。
