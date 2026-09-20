@@ -145,7 +145,7 @@ replace_exact(
 )
 
 for path, expected in [
-    ('src/tests/targeting.test.ts', 5),
+    ('src/tests/targeting.test.ts', 6),
     ('src/tests/skill-targeting-contracts.test.ts', 4),
     ('src/tests/action-feedback.test.ts', 2),
 ]:
