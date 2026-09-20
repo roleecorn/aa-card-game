@@ -49,6 +49,7 @@ npm run test
 npm run build
 npm run verify
 npm run test:tutorial
+npm run test:assets
 npm run art:normalize
 npm run art:validate
 npm run image:inspect -- <file>
@@ -57,6 +58,8 @@ npm run image:webp -- <input> <output> --width 768 --height 1024 --fit cover
 npm run test:image-tools
 npm run storybook
 ```
+
+`npm run verify` 是 fresh checkout 的 canonical 驗證入口，順序固定為 `art:normalize → art:validate → test → build`。`art:normalize` 會在工作目錄重建 character compact derivative；圖片 binary 的正式 Git 提交仍遵守 `AGENTS.md` 的人工上傳／提交邊界。
 
 ## 對局模式
 
@@ -114,7 +117,9 @@ public/assets/characters/portrait/<character-id>.webp
 public/assets/characters/compact/<character-id>.webp
 ```
 
-正式 portrait 規格為 3:4、768×1024 WebP；compact slot 為 384×320 WebP。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+正式 portrait 規格為 3:4、768×1024 WebP；compact 是由 portrait 經 `art:normalize` 產生的 384×320 WebP derivative。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+
+目前 checked-in portrait 已 39/39 符合 canonical dimensions；compact 尚有 13 個歷史 384×512 binary migration exception。這些不是第二種合法尺寸，CI / release 會先 normalize 成 384×320；完整 exception ledger 與人工 refresh 規則見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。
 
 Repository 內建圖片工具：
 
@@ -172,7 +177,7 @@ src/content/<character-id>.ts
 - Asset registry / 共通規範：[`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 - 卡牌 SVG 美術：[`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)
-- 歷史驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
+- 驗證流程 / 歷史驗證：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
 - Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
 - Release workflow：[`docs/release-flow.md`](./docs/release-flow.md)
@@ -182,8 +187,15 @@ src/content/<character-id>.ts
 
 ```text
 aa-card-game/
-├─ public/assets/
+├─ public/
+│  ├─ assets/
+│  │  ├─ cards/
+│  │  └─ characters/
+│  │     ├─ portrait/
+│  │     └─ compact/
+│  └─ fonts/
 ├─ src/
+│  ├─ assets/             # Vite-bundled UI SVGs
 │  ├─ app/                # App routing + shared BattleRoom
 │  ├─ components/
 │  ├─ content/            # character/card/match/catalog
@@ -194,6 +206,7 @@ aa-card-game/
 │  └─ tests/
 ├─ docs/
 ├─ AGENTS.md
+├─ ASSET_CONVENTIONS.md
 ├─ GAME_RULES.md
 ├─ GAME_MANUAL.md
 ├─ ONLINE_MULTIPLAYER.md
@@ -210,7 +223,7 @@ aa-card-game/
 - Progress 依 `Design → Text → AA`。
 - 高骰可以覆蓋同類型低骰。
 - Work 通常增加 Stress；Slack 降低 Stress。
-- 作品類型為 `燃 / 謀 / 笑 / 情 / 色 / 怪`。
+- 作品類型為 `燃 / 謀 / 笑 / 情 / 怪`。
 - 角色技能與卡牌效果共用 data-driven effect pipeline。
 - Standard / Online 一般 roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
 - `planned` skill status 不會自動把角色排除出一般 roster；目前旁白與銀櫻仍可被 Standard 抽到，也可出現在 Online 候選池。
