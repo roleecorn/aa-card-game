@@ -29,6 +29,7 @@ jobs:
         run: |
           python scripts/apply-pr75-card-art-svg.py
           mv src/tests/card-art-style.test.ts scripts/card-art-style.test.ts
+          sed -i "s#from '../content/catalog'#from '../src/content/catalog'#" scripts/card-art-style.test.ts
       - name: Validate SVG XML and references
         run: |
           python - <<'PY'
