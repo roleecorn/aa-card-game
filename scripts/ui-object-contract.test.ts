@@ -5,14 +5,15 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const abs = (...parts: string[]) => path.join(ROOT, ...parts);
 
-const primitives = [
-  'CharacterCard',
-  'CharacterSelectionCard',
-  'HandCard',
-  'WorkCard',
-  'DieToken',
-] as const;
+const primitiveStories = {
+  CharacterCard: ['Default', 'Compact', 'HighStress', 'WithActions'],
+  CharacterSelectionCard: ['Full', 'Rail', 'Selected', 'CardBack'],
+  HandCard: ['Support', 'Event', 'Tilted'],
+  WorkCard: ['Default', 'BlueTone', 'AssigningDie'],
+  DieToken: ['Design', 'Text', 'AA', 'Selected'],
+} as const;
 
+const primitives = Object.keys(primitiveStories) as Array<keyof typeof primitiveStories>;
 const collections = ['CardHand', 'DiceTray', 'WorkBoard', 'TeamColumn'] as const;
 
 describe('runtime UI object registry', () => {
@@ -23,7 +24,7 @@ describe('runtime UI object registry', () => {
     expect(preview).toContain('<CssBaseline />');
   });
 
-  it('keeps every registered visual primitive paired with a colocated Storybook reference', async () => {
+  it('keeps every registered visual primitive paired with its canonical Storybook states', async () => {
     for (const name of primitives) {
       const componentPath = abs('src/components', `${name}.tsx`);
       const storyPath = abs('src/components', `${name}.stories.tsx`);
@@ -33,6 +34,11 @@ describe('runtime UI object registry', () => {
       const story = await fs.readFile(storyPath, 'utf8');
       expect(story, `${name} story title`).toContain(`title: 'Game/${name}'`);
       expect(story, `${name} story component`).toContain(`component: ${name}`);
+      for (const state of primitiveStories[name]) {
+        expect(story, `${name} should preserve the ${state} reference state`).toMatch(
+          new RegExp(`export\\s+const\\s+${state}\\s*:\\s*Story\\b`),
+        );
+      }
     }
   });
 
@@ -47,7 +53,7 @@ describe('runtime UI object registry', () => {
   it('keeps collection components as compositions rather than duplicate registered primitives', async () => {
     for (const name of collections) {
       await expect(fs.stat(abs('src/components', `${name}.tsx`)), `${name} collection component`).resolves.toBeTruthy();
-      expect(primitives).not.toContain(name as (typeof primitives)[number]);
+      expect(primitives).not.toContain(name as keyof typeof primitiveStories);
     }
   });
 });
