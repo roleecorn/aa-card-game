@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<!-- References: writer-block.svg (desk/device composition), overtime.svg (dark event palette). -->
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24354b"/><stop offset="1" stop-color="#66557d"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M156 372 h430 l36 56H124Z" fill="#504b55" stroke="#292b36" stroke-width="12"/>
+  <rect x="204" y="132" width="360" height="220" rx="20" fill="#9fb2c6" stroke="#37495f" stroke-width="13"/>
+  <rect x="238" y="166" width="292" height="148" rx="10" fill="#dbe9ee" stroke="#657d91" stroke-width="9"/>
+  <path d="M258 198 h86M370 198 h60M452 198 h55M272 239 h74M396 239 h102M250 281 h46M326 281 h90M448 281 h64" stroke="#7f6c96" stroke-width="11"/>
+  <path d="M338 154 l44 60-34 15 38 72" fill="none" stroke="#ffd36c" stroke-width="16"/>
+  <path d="M574 206 q64 20 48 78 q-12 42 35 56" fill="none" stroke="#d9d7e8" stroke-width="13"/>
+  <path d="M650 341 l-28-6 15-25" fill="none" stroke="#d9d7e8" stroke-width="12"/>
+  <path d="M126 173 q46-42 92 0M116 219 q57-44 112 0" fill="none" stroke="#fff" stroke-width="10" opacity=".65"/>
+</g>
+</svg>

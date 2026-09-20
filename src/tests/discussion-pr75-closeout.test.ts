@@ -33,7 +33,7 @@ describe('PR #75 closeout regressions', () => {
     const uniqueCardIds = [...new Set(BASE_DECK)];
     expect(uniqueCardIds.length).toBeGreaterThan(0);
     for (const cardId of uniqueCardIds) {
-      expect(CARDS[cardId]?.art, `${cardId} should have card art`).toMatch(/assets\/cards\/.+\.(?:svg|webp|png)$/);
+      expect(CARDS[cardId]?.art, `${cardId} should use canonical SVG card art`).toMatch(/assets\/cards\/.+\.svg$/);
     }
   });
 
