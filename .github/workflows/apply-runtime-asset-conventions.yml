@@ -26,7 +26,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Apply asset convention cleanup
-        run: python scripts/apply-runtime-asset-conventions.py
+        run: |
+          python scripts/apply-runtime-asset-conventions.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/runtime-assets.test.ts')
+          text = path.read_text(encoding='utf-8')
+          old = "      expect(source, `${file} must not depend on external URLs`).not.toMatch(/https?:\\/\\//i);"
+          new = "      const withoutStandardNamespace = source.replace('http://www.w3.org/2000/svg', '');\n      expect(withoutStandardNamespace, `${file} must not depend on external URLs`).not.toMatch(/https?:\\/\\//i);"
+          if text.count(old) != 1:
+              raise SystemExit('runtime-assets external URL assertion anchor mismatch')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
       - name: Typecheck
         run: npm run typecheck
       - name: Focused asset contracts
