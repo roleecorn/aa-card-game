@@ -26,7 +26,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Apply SVG correction
-        run: python scripts/apply-pr75-card-art-svg.py
+        run: |
+          python scripts/apply-pr75-card-art-svg.py
+          mv src/tests/card-art-style.test.ts scripts/card-art-style.test.ts
       - name: Validate SVG XML and references
         run: |
           python - <<'PY'
