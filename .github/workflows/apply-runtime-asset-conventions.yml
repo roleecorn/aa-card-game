@@ -42,6 +42,35 @@ jobs:
         run: npm run typecheck
       - name: Focused asset contracts
         run: npm run test:assets
+      - name: Audit checked-in character binary dimensions
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs/promises';
+          import path from 'node:path';
+          import sharp from 'sharp';
+
+          const families = [
+            ['portrait', 'public/assets/characters/portrait', 768, 1024],
+            ['compact', 'public/assets/characters/compact', 384, 320],
+          ];
+          let totalMismatch = 0;
+          for (const [family, dir, expectedWidth, expectedHeight] of families) {
+            const names = (await fs.readdir(dir)).filter((name) => name.endsWith('.webp')).sort();
+            const mismatches = [];
+            for (const name of names) {
+              const metadata = await sharp(path.join(dir, name)).metadata();
+              if (metadata.width !== expectedWidth || metadata.height !== expectedHeight) {
+                mismatches.push(`${name}=${metadata.width}x${metadata.height}`);
+              }
+            }
+            totalMismatch += mismatches.length;
+            console.log(`${family}: ${names.length - mismatches.length}/${names.length} checked-in files already canonical`);
+            if (mismatches.length) console.log(`${family} pre-normalize mismatches: ${mismatches.join(', ')}`);
+          }
+          console.log(`checked-in character dimension mismatches: ${totalMismatch}`);
+          JS
+      - name: Normalize character art for runtime validation
+        run: npm run art:normalize
       - name: Character binary validation
         run: npm run art:validate
       - name: Tutorial regression
@@ -50,6 +79,11 @@ jobs:
         run: npm run test
       - name: Production build
         run: npm run build
+      - name: Restore generated character binaries
+        run: |
+          while IFS= read -r file; do
+            git checkout HEAD -- "$file"
+          done < <(git ls-files 'public/assets/characters/portrait/*.webp' 'public/assets/characters/compact/*.webp')
       - name: Remove temporary audit/applicator files
         run: |
           rm scripts/apply-runtime-asset-conventions.py
