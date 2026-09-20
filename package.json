@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:tutorial": "vitest run src/tests/tutorial.test.ts",
     "test:assets": "vitest run scripts/card-art-style.test.ts scripts/runtime-assets.test.ts",
+    "test:cards": "vitest run scripts/card-authoring-contract.test.ts",
     "test:ui-objects": "vitest run scripts/ui-object-contract.test.ts",
     "test:watch": "vitest",
     "verify": "npm run art:normalize && npm run art:validate && npm run test && npm run build",
