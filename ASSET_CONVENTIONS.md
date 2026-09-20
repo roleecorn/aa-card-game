@@ -99,6 +99,7 @@ Run focused asset checks with:
 
 ```bash
 npm run test:assets
+npm run art:normalize
 npm run art:validate
 ```
 
