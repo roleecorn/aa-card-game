@@ -138,7 +138,6 @@ Repository 內建圖片工具：
 
 由 React/MUI 繪製的 reusable game object 不屬於圖片 asset family。其 canonical reference 目前包含 `CharacterCard`、`CharacterSelectionCard`、`HandCard`、`WorkCard`、`DieToken`；foundation 來自 `src/app/theme.ts`，isolated state 由 Storybook 保存。
 
-新增 reusable UI object 前必須先判定能否沿用既有 component variant/composition；完整 registry、placed-die mark 與 pending `DieToken` 的語意邊界、Storybook gate 見 [`UI_OBJECT_CONVENTIONS.md`](./UI_OBJECT_CONVENTIONS.md)。可用 `npm run test:ui-objects` 單獨驗證 registry contract；Figma / runtime mapping 見 [`FIGMA.md`](./FIGMA.md)。
 
 ## 規則與內容架構
 
@@ -192,7 +191,6 @@ src/content/<character-id>.ts
 - 卡牌 SVG 美術：[`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)
 - 驗證流程 / 歷史驗證：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
-- Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
 - Release workflow：[`docs/release-flow.md`](./docs/release-flow.md)
 - Repository-local agent skills：[`skills/README.md`](./skills/README.md)
 

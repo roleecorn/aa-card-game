@@ -227,7 +227,6 @@ CI / release workflow 另外執行資產與 build 驗證。
 
 BattleRoom 已增加容器自適應作品／角色排欄、窄螢幕底部區域導覽、44px 觸控按鈕、可點開的技能說明與一般對局目標選擇提示。Standard／Online 維持同一 component tree 與 runtime validator。
 
-Figma 同步尚未完成：此次同步請求被 Starter plan MCP 額度限制拒絕；版面規格與驗證紀錄見 FIGMA.md、docs/responsive-ui-validation.md。真實手機觸控與 Online 人工雙端測試仍須在 merge 前完成。
 
 ### 2026-09-19 discussion update — PR #75
 

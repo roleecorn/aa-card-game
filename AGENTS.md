@@ -188,15 +188,6 @@ npm run build
 - **角色 package 一輪只處理一名角色。** 除非使用者明確要求 multi-character batch。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
 
-## Figma
-
-- 視覺排版與 component design 的 Figma file：`https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH`。
-- GitHub/TypeScript 仍是 runtime logic source of truth；Figma 是 visual/layout source。
-- 修改 layout、spacing、typography 或 component composition 時應同步 Figma；從 Figma 回寫需經 design-to-code review。
-- Figma 只處理概念、流程與 layout；不要把 runtime raster asset 上傳／同步到 Figma 當發布流程。
-- 圖片與文字/UI layer 必須分離。
-- 詳見 `FIGMA.md`。
-
 ## Repository-local skills
 
 對應任務開始前讀取 `skills/` 下相關 `SKILL.md`：

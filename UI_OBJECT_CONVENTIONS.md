@@ -2,14 +2,12 @@
 
 本文件定義 repository 中**由 React / MUI 繪製、不是獨立圖片檔的 reusable visual object**。Asset 檔案本身仍由 `ASSET_CONVENTIONS.md` 管理。
 
-這份規範是從目前 production component、`src/app/theme.ts`、Storybook 與 `FIGMA.md` 整理出的既有慣例，不是新的 design system。
 
 ## 1. Source-of-truth hierarchy
 
 - **Foundation / runtime theme**：`src/app/theme.ts`
 - **Production implementation**：`src/components/*.tsx`
 - **Isolated runtime states**：同名 `*.stories.tsx`
-- **Design intent / layout composition**：`FIGMA.md` 所指向的 Figma file
 - **Binary / SVG art**：`ASSET_CONVENTIONS.md` 及 family-specific asset spec
 
 新增 reusable UI object 前，必須先找下表中職責最接近的 production component。能表達成既有 component 的 prop / variant / composition 時，不另建第二套同語意物件。
@@ -137,7 +135,6 @@ Before adding a reusable visual object:
 2. decide whether the need is a prop/variant/composition of that family;
 3. reuse `theme.ts`, shared subcomponents and semantic state conventions;
 4. if a truly new family is required, add it to this registry and define its production + Storybook reference in the same change;
-5. update Figma mapping only when the component boundary is stable;
 6. run Storybook/runtime review in addition to source tests for visual changes.
 
 A component existing somewhere in the repository is not automatically a design precedent. One-off screen layout, legacy code and duplicated markup must not become a new family without an explicit registry decision.
@@ -151,5 +148,3 @@ A component existing somewhere in the repository is not automatically a design p
 - each story must declare the expected `Game/<Component>` boundary;
 - `CharacterSelectionCard` must keep shared character data/subcomponent references rather than a parallel character model;
 - collection components remain separate from the primitive registry.
-
-These checks do not replace visual review. Exact spacing, composition and responsive behavior still require Storybook/runtime inspection and, where relevant, comparison with Figma.
