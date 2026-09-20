@@ -192,11 +192,11 @@ function broadcastDraft(draft: OnlineDraftState): boolean {
   });
 }
 
-function normalizeWorkTypeSelections(
+export function normalizeOnlineWorkTypeSelections(
+  draft: OnlineDraftState | null,
   side: OnlineDraftSide,
   requested: Record<string, WorkType>,
 ): Record<string, WorkType> | null {
-  const draft = useOnlineSession.getState().draft;
   if (!draft || draft.status !== 'complete') return null;
   const memberIds = side === 'host' ? draft.hostPicks : draft.guestPicks;
   const normalized: Record<string, WorkType> = {};
@@ -206,6 +206,13 @@ function normalizeWorkTypeSelections(
     normalized[memberId] = requestedType;
   }
   return normalized;
+}
+
+function normalizeWorkTypeSelections(
+  side: OnlineDraftSide,
+  requested: Record<string, WorkType>,
+): Record<string, WorkType> | null {
+  return normalizeOnlineWorkTypeSelections(useOnlineSession.getState().draft, side, requested);
 }
 
 function publishTimeoutNotice(title: string, message: string): void {

@@ -303,7 +303,7 @@ Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽
 
 - Live work types are now **燃 / 謀 / 笑 / 情 / 怪**; **色** is removed from the runtime vocabulary.
 - A work has one primary type plus optional extra types. Affinity checks and work-type skill conditions match any current type. A replace-type effect clears extra types; an add-type effect preserves the primary type.
-- Initial game construction supports an explicit legal work-type choice per character; choices must be within that character's effective affinity (including all-affinity passives). The player-facing selection UI is tracked separately from this engine contract.
+- Initial game construction and the player-facing setup flow both support an explicit legal work-type choice per character; choices must be within that character's effective affinity (including all-affinity passives). Offline selection happens after leader choice; Online protocol v3 collects Host and Guest selections independently before the authoritative GameState is created.
 - Dice rolls resolve against a shared forbidden-face set. If no legal face remains, that die disappears instead of retrying indefinitely.
 - Coordination-card stress cost must have a legal bearer before the card can be used. Vice-leader bearers are chosen by remaining Stress headroom, not raw Stress.
 - 指導 has coordination stress cost 0; it instead gives its target +1 Stress. A stat 0 target succeeds on 5–6, a stat 1 target succeeds on 6.
