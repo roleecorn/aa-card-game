@@ -57,8 +57,9 @@ export function getDiePlacementLegality(
 
   if (die.placement !== 'anyAllyWork' && die.skill !== 'aa' && work.ownerId !== die.ownerId) {
     const affinity = engine.getEffectiveAffinity(die.ownerId);
-    if (affinity !== 'all' && !affinity.includes(work.type)) {
-      return blocked(`此角色沒有「${work.type}」作品適性。`);
+    const workTypes = engine.getWorkTypes(work);
+    if (affinity !== 'all' && !workTypes.some((type) => affinity.includes(type))) {
+      return blocked(`此角色沒有「${workTypes.join(' / ')}」作品適性。`);
     }
   }
 
