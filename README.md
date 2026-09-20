@@ -132,6 +132,12 @@ Repository 內建圖片工具：
 
 所有 runtime/reference asset family 的 registry、路徑 ownership 與新增 gate 見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)，單卡 SVG 規格見 [`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)。
 
+## Runtime UI 物件
+
+由 React/MUI 繪製的 reusable game object 不屬於圖片 asset family。其 canonical reference 目前包含 `CharacterCard`、`CharacterSelectionCard`、`HandCard`、`WorkCard`、`DieToken`；foundation 來自 `src/app/theme.ts`，isolated state 由 Storybook 保存。
+
+新增 reusable UI object 前必須先判定能否沿用既有 component variant/composition；完整 registry、placed-die mark 與 pending `DieToken` 的語意邊界、Storybook gate 見 [`UI_OBJECT_CONVENTIONS.md`](./UI_OBJECT_CONVENTIONS.md)。Figma / runtime mapping 見 [`FIGMA.md`](./FIGMA.md)。
+
 ## 規則與內容架構
 
 角色技能不應散落成 `GameEngine` 裡的角色特判。主要流程：
@@ -175,6 +181,7 @@ src/content/<character-id>.ts
 - Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - Character authoring：[`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
 - Asset registry / 共通規範：[`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)
+- Runtime UI object registry：[`UI_OBJECT_CONVENTIONS.md`](./UI_OBJECT_CONVENTIONS.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
 - 卡牌 SVG 美術：[`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)
 - 驗證流程 / 歷史驗證：[`VALIDATION.md`](./VALIDATION.md)
@@ -197,7 +204,7 @@ aa-card-game/
 ├─ src/
 │  ├─ assets/             # Vite-bundled UI SVGs
 │  ├─ app/                # App routing + shared BattleRoom
-│  ├─ components/
+│  ├─ components/         # registered UI primitives + collections/dialogs
 │  ├─ content/            # character/card/match/catalog
 │  ├─ game/               # engine / skill runtime / online turn
 │  ├─ online/             # signaling / session / draft / rope / protocol
@@ -207,6 +214,7 @@ aa-card-game/
 ├─ docs/
 ├─ AGENTS.md
 ├─ ASSET_CONVENTIONS.md
+├─ UI_OBJECT_CONVENTIONS.md
 ├─ GAME_RULES.md
 ├─ GAME_MANUAL.md
 ├─ ONLINE_MULTIPLAYER.md
@@ -227,5 +235,3 @@ aa-card-game/
 - 角色技能與卡牌效果共用 data-driven effect pipeline。
 - Standard / Online 一般 roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
 - `planned` skill status 不會自動把角色排除出一般 roster；目前旁白與銀櫻仍可被 Standard 抽到，也可出現在 Online 候選池。
-
-這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。
