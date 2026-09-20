@@ -1,10 +1,28 @@
+import { execFileSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import { CHARACTERS } from '../src/content/catalog';
 
 const ROOT = process.cwd();
 const abs = (...parts: string[]) => path.join(ROOT, ...parts);
+
+const LEGACY_COMPACT_DIMENSION_EXCEPTIONS = [
+  'adao.webp',
+  'axu.webp',
+  'chidori.webp',
+  'e.webp',
+  'enki.webp',
+  'eryang.webp',
+  'ingrid.webp',
+  'linlan.webp',
+  'orangeangel.webp',
+  'pray.webp',
+  'ta.webp',
+  'tiantichilun.webp',
+  'zhise.webp',
+] as const;
 
 async function entries(dir: string) {
   return fs.readdir(abs(dir), { withFileTypes: true });
@@ -33,6 +51,15 @@ function basenames(values: Array<string | undefined>): string[] {
   return values.filter((value): value is string => Boolean(value)).map((value) => path.posix.basename(value)).sort();
 }
 
+async function headImageMetadata(file: string) {
+  const buffer = execFileSync('git', ['show', `HEAD:${file}`], {
+    cwd: ROOT,
+    encoding: 'buffer',
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return sharp(buffer).metadata();
+}
+
 describe('runtime asset registry', () => {
   it('keeps public/assets limited to registered card and character families', async () => {
     const rootEntries = await entries('public/assets');
@@ -54,6 +81,28 @@ describe('runtime asset registry', () => {
     expect(actualCompacts).toEqual(expectedCompacts);
     expect(actualPortraits.every((name) => /^[a-z0-9-]+\.webp$/.test(name))).toBe(true);
     expect(actualCompacts.every((name) => /^[a-z0-9-]+\.webp$/.test(name))).toBe(true);
+  });
+
+  it('locks checked-in character dimensions and permits only the documented legacy compact exceptions', async () => {
+    const portraitFiles = basenames(Object.values(CHARACTERS).map((character) => character.portrait));
+    for (const name of portraitFiles) {
+      const metadata = await headImageMetadata(`public/assets/characters/portrait/${name}`);
+      expect(metadata.width, `${name} portrait width`).toBe(768);
+      expect(metadata.height, `${name} portrait height`).toBe(1024);
+    }
+
+    const compactFiles = basenames(Object.values(CHARACTERS).map((character) => character.compactPortrait));
+    const observedLegacy: string[] = [];
+    for (const name of compactFiles) {
+      const metadata = await headImageMetadata(`public/assets/characters/compact/${name}`);
+      if (metadata.width === 384 && metadata.height === 320) continue;
+
+      expect(metadata.width, `${name} legacy compact width`).toBe(384);
+      expect(metadata.height, `${name} legacy compact height`).toBe(512);
+      observedLegacy.push(name);
+    }
+
+    expect(observedLegacy.sort()).toEqual([...LEGACY_COMPACT_DIMENSION_EXCEPTIONS].sort());
   });
 
   it('keeps source-bundled UI assets vector-only and self-contained', async () => {
