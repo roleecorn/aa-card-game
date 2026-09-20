@@ -171,4 +171,15 @@ describe('runtime asset registry', () => {
     const font = await fs.readFile(abs('public/fonts/noto-sans-tc-ui.woff2'));
     expect(font.subarray(0, 4).toString('ascii')).toBe('wOF2');
   });
+
+  it('keeps git text/binary handling aligned with the registered asset formats', async () => {
+    const attributes = await fs.readFile(abs('.gitattributes'), 'utf8');
+    expect(attributes).toContain('*.svg text eol=lf');
+    expect(attributes).toContain('*.png binary');
+    expect(attributes).toContain('*.jpg binary');
+    expect(attributes).toContain('*.jpeg binary');
+    expect(attributes).toContain('*.webp binary');
+    expect(attributes).toContain('*.woff2 binary');
+    expect(attributes).toContain('*.zip binary');
+  });
 });
