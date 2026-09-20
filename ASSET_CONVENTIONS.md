@@ -46,7 +46,10 @@
 
 - 不得把 384×512 視為合法 compact 尺寸；
 - 不得複製這 13 個舊檔的 geometry 作為新角色 reference；
-- runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序。
+- runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序；
+- `scripts/runtime-assets.test.ts` 會直接讀取 Git `HEAD` 中的 binary metadata，要求 **只有上述 13 個檔案**可以是 384×512；任何新增的 legacy-size compact、其他錯誤尺寸，或清單與實際 binary 不一致都會失敗。
+
+這個清單是 migration ledger，不是永久 allowlist。人工修正其中一個 binary 時，必須在同一個 commit 移除對應 exception；最終目標是清單歸零。
 
 ### Current bundled UI vector reference
 
@@ -84,6 +87,7 @@
 - only registered directories exist under `public/assets`;
 - card runtime assets are SVG-only;
 - portrait/compact directories contain exactly the assets referenced by `CHARACTERS` and no temp files;
+- checked-in portrait dimensions must all be canonical, while checked-in compact dimension exceptions must exactly match the migration ledger above;
 - `src/assets` is SVG-only, with a `viewBox`, no `<image>` raster embedding, and no external URL dependency;
 - production `src/` code does not hard-code root-absolute `/assets/...` literals;
 - runtime code does not reference `docs/art`;
