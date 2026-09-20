@@ -70,7 +70,19 @@ Event art may still use a lighter muted background when the closest existing ref
 
 Each newly authored SVG should include a short source comment naming its reference SVGs so the visual lineage remains inspectable without reading commit history.
 
-## 5. Implementation workflow
+## 5. Automated enforcement
+
+`scripts/card-art-style.test.ts` protects the established convention for Standard-deck card art. It verifies that:
+
+- every Standard-deck card points to `assets/cards/*.svg`;
+- every referenced card SVG uses the canonical `0 0 768 480` viewBox;
+- every referenced card SVG retains the `paper` and `crayon` texture definitions;
+- individual card SVGs do not embed raster content through `<image>`;
+- the 2026-09-19 additions retain comments naming their approved existing reference SVGs.
+
+This test is a guardrail, not a substitute for visual review. A technically valid SVG can still be rejected in review if its composition, palette, stroke language, or visual hierarchy does not match the cited references.
+
+## 6. Implementation workflow
 
 1. Read this file and inspect the named reference SVG(s).
 2. Reuse the established 768×480 skeleton and texture filters.
