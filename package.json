@@ -13,7 +13,7 @@
     "test:tutorial": "vitest run src/tests/tutorial.test.ts",
     "test:assets": "vitest run scripts/card-art-style.test.ts scripts/runtime-assets.test.ts",
     "test:watch": "vitest",
-    "verify": "npm run art:validate && npm run test && npm run build",
+    "verify": "npm run art:normalize && npm run art:validate && npm run test && npm run build",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "art:normalize": "tsx scripts/character-art.ts normalize",
