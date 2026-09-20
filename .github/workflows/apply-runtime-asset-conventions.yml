@@ -1,0 +1,53 @@
+name: Apply runtime asset conventions
+
+on:
+  push:
+    branches:
+      - feature/20260919-discussion-update-p3
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/20260919-discussion-update-p3
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply asset convention cleanup
+        run: python scripts/apply-runtime-asset-conventions.py
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Focused asset contracts
+        run: npm run test:assets
+      - name: Character binary validation
+        run: npm run art:validate
+      - name: Tutorial regression
+        run: npm run test:tutorial
+      - name: Full tests
+        run: npm run test
+      - name: Production build
+        run: npm run build
+      - name: Remove temporary audit/applicator files
+        run: |
+          rm scripts/apply-runtime-asset-conventions.py
+          rm .github/workflows/apply-runtime-asset-conventions.yml
+          rm .github/workflows/audit-runtime-assets.yml
+      - name: Commit validated asset conventions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: unify runtime asset conventions"
+          git push origin HEAD:feature/20260919-discussion-update-p3
