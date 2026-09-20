@@ -8,6 +8,7 @@ https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH
 
 - **GitHub / TypeScript**：遊戲規則、資料結構、互動邏輯、可執行 React/MUI 實作。
 - **Figma**：概念、流程、視覺排版、spacing、尺寸與 component composition。
+- **Runtime UI object registry**：可重用 React/MUI visual object 的 component boundary 與 reference 見 `UI_OBJECT_CONVENTIONS.md`。
 - **Figma 不負責保存、同步或發布 runtime raster 圖片。** 角色圖與卡牌圖的實際檔案只存在 GitHub runtime asset pipeline。
 - 圖片與文字/UI 在程式中仍必須分層；不要把名稱、能力值或技能說明烘焙進圖片。
 
@@ -38,6 +39,7 @@ Figma 不是自動覆寫 production code 的唯一來源。排版在 Figma 修�
 當 Figma component 與 React component 的邊界穩定後，應逐步加入 Figma Code Connect。目標 mapping：
 
 - `CharacterCard` ↔ `src/components/CharacterCard.tsx`
+- `CharacterSelectionCard` 是 character-card family 的 pre-match selection variant ↔ `src/components/CharacterSelectionCard.tsx`
 - `DieToken` ↔ `src/components/DieToken.tsx`
 - `HandCard` ↔ `src/components/HandCard.tsx`
 - `WorkCard` ↔ `src/components/WorkCard.tsx`
@@ -47,6 +49,9 @@ Collection component 另外保留：
 - `DiceTray`：排列多個 `DieToken`
 - `CardHand`：排列多個 `HandCard`
 - `WorkBoard`：排列多個 `WorkCard`
+- `TeamColumn`：組合隊伍／角色內容，不自行建立另一套角色卡 visual language
+
+`WorkCard` 進度格內的 compact `DiceFace` 是 placed-value mark；`DieToken` 是 pending / interactive die。兩者語意不同，詳細 boundary 見 `UI_OBJECT_CONVENTIONS.md`。
 
 Code Connect 只負責 component 對應與 design-to-code context，不代表 Figma 修改會自動部署到程式碼。
 
@@ -66,14 +71,17 @@ Figma 只保留概念／流程／layout 層級的 ART placeholder 或構圖意�
 npm run storybook
 ```
 
-目前 stories：
+目前 registered primitive stories：
 
 - `CharacterCard`：Default / Compact / HighStress / WithActions
+- `CharacterSelectionCard`：Full / Rail / Selected / CardBack
 - `HandCard`：Support / Event / Tilted
 - `DieToken`：Design / Text / AA / Selected
 - `WorkCard`：Default / BlueTone / AssigningDie
 
-Figma 處理 design intent；Storybook 顯示真正 React/MUI component 的執行結果。兩者應保持相同 component boundary。
+Storybook 透過 `.storybook/preview.tsx` 重用 production `theme.ts`，不得在 story 另建第二套 palette/theme。Figma 處理 design intent；Storybook 顯示真正 React/MUI component 的執行結果。兩者應保持相同 component boundary。
+
+完整 runtime UI object registry 與新增 gate 見 `UI_OBJECT_CONVENTIONS.md`。
 
 ## Code Connect 狀態
 
