@@ -1,62 +1,94 @@
 # Validation
 
-最後更新：2026-09-10
+最後更新：2026-09-20
 
-## Character art repair
+## Canonical repository validation
 
-2026-09-09 audit 確認先前四張 WebP 曾發生 binary 截斷：
+Fresh checkout 的主要驗證入口是：
 
-- happy.webp
-- triangle.webp
-- fengyang.webp
-- chaos.webp
+```bash
+npm ci
+npm run verify
+```
 
-症狀是 GitHub 上檔案存在，但 RIFF header 宣告的總長度大於實際 Git blob bytes，因此 GitHub 無法預覽。
-
-修復採 GitHub-side staging/reassembly，避免再次透過 connector 直接傳大型 binary。
-
-Repair Character Art workflow run `34302878793` 已成功執行：
-
-- 重新組合既有美術素材
-- `npm install`
-- `npm run art:normalize`
-- `npm run art:validate`
-- `npm run typecheck`
-- `npm run test`
-- `npm run build`
-
-驗證用 staging head：
-
-`fe4f1371234cce299199bf0de8ea53518380e189`
-
-## Character assets
-
-目前 10 張角色 portrait 都符合 runtime canonical format：
-
-- WebP
-- 768×1024
-- 3:4
-- sRGB
-- single-frame
-- RIFF 宣告長度與實際檔案 bytes 一致
-
-實際壓縮後檔案大小不要求相同。
-
-Pintbox、79、真白、銀櫻、旁白、藍風是由既有 legacy-quality 素材規範化為 768×1024 runtime derivative；這次沒有重新生成美術，因此不代表原始細節品質被提升。
-
-## Repository validation
-
-`npm run verify` 現在會先執行：
+`npm run verify` 本身負責完整且固定的順序：
 
 ```text
+npm run art:normalize
 npm run art:validate
 npm run test
 npm run build
 ```
 
-`UI Screenshot` workflow 也會先執行 `art:validate`，再跑 typecheck、Vitest、Vite 與 Chrome runtime render。
+`art:normalize` 是 verify 的正式一部分，不再由 CI 私下額外補做。原因是 character compact 是 portrait 的 generated derivative，而目前 Git tree 仍保留 13 個待人工 refresh 的歷史 384×512 compact binary；fresh checkout 必須先 normalize 才能得到 canonical runtime 384×320 derivatives。
 
-角色內容仍遵守 atomic package 規則；runtime UI 驗證必須使用真正 Vite/Chrome screenshot，不以 Figma 代替。
+若只修改 asset 規範或美術，可先跑 focused checks：
+
+```bash
+npm run test:assets
+npm run art:normalize
+npm run art:validate
+```
+
+所有 asset family、路徑 ownership、legacy exception 與新增 gate 以 `ASSET_CONVENTIONS.md` 為準。
+
+## CI / release pipeline
+
+PR / main / release CI：
+
+1. install dependencies；
+2. 產生目前 UI font subset；
+3. 跑 tutorial focused regression；
+4. 執行 `npm run verify`。
+
+因此本地 `npm run verify` 與 CI 的 character-art / test / build 主流程一致，不再存在 CI 才會額外 normalize 的隱藏前置條件。
+
+GitHub Pages release 因最後 build 需要 `--base=/aa-card-game/`，仍保留顯式步驟：font subset → `art:normalize` → `art:validate` → test → release-base build。角色美術順序仍與 canonical pipeline 一致。
+
+## Asset contract coverage
+
+`npm run test:assets` 目前包含：
+
+- `scripts/runtime-assets.test.ts`
+  - `public/` / `public/assets/` / character subdirectory registry；
+  - character portrait/compact path、pairing、`<character-id>.webp` naming；
+  - checked-in Git `HEAD` WebP format、single-frame、sRGB 與 canonical dimensions；
+  - 13 個 legacy compact dimension migration ledger，禁止新增第 14 個例外；
+  - `src/assets/*.svg` 自包含規則；
+  - scratch/backup 檔阻擋；
+  - deployment-base-safe public asset references；
+  - docs reference art 不得被 runtime import；
+  - font family / WOFF2 signature / `.gitattributes` text-binary boundary。
+- `scripts/card-art-style.test.ts`
+  - 所有 `CARDS`（不只 `BASE_DECK`）都必須引用 canonical individual SVG；
+  - 768×480 canvas、rounded frame、`bg` / `paper` / `crayon` structure；
+  - 禁止 raster `<image>`、baked `<text>`、script/foreignObject、external URL；
+  - `public/assets/cards/` 必須和 `CARDS[].art` 唯一檔案集合完全一致，禁止 orphan / missing art。
+
+## Character asset state
+
+目前角色數為 39：
+
+- portrait：39/39 checked-in binary 已符合 768×1024 WebP、sRGB、single-frame；
+- compact：26/39 checked-in binary 已符合 384×320；
+- 另 13 個歷史 compact checked-in binary 仍為 384×512，但仍必須是 `<character-id>.webp`、WebP、sRGB、single-frame。
+
+13 個 dimension exception 的完整清單與 migration 規則記錄在 `ASSET_CONVENTIONS.md`。CI / release runtime output 經 `art:normalize` 後會驗證為 39/39 canonical compact。這些 exception 只允許減少，不允許新增；人工 refresh 任一 binary 時，同一 commit 必須同步移除 exception。
+
+實際壓縮後檔案大小不要求相同。validator 會檢查 WebP RIFF 宣告長度與實際 bytes，檔案存在不代表 binary 完整。
+
+## Historical character-art repair note
+
+2026-09-09 audit 曾確認以下四張 WebP 發生 binary 截斷：
+
+- `happy.webp`
+- `triangle.webp`
+- `fengyang.webp`
+- `chaos.webp`
+
+症狀是 GitHub 上檔案存在，但 RIFF header 宣告的總長度大於實際 Git blob bytes，因此 GitHub 無法預覽。當時以 Repair Character Art workflow run `34302878793` 重組既有素材並完成 normalize / validate / typecheck / tests / build。
+
+這段保留為 incident history；目前 canonical 規則與實際驗證入口以上述 asset registry / `npm run verify` 為準。
 
 ## Tutorial regression checklist
 
