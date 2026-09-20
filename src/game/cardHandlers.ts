@@ -16,6 +16,10 @@ export function registerCardHandler(name: string, handler: CardHandler): void {
   handlers.set(name, handler);
 }
 
+export function hasCardHandler(name: string): boolean {
+  return handlers.has(name);
+}
+
 export function executeCardHandler(name: string, team: TeamState, card: CardDefinition, target: SkillActivationTarget, engine: EngineSession): boolean {
   const handler = handlers.get(name);
   if (!handler) {
