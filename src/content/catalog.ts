@@ -154,7 +154,7 @@ export const SKILLS: Record<string, SkillDefinition> = toRecord(allSkills);
 export const CHARACTERS: Record<string, CharacterDefinition> = toRecord(allCharacters);
 export const CARDS: Record<string, CardDefinition> = toRecord(cardList);
 
-export const WORK_TYPES: WorkType[] = ['燃', '謀', '笑', '情', '色', '怪'];
+export const WORK_TYPES: WorkType[] = ['燃', '謀', '笑', '情', '怪'];
 
 export const DEFAULT_CONTENT: GameContent = {
   skills: SKILLS,

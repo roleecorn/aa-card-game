@@ -17,6 +17,12 @@ export interface TimedStatModifier {
   expiresAfterRound: number;
 }
 
+export interface TimedRollConstraint {
+  id: string;
+  forbiddenFaces: DieValue[];
+  expiresAfterRound: number;
+}
+
 export interface StatusInstance {
   stacks: number;
   expiresAfterRound?: number;
@@ -28,6 +34,7 @@ export interface CharacterState {
   stress: number;
   permanentStats: CharacterDefinition['stats'];
   timedStatModifiers: TimedStatModifier[];
+  timedRollConstraints?: TimedRollConstraint[];
   skillUsage: Record<string, number>;
   statuses: Record<string, StatusInstance>;
   resources?: Record<string, number>;
@@ -38,6 +45,7 @@ export interface WorkState {
   ownerId: string;
   title: string;
   type: WorkType;
+  extraTypes?: WorkType[];
   length: number;
   slots: ProgressSlot[];
 }
@@ -111,6 +119,7 @@ export interface SkillActivationTarget {
   targetDieId?: string;
   skill?: SkillStat;
   voiceMode?: 'relief' | 'design' | 'text';
+  polishMode?: 'work' | 'pending';
 }
 
 export interface EffectContext {

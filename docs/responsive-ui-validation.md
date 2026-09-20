@@ -17,7 +17,6 @@ Presentation and local disclosure/scroll interactions only. No Engine, SkillRunt
 
 ## Outstanding review gates
 
-- Figma write blocked by Starter MCP call limit; no successful responsive canvas sync. Pending specification is in FIGMA.md.
 - Real-device touch, landscape/keyboard behavior and complete guided tutorial UI walkthrough still require human testing. Tutorial deterministic Engine/store regressions passed; this does not claim a complete browser walkthrough.
 - Online human two-end checklist in ONLINE_MULTIPLAYER.md still needs execution. No human review or merge authorization has been received.
 - Production build emits its existing >500kB chunk advisory and third-party Zod annotation warnings; build succeeds.
@@ -28,4 +27,3 @@ Presentation and local disclosure/scroll interactions only. No Engine, SkillRunt
 2. Verify actions, skill disclosure, horizontal hand/slot scrolling and Log. Select a die/card/skill, use navigation, resolve a legal target and cancel another selection.
 3. Complete Tutorial with its fixed roster and click restrictions; confirm targets and dialogs remain reachable.
 4. Exercise Online as mobile Host and mobile Guest against a desktop peer, including opponent turn, timeout and disconnect restrictions.
-5. Restore Figma access, sync responsive frames without raster uploads and complete design review before requesting merge separately.

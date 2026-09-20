@@ -48,28 +48,28 @@ describe('target legality', () => {
 
     work.type = '燃';
     work.slots[0]!.design = 5;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.type = '情';
     work.slots[0]!.design = undefined;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.slots[0]!.design = 5;
     work.slots[0]!.text = 4;
     grimm.stress = 2;
 
-    const plan = getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame');
+    const plan = getSkillSelectionPlan(engine, 'grimm', 'grimmLoveForTonelico');
     expect(plan.candidates.find((candidate) => candidate.id === work.id)?.allowed).toBe(true);
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(true);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(true);
 
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {
       workId: work.id,
       targetDieId: '0:design',
     })).toBe(true);
     expect(work.slots[0]!.design).toBe(3);
     expect(grimm.stress).toBe(1);
 
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {
       workId: work.id,
       targetDieId: '0:text',
     })).toBe(false);
@@ -116,8 +116,6 @@ describe('target legality', () => {
 
     engine.addCard('player', 'soothe', 1);
     const soothe = game.player.hand.find((card) => card.cardId === 'soothe')!;
-    expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(false);
-    engine.getCharacter('player', 'grimm')!.stress = 1;
     expect(getCardAvailability(engine, 'player', soothe).allowed).toBe(true);
 
     engine.addCard('player', 'polish', 1);

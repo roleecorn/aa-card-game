@@ -7,20 +7,11 @@ function ownWork(engine: ReturnType<typeof createSkillHarness>['engine'], ownerI
 }
 
 describe('active skill availability contracts', () => {
-  it('流星 only exposes 軌之共鳴 when the owner work is 燃 and a pending die exists', () => {
+  it('流星新版軌之共鳴是 passive，不建立 active target candidates', () => {
     const { engine } = createSkillHarness({ player: ['meteor'] });
-    const work = ownWork(engine, 'meteor');
-    work.type = '情';
-    const die = engine.grantDice('player', 'meteor', 'text', 1, 'setup', false)[0]!;
-
+    engine.grantDice('player', 'meteor', 'text', 1, 'setup', false);
     expect(getSkillAvailability(engine, 'meteor', 'meteorResonance').allowed).toBe(false);
-    expect(getSkillSelectionPlan(engine, 'meteor', 'meteorResonance').candidates
-      .find((candidate) => candidate.id === die.id)?.allowed).toBe(false);
-
-    work.type = '燃';
-    expect(getSkillAvailability(engine, 'meteor', 'meteorResonance').allowed).toBe(true);
-    expect(getSkillSelectionPlan(engine, 'meteor', 'meteorResonance').candidates
-      .find((candidate) => candidate.id === die.id)?.allowed).toBe(true);
+    expect(getSkillSelectionPlan(engine, 'meteor', 'meteorResonance').candidates).toHaveLength(0);
   });
 
   it('格林 availability requires a 情 work with existing progress', () => {
@@ -28,15 +19,15 @@ describe('active skill availability contracts', () => {
     const work = ownWork(engine, 'grimm');
     work.type = '燃';
     work.slots[0]!.design = 5;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.type = '情';
     work.slots[0] = {};
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.slots[0]!.design = 5;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(true);
-    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(true);
+    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmLoveForTonelico').candidates
       .find((candidate) => candidate.id === work.id)?.allowed).toBe(true);
   });
 

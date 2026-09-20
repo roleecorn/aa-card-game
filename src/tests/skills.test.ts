@@ -150,10 +150,12 @@ describe('additional discussion-ranked character cards', () => {
     expect(SKILLS.yashiroCute?.status).toBe('implemented');
     expect(SKILLS.yashiroStudious?.status).toBe('implemented');
 
-    for (const id of ['lemon', 'avocado', 'kitsu'] as const) {
-      expect(CHARACTERS[id]?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-      expect(CHARACTERS[id]?.maxStress).toBe(5);
-    }
+    expect(CHARACTERS.lemon?.stats).toEqual({ design: 1, text: 1, aa: 1 });
+    expect(CHARACTERS.lemon?.maxStress).toBe(5);
+    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 2 });
+    expect(CHARACTERS.kitsu?.maxStress).toBe(4);
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(3);
     expect(CHARACTERS.emotion?.stats).toEqual({ design: 1, text: 1, aa: 2 });
     expect(CHARACTERS.emotion?.maxStress).toBe(5);
     expect(SKILLS.emotionSpinningTop?.status).toBe('implemented');
@@ -195,31 +197,34 @@ describe('流星 complete character package', () => {
     expect(CHARACTERS.meteor?.skillIds).toContain('viceLeaderPower');
   });
 
-  it('軌言軌語 gives Design +1 for a 燃 work and 軌之共鳴 rerolls one die once per round', () => {
+  it('軌之共鳴 scales with every allied 燃 work and 軌言軌語 applies the fixed -1', () => {
     const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.999));
-    const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
-    work.type = '燃';
-    engine.skills.emit({ type: 'roundStart' });
-    expect(engine.getEffectiveStat('meteor', 'design')).toBe(1);
+    for (const work of game.player.works) {
+      work.extraTypes = [];
+      work.type = work.ownerId === 'mashiro' ? '情' : '燃';
+    }
+    expect(engine.getEffectiveStat('meteor', 'design')).toBe(1); // base 0 + 2 燃 - 1
 
-    const die = engine.grantDice('player', 'meteor', 'text', 1, 'test', false, 1)[0]!;
-    die.value = 1;
-    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(true);
-    expect(die.value).toBe(6);
-    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(false);
+    const mashiroWork = game.player.works.find((item) => item.ownerId === 'mashiro')!;
+    mashiroWork.extraTypes = ['燃'];
+    expect(engine.getEffectiveStat('meteor', 'design')).toBe(2); // base 0 + 3 燃 - 1
+    expect(SKILLS.meteorBurnDesign?.activation).toBe('passive');
+    expect(SKILLS.meteorResonance?.activation).toBe('passive');
   });
 
-  it('副組長力 makes 流星 take coordination-card stress when below the leader', () => {
+  it('副組長力 makes 流星 take coordination-card stress when it has more headroom than the leader', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, METEOR_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    engine.getCharacter('player', 'pintbox')!.stress = 2;
+    // Pintbox leader: effective cap 7, Stress 4 => headroom 3.
+    // Meteor: cap 4, Stress 0 => headroom 4.
+    engine.getCharacter('player', 'pintbox')!.stress = 4;
     engine.addCard('player', 'soothe', 1);
     const card = game.player.hand.find((item) => item.cardId === 'soothe')!;
 
     expect(engine.playCard('player', card.instanceId, { memberId: 'mashiro' })).toBe(true);
     expect(engine.getCharacter('player', 'meteor')?.stress).toBe(1);
-    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(2);
+    expect(engine.getCharacter('player', 'pintbox')?.stress).toBe(4);
   });
 });
 
@@ -317,46 +322,29 @@ describe('酪梨 complete character package', () => {
     enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
   };
 
-  it('uses the prototype baseline and production assets', () => {
-    expect(CHARACTERS.avocado?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-    expect(CHARACTERS.avocado?.maxStress).toBe(5);
-    expect(CHARACTERS.avocado?.portrait).toBe('/assets/characters/portrait/avocado.webp');
-    expect(CHARACTERS.avocado?.compactPortrait).toBe('/assets/characters/compact/avocado.webp');
-    expect(SKILLS.avocadoManual?.status).toBe('implemented');
+  it('uses the final P2 stats, affinity and skills', () => {
+    expect(CHARACTERS.avocado?.stats).toEqual({ design: 2, text: 1, aa: 0 });
+    expect(CHARACTERS.avocado?.maxStress).toBe(3);
+    expect(CHARACTERS.avocado?.affinities).toEqual(['謀']);
+    expect(CHARACTERS.avocado?.skillIds).toEqual(['avocadoGameTech', 'avocadoNeedsManual']);
+    expect(SKILLS.avocadoGameTech?.status).toBe('implemented');
+    expect(SKILLS.avocadoNeedsManual?.status).toBe('implemented');
   });
 
-  it('使用說明 adds one 指導 card at game start', () => {
+  it('no longer adds a Guide card at game start', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, AVOCADO_ROSTER);
-    expect(game.player.hand).toHaveLength(3);
-    expect(game.player.hand.some((item) => item.cardId === 'guide')).toBe(true);
+    expect(game.player.hand).toHaveLength(STANDARD_GAME_DEFINITION.rules.initialHandSize);
   });
 });
 
 describe('キツ complete character package', () => {
-  const KITSU_ROSTER = {
-    playerMemberIds: ['kitsu', 'avocado', 'emotion'],
-    enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
-  };
-
-  it('uses the prototype baseline and production assets', () => {
-    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 1 });
-    expect(CHARACTERS.kitsu?.maxStress).toBe(5);
-    expect(CHARACTERS.kitsu?.portrait).toBe('/assets/characters/portrait/kitsu.webp');
-    expect(CHARACTERS.kitsu?.compactPortrait).toBe('/assets/characters/compact/kitsu.webp');
-    expect(SKILLS.kitsuReplayThirty?.status).toBe('implemented');
-  });
-
-  it('重播三十次 rerolls the first self work die of 1 once per round', () => {
-    const game = createInitialGame(fixedRng(0.999), STANDARD_GAME_DEFINITION, KITSU_ROSTER);
-    const engine = new EngineSession(game, fixedRng(0.999));
-
-    const first = { id: 'kitsu-low-a', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [first], amount: 1, sourceKind: 'work' });
-    expect(first.value).toBe(6);
-
-    const second = { id: 'kitsu-low-b', ownerId: 'kitsu', skill: 'text' as const, value: 1 as const, round: 1, origin: '工作' };
-    engine.skills.emit({ type: 'afterRollBatch', teamId: 'player', actorId: 'kitsu', dice: [second], amount: 1, sourceKind: 'work' });
-    expect(second.value).toBe(1);
+  it('uses the final discussion-backed stats and passive skills', () => {
+    expect(CHARACTERS.kitsu?.stats).toEqual({ design: 1, text: 1, aa: 2 });
+    expect(CHARACTERS.kitsu?.maxStress).toBe(4);
+    expect(CHARACTERS.kitsu?.affinities).toEqual(['笑', '怪']);
+    expect(SKILLS.kitsuHappyElement?.status).toBe('implemented');
+    expect(SKILLS.kitsuAkihabara?.status).toBe('implemented');
+    expect(SKILLS.kitsuReplayThirty).toBeUndefined();
   });
 });
 
@@ -441,7 +429,9 @@ describe('discussion-backed character catalog', () => {
   it('keeps genuinely unsupported mechanics explicit without preserving obsolete permissions', () => {
     expect(SKILLS.triangleCoordination).toBeUndefined();
     expect(SKILLS.chaosVitality?.status).toBe('implemented');
-    expect(SKILLS.ginsakuraSupport?.description).toContain('目前整理紀錄沒有完整');
+    expect(SKILLS.ginsakuraSupport?.status).toBe('implemented');
+    expect(SKILLS.narratorLongForm?.status).toBe('implemented');
+    expect(SKILLS.narratorOsaka?.status).toBe('implemented');
   });
 });
 
@@ -492,7 +482,7 @@ describe('random standard roster selection', () => {
 
 describe('高興 complete character package', () => {
   it('uses the discussion-backed stats and unlimited stress', () => {
-    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 0 });
+    expect(CHARACTERS.happy?.stats).toEqual({ design: 3, text: 0, aa: 1 });
     expect(CHARACTERS.happy?.maxStress).toBeNull();
     expect(CHARACTERS.happy?.portrait).toBe('/assets/characters/portrait/happy.webp');
     expect(CHARACTERS.happy?.compactPortrait).toBe('/assets/characters/compact/happy.webp');
@@ -520,15 +510,16 @@ describe('高興 complete character package', () => {
     expect(added.every((instance) => DEFAULT_CONTENT.cards[instance.cardId]?.kind === 'coordination')).toBe(true);
   });
 
-  it('turns a work into 怪 when 高興 places a die into it', () => {
+  it('高興素 adds 怪 at game start and no longer replaces a work type on placement', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, HAPPY_ROSTER);
     const engine = new EngineSession(game, fixedRng(0.5));
-    const work = game.player.works.find((item) => item.ownerId === 'happy')!;
-    work.type = '謀';
+    const work = game.player.works.find((item) => item.ownerId === 'pintbox')!;
+    expect(engine.getWorkTypes(work)).toEqual(expect.arrayContaining([work.type, '怪']));
+    const beforeType = work.type;
     const die = engine.grantDice('player', 'happy', 'design', 1, 'test', false, 4)[0]!;
     die.value = 4;
     expect(engine.placeDie('player', die.id, work.id, 0)).toBe(true);
-    expect(work.type).toBe('怪');
+    expect(work.type).toBe(beforeType);
   });
 });
 

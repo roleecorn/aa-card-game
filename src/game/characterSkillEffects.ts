@@ -1,10 +1,11 @@
 import { registerCustomSkillEffect } from './customEffects';
 import type { EngineSession } from './engine';
 import type { DieToken } from './types';
+import { isExternalEffectBlocked } from './externalImmunity';
 
-function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): void {
+function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, sourceName: string): boolean {
   const before = die.value;
-  die.value = engine.rollDieFor(die.ownerId);
+  const rerolled = engine.rollDieFor(die.ownerId);
   const teamId = engine.findMemberTeam(die.ownerId);
   if (teamId) {
     engine.adjustStress(
@@ -16,7 +17,17 @@ function rerollLowDie(die: DieToken, engine: EngineSession, sourceId: string, so
       sourceId,
     );
   }
+  if (rerolled === undefined) {
+    if (teamId) {
+      const team = engine.getTeam(teamId);
+      team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+    }
+    engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 的骰子因沒有合法骰面而消失。`);
+    return false;
+  }
+  die.value = rerolled;
   engine.log(`${sourceName}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
+  return true;
 }
 
 registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
@@ -30,17 +41,28 @@ registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
   let rerolls = 0;
   for (const die of candidates.values()) {
     if (!repeatUntilThree) {
-      rerollLowDie(die, engine, context.ownerId, context.definition.name);
+      const survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
       rerolls += 1;
+      if (!survived && context.event.dice) {
+        context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+      }
       continue;
     }
 
     let attempts = 0;
+    let survived = true;
     while (die.value <= 2 && attempts < 20) {
-      rerollLowDie(die, engine, context.ownerId, context.definition.name);
+      survived = rerollLowDie(die, engine, context.ownerId, context.definition.name);
       rerolls += 1;
       attempts += 1;
+      if (!survived) {
+        if (context.event.dice) {
+          context.event.dice.splice(0, context.event.dice.length, ...context.event.dice.filter((candidate) => candidate.id !== die.id));
+        }
+        break;
+      }
     }
+    if (!survived) continue;
     if (die.value <= 2) {
       // Deterministic/faulty RNG must not be able to hang a triggered skill forever.
       die.value = 3;
@@ -50,6 +72,97 @@ registerCustomSkillEffect('reviewLowPendingDice', (effect, context, engine) => {
   return rerolls > 0;
 });
 
+registerCustomSkillEffect('pintboxTeamReview', (_effect, context, engine) => {
+  const team = engine.getTeam(context.ownerTeamId);
+  let changed = false;
+
+  for (const member of [...team.members]) {
+    let passes = 0;
+    while (passes < 20) {
+      const low = team.pendingDice.filter((die) => die.ownerId === member.defId && die.value <= 2);
+      if (!low.length) break;
+
+      // The Stress change resolves first. If it exceeds the cap, the common Stress rule
+      // clears this member's pending dice before we attempt any reroll.
+      engine.adjustStress(context.ownerTeamId, member.defId, 1, context.definition.name, true, context.ownerId);
+      changed = true;
+      const stillPending = new Set(team.pendingDice.filter((die) => die.ownerId === member.defId).map((die) => die.id));
+      if (!stillPending.size) break;
+
+      for (const die of low) {
+        if (!stillPending.has(die.id)) continue;
+        const rerolled = engine.rollDieFor(die.ownerId);
+        if (rerolled === undefined) {
+          team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+          continue;
+        }
+        die.value = rerolled;
+      }
+      passes += 1;
+    }
+    if (passes >= 20 && team.pendingDice.some((die) => die.ownerId === member.defId && die.value <= 2)) {
+      engine.log(`${context.definition.name}：${engine.getDefinition(member.defId).name} 的低點骰重擲達到安全上限，停止本次處理。`);
+    }
+  }
+  return changed;
+});
+
+registerCustomSkillEffect('avocadoNeedsManual', (_effect, context, engine) => {
+  if (context.event.type !== 'cardPlayed' || context.event.sourceKind !== 'coordination') return false;
+  const cardId = context.event.metadata?.cardId;
+  if (typeof cardId !== 'string') return false;
+  const card = engine.content.cards[cardId];
+  // Latest rule only reacts to a coordination card aimed at another member.
+  // Work-target and team-wide cards are explicit exceptions.
+  if (!card || card.target.kind !== 'member' || !context.event.targetId || context.event.targetId === context.ownerId) return false;
+  engine.adjustStress(context.ownerTeamId, context.ownerId, 1, context.definition.name);
+  return true;
+});
+
+registerCustomSkillEffect('narratorAlligator', (_effect, context, engine) => {
+  const workId = context.activationTarget?.workId;
+  if (!workId) return false;
+  const work = engine.getTeam(context.ownerTeamId).works.find((candidate) => candidate.id === workId);
+  if (!work) return false;
+  if (isExternalEffectBlocked(engine, context, work.ownerId)) return true;
+  const slotIndex = work.slots.findIndex((slot) => slot.design === undefined);
+  const slot = work.slots[slotIndex];
+  if (!slot) return false;
+  const value = engine.rollDieFor(context.ownerId);
+  if (value === undefined) return false;
+  slot.design = value;
+  work.type = '笑';
+  work.extraTypes = [];
+  engine.skills.emit({
+    type: 'afterDiePlaced', teamId: context.ownerTeamId, actorId: context.ownerId,
+    skill: 'design', workId: work.id, amount: value, metadata: { slotIndex, reason: context.definition.id },
+  });
+  return true;
+});
+
+registerCustomSkillEffect('ginsakuraSupport', (_effect, context, engine) => {
+  const sourceId = context.activationTarget?.sourceDieId;
+  const targetId = context.activationTarget?.targetDieId;
+  if (!sourceId || !targetId || sourceId === targetId) return false;
+  const team = engine.getTeam(context.ownerTeamId);
+  const source = team.pendingDice.find((die) => die.id === sourceId);
+  const target = team.pendingDice.find((die) => die.id === targetId);
+  if (!source || !target || source.ownerId !== context.ownerId || target.ownerId === context.ownerId) return false;
+  if (isExternalEffectBlocked(engine, context, target.ownerId)) return true;
+
+  const event = engine.skills.emit({
+    type: 'beforeDieModified', teamId: context.ownerTeamId, actorId: context.ownerId,
+    targetId: target.ownerId, sourceId: source.ownerId, dieId: target.id, skill: target.skill,
+    metadata: { reason: context.definition.id },
+  });
+  if (event.cancelled) return false;
+  target.value = source.value;
+  engine.skills.emit({ ...event, type: 'afterDieModified' });
+  team.pendingDice = team.pendingDice.filter((die) => die.id !== source.id);
+  engine.adjustStress(context.ownerTeamId, context.ownerId, -1, context.definition.name);
+  return true;
+});
+
 registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
   const team = engine.getTeam(context.ownerTeamId);
@@ -57,7 +170,7 @@ registerCustomSkillEffect('fengyangWakeUp', (_effect, context, engine) => {
   if (!owner || maxStress === null || maxStress === undefined || owner.stress < maxStress) return false;
 
   if (team.leaderId === context.ownerId) {
-    engine.log(`${context.definition.name}：風揚就是組長，-1 與 +1 Stress 互相抵消。`);
+    engine.log(`${context.definition.name}：${engine.getDefinition(context.ownerId).name} 就是組長，-1 與 +1 Stress 互相抵消。`);
     return true;
   }
 

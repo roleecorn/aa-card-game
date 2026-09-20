@@ -6,6 +6,8 @@ dist/
 .vite/
 coverage/
 *.tsbuildinfo
+/vite.config.js
+/vite.config.d.ts
 
 # Local environment
 .env
@@ -35,6 +37,9 @@ desktop.ini
 # Temporary / generated local files
 .tmp/
 tmp/
+*.tmp
+*.bak
+*~
 *.local
 
 # Archives are release artifacts, not source

@@ -66,7 +66,7 @@ describe('skill authoring contracts', () => {
     expect(excluded).toEqual(['chaos']);
     expect(isStandardPlayableCharacterId('narrator')).toBe(true);
     expect(isStandardPlayableCharacterId('ginsakura')).toBe(true);
-    expect(plannedPlayableCharacters).toEqual(['ginsakura', 'narrator']);
+    expect(plannedPlayableCharacters).toEqual([]);
     expect(selectionPool).toEqual(expect.arrayContaining(['narrator', 'ginsakura']));
   });
 

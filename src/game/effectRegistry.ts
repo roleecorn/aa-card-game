@@ -49,7 +49,15 @@ export const builtInEffects = new EffectRegistry()
     const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
     const amount = numberValue(effect.amount, context);
     for (const { teamId, member } of targets) {
-      engine.adjustStress(teamId, member.defId, amount, effect.source ?? context.definition.name, effect.external ?? false, context.ownerId);
+      engine.adjustStress(
+        teamId,
+        member.defId,
+        amount,
+        effect.source ?? context.definition.name,
+        effect.external ?? false,
+        context.ownerId,
+        effect.allowNegative ?? false,
+      );
     }
     return selectedMembers.length > 0;
   })
@@ -83,11 +91,13 @@ export const builtInEffects = new EffectRegistry()
   .register('dice.grantBestOf', (effect, context, engine) => {
     if (effect.requireOwnerWorkType) {
       const ownerWork = engine.getTeam(context.ownerTeamId).works.find((work) => work.ownerId === context.ownerId);
-      if (ownerWork?.type !== effect.requireOwnerWorkType) return false;
+      if (!ownerWork || !engine.workHasType(ownerWork, effect.requireOwnerWorkType)) return false;
     }
     const { selected: selectedMembers, applicable: targets, blocked } = resolveEffectMembers(effect.target, context, engine);
     if (!targets.length) return selectedMembers.length > 0;
-    const rolls = Array.from({ length: effect.rolls }, () => engine.rollDieFor(context.ownerId));
+    const rolls = Array.from({ length: effect.rolls }, () => engine.rollDieFor(context.ownerId))
+      .filter((value): value is NonNullable<typeof value> => value !== undefined);
+    if (!rolls.length) return blocked && selectedMembers.length > 0;
     const best = Math.max(...rolls);
     let grantedCount = 0;
     for (const { teamId, member } of targets) {
@@ -116,7 +126,18 @@ export const builtInEffects = new EffectRegistry()
         continue;
       }
       const before = die.value;
-      die.value = engine.rollDieFor(die.ownerId);
+      const rerolled = engine.rollDieFor(die.ownerId);
+      if (rerolled === undefined) {
+        if (context.event.dice) context.event.dice = context.event.dice.filter((candidate) => candidate.id !== die.id);
+        for (const teamId of ['player', 'enemy'] as const) {
+          const team = engine.getTeam(teamId);
+          team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+        }
+        changed += 1;
+        engine.log(`${context.definition.name}：${engine.getDefinition(die.ownerId).name} 的骰子因沒有任何合法骰面而消失。`);
+        continue;
+      }
+      die.value = rerolled;
       changed += 1;
       engine.log(`${context.definition.name}：${engine.getDefinition(die.ownerId).name} 重擲 ${before} → ${die.value}。`);
     }
@@ -248,8 +269,32 @@ export const builtInEffects = new EffectRegistry()
   })
   .register('work.type', (effect, context, engine) => {
     const { selected: selectedWorks, applicable: works } = resolveEffectWorks(effect.target, context, engine);
-    for (const work of works) work.type = effect.workType;
+    for (const work of works) {
+      work.type = effect.workType;
+      work.extraTypes = [];
+    }
     return selectedWorks.length > 0;
+  })
+  .register('work.type.add', (effect, context, engine) => {
+    const { selected: selectedWorks, applicable: works } = resolveEffectWorks(effect.target, context, engine);
+    for (const work of works) {
+      if (!engine.workHasType(work, effect.workType)) {
+        work.extraTypes ??= [];
+        work.extraTypes.push(effect.workType);
+      }
+    }
+    return selectedWorks.length > 0;
+  })
+  .register('roll.forbid', (effect, context, engine) => {
+    const { selected: selectedMembers, applicable: targets } = resolveEffectMembers(effect.target, context, engine);
+    for (const { member } of targets) {
+      (member.timedRollConstraints ??= []).push({
+        id: engine.uid('roll-constraint'),
+        forbiddenFaces: [...new Set(effect.faces)].map((face) => engine.asDieValue(face)),
+        expiresAfterRound: engine.state.round,
+      });
+    }
+    return selectedMembers.length > 0;
   })
   .register('work.progress.add', (effect, context, engine) => {
     const { selected: selectedWorks, applicable: works, blocked } = resolveEffectWorks(effect.target, context, engine);

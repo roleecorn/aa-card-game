@@ -123,7 +123,8 @@ registerCustomSkillEffect('rollOwnerDiceAndKeepAtLeast', (effect, context, engin
   let retainedTotal = 0;
   for (const [skill, rawCount] of [['design', designCount], ['text', textCount]] as const) {
     const count = Math.max(0, Math.floor(rawCount));
-    const rolled = Array.from({ length: count }, () => engine.rollDieFor(context.ownerId));
+    const rolled = Array.from({ length: count }, () => engine.rollDieFor(context.ownerId))
+      .filter((value): value is NonNullable<typeof value> => value !== undefined);
     const retained = rolled
       .filter((value) => value >= minValue)
       .map((value) => ({
@@ -183,11 +184,13 @@ registerCustomSkillEffect('grantOwnerDesignIfActorLeaderDesignAtLeast', (effect,
   if (!context.event.actorId || context.event.actorId !== team.leaderId || context.ownerId === team.leaderId) return false;
   if (!context.event.dice?.some((die) => die.skill === 'design' && die.value >= minValue)) return false;
 
-  const die = {
+  const value = engine.rollDieFor(context.ownerId);
+  if (value === undefined) return false;
+  const die: DieToken = {
     id: engine.uid('die'),
     ownerId: context.ownerId,
-    skill: 'design' as const,
-    value: engine.rollDieFor(context.ownerId),
+    skill: 'design',
+    value,
     round: engine.state.round,
     origin: context.definition.name,
   };
@@ -258,21 +261,43 @@ registerCustomSkillEffect('normalizeForbiddenEventDice', (effect, context, engin
   const rawValues = effect.args?.values;
   const rawSkills = effect.args?.skills;
   if (!dice?.length || !Array.isArray(rawValues)) return false;
-  const forbidden = new Set(rawValues.filter((value): value is number => typeof value === 'number'));
+  const localForbidden = new Set(rawValues.filter((value): value is number => typeof value === 'number'));
   const restrictedSkills = Array.isArray(rawSkills)
     ? new Set(rawSkills.filter((skill): skill is SkillStat => SKILLS.includes(skill as SkillStat)))
     : undefined;
   let changed = false;
 
-  for (const die of dice) {
+  for (const die of [...dice]) {
     if (restrictedSkills && !restrictedSkills.has(die.skill)) continue;
-    if (!forbidden.has(die.value)) continue;
+    if (!localForbidden.has(die.value)) continue;
     const original = die.value;
-    let next = original;
-    for (let attempt = 0; attempt < 20 && forbidden.has(next); attempt += 1) next = engine.rollDieFor(die.ownerId);
-    if (forbidden.has(next)) {
-      const allowed = ([1, 2, 3, 4, 5, 6] as const).filter((value) => !forbidden.has(value));
-      next = allowed.sort((a, b) => Math.abs(a - original) - Math.abs(b - original))[0] ?? 1;
+    const globalForbidden = engine.skills.getForbiddenRollFaces(die.ownerId);
+    const allowed = ([1, 2, 3, 4, 5, 6] as const)
+      .filter((value) => !localForbidden.has(value) && !globalForbidden.has(value));
+    if (!allowed.length) {
+      dice.splice(0, dice.length, ...dice.filter((candidate) => candidate.id !== die.id));
+      for (const teamId of ['player', 'enemy'] as const) {
+        const team = engine.getTeam(teamId);
+        team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+      }
+      engine.log(`${context.definition.name}：骰子因沒有任何合法骰面而消失。`);
+      changed = true;
+      continue;
+    }
+
+    let next = engine.rollDieFor(die.ownerId);
+    let attempts = 1;
+    while (next !== undefined && localForbidden.has(next) && attempts < 20) {
+      next = engine.rollDieFor(die.ownerId);
+      attempts += 1;
+    }
+    if (next === undefined) {
+      dice.splice(0, dice.length, ...dice.filter((candidate) => candidate.id !== die.id));
+      changed = true;
+      continue;
+    }
+    if (localForbidden.has(next)) {
+      next = allowed.sort((a, b) => Math.abs(a - original) - Math.abs(b - original))[0]!;
     }
     die.value = engine.asDieValue(next);
     changed = true;
@@ -288,7 +313,15 @@ registerCustomSkillEffect('rerollOwnerLowestPending', (effect, context, engine) 
     .sort((a, b) => a.value - b.value)
     .slice(0, count);
   if (!dice.length) return false;
-  for (const die of dice) die.value = engine.rollDieFor(context.ownerId);
+  const team = engine.getTeam(context.ownerTeamId);
+  for (const die of dice) {
+    const rerolled = engine.rollDieFor(context.ownerId);
+    if (rerolled === undefined) {
+      team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+      continue;
+    }
+    die.value = rerolled;
+  }
   return true;
 });
 
@@ -299,7 +332,13 @@ registerCustomSkillEffect('rerollSelectedOwnerDieIfWorkType', (effect, context, 
   if (typeof workType !== 'string' || !dieId || !work || work.type !== workType) return false;
   const die = engine.getTeam(context.ownerTeamId).pendingDice.find((candidate) => candidate.id === dieId && candidate.ownerId === context.ownerId);
   if (!die) return false;
-  die.value = engine.rollDieFor(context.ownerId);
+  const rerolled = engine.rollDieFor(context.ownerId);
+  if (rerolled === undefined) {
+    const team = engine.getTeam(context.ownerTeamId);
+    team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== die.id);
+    return true;
+  }
+  die.value = rerolled;
   return true;
 });
 
@@ -437,11 +476,13 @@ registerCustomSkillEffect('orangeangelResonanceIfNeeded', (effect, context, engi
   const key = 'orangeangelResonance:game';
   if ((member.skillUsage[key] ?? 0) > 0) return false;
   const projected = typeof effect.args?.projectedStress === 'number' ? effect.args.projectedStress : 0;
-  if (member.stress + projected < 3) return false;
+  const maxStress = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
+  if (maxStress === undefined || maxStress === null || member.stress + projected <= maxStress) return false;
   const work = ownerWork(context, engine);
   if (!work) return false;
   const filled = fillOwnerRemainingRandom(context, engine);
   work.type = '怪';
+  work.extraTypes = [];
   member.skillUsage[key] = 1;
   engine.log(`${engine.getDefinition(context.ownerId).name} 發動「姆咪共鳴」，作品轉為（怪）並補完剩餘進度。`);
   return filled > 0 || true;

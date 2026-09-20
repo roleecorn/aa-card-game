@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const skillStatSchema = z.enum(['design', 'text', 'aa']);
-export const workTypeSchema = z.enum(['燃', '謀', '笑', '情', '色', '怪']);
+export const workTypeSchema = z.enum(['燃', '謀', '笑', '情', '怪']);
 export const teamIdSchema = z.enum(['player', 'enemy']);
 export const usageScopeSchema = z.enum(['round', 'game']);
 
@@ -59,6 +59,7 @@ export type SkillCondition =
   | { kind: 'not'; condition: SkillCondition }
   | { kind: 'relation'; field: 'actorId' | 'targetId' | 'sourceId'; relation: 'self' | 'ally' | 'otherAlly' | 'enemy' }
   | { kind: 'ownerStress'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
+  | { kind: 'ownerStressBelowCap' }
   | { kind: 'memberStress'; target: z.infer<typeof memberSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventAmount'; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number }
   | { kind: 'eventSkill'; skill: 'design' | 'text' | 'aa' }
@@ -73,6 +74,7 @@ export type SkillCondition =
   | { kind: 'workScore'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
   | { kind: 'workLength'; target: z.infer<typeof workSelectorSchema>; op: 'eq' | 'ne' | 'lt' | 'lte' | 'gt' | 'gte'; value: number; quantifier?: 'any' | 'all' }
   | { kind: 'workHasProgress'; target: z.infer<typeof workSelectorSchema>; skill?: 'design' | 'text' | 'aa'; quantifier?: 'any' | 'all' }
+  | { kind: 'workHasEmptyProgress'; target: z.infer<typeof workSelectorSchema>; skill?: 'design' | 'text' | 'aa'; quantifier?: 'any' | 'all' }
   | { kind: 'chance'; probability: number };
 
 export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
@@ -91,6 +93,7 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
       op: z.enum(['eq', 'ne', 'lt', 'lte', 'gt', 'gte']),
       value: z.number(),
     }),
+    z.object({ kind: z.literal('ownerStressBelowCap') }),
     z.object({
       kind: z.literal('memberStress'),
       target: memberSelectorSchema,
@@ -162,6 +165,12 @@ export const conditionSchema: z.ZodType<SkillCondition> = z.lazy(() =>
       quantifier: z.enum(['any', 'all']).optional(),
     }),
     z.object({
+      kind: z.literal('workHasEmptyProgress'),
+      target: workSelectorSchema,
+      skill: skillStatSchema.optional(),
+      quantifier: z.enum(['any', 'all']).optional(),
+    }),
+    z.object({
       kind: z.literal('chance'),
       probability: z.number().min(0).max(1),
     }),
@@ -174,6 +183,7 @@ export const effectSchema = z.discriminatedUnion('kind', [
     target: memberSelectorSchema,
     amount: numberValueSchema,
     external: z.boolean().optional(),
+    allowNegative: z.boolean().optional(),
     source: z.string().optional(),
   }),
   z.object({
@@ -266,6 +276,13 @@ export const effectSchema = z.discriminatedUnion('kind', [
     min: z.number().int().positive().optional(),
   }),
   z.object({ kind: z.literal('work.type'), target: workSelectorSchema, workType: workTypeSchema }),
+  z.object({ kind: z.literal('work.type.add'), target: workSelectorSchema, workType: workTypeSchema }),
+  z.object({
+    kind: z.literal('roll.forbid'),
+    target: memberSelectorSchema,
+    faces: z.array(z.number().int().min(1).max(6)).min(1),
+    duration: z.literal('round').default('round'),
+  }),
   z.object({
     kind: z.literal('work.progress.add'),
     target: workSelectorSchema,
@@ -308,6 +325,18 @@ export const effectSchema = z.discriminatedUnion('kind', [
 export const passiveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('affinity.grant'), types: z.union([z.array(workTypeSchema), z.literal('all')]) }),
   z.object({ kind: z.literal('roll.floor'), value: z.number().int().min(1).max(6) }),
+  z.object({ kind: z.literal('roll.forbid'), faces: z.array(z.number().int().min(1).max(6)).min(1) }),
+  z.object({ kind: z.literal('stat.modify'), skill: skillStatSchema, amount: z.number().int() }),
+  z.object({
+    kind: z.literal('stat.workTypeCount'),
+    skill: skillStatSchema,
+    workType: workTypeSchema,
+    amountPerWork: z.number().int(),
+    offset: z.number().int().default(0),
+    excludeOwnerWork: z.boolean().default(false),
+    minBonus: z.number().int().optional(),
+    maxBonus: z.number().int().optional(),
+  }),
   z.object({ kind: z.literal('coordination.stressBearer'), allowEqual: z.boolean().default(false) }),
   z.object({ kind: z.literal('effect.immunity'), source: z.literal('external') }),
 ]);
@@ -338,7 +367,12 @@ export const activeTargetSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'otherAlly', 'enemy']) }),
   z.object({ kind: z.literal('taggedMember'), tag: z.string().min(1), excludeSelf: z.boolean().default(false) }),
   z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy', 'owner']) }),
-  z.object({ kind: z.literal('copyPendingDie'), source: z.literal('otherAlly'), target: z.literal('self') }),
+  z.object({
+    kind: z.literal('copyPendingDie'),
+    source: z.enum(['self', 'otherAlly']),
+    target: z.enum(['self', 'otherAlly']),
+    requireValueChange: z.boolean().default(true),
+  }),
   z.object({
     kind: z.literal('pendingDie'),
     relation: z.enum(['self', 'ally', 'otherAlly', 'enemy']),
@@ -393,11 +427,13 @@ export const cardDefinitionSchema = z.object({
   kind: z.enum(['coordination', 'event']),
   description: z.string().min(1),
   art: z.string().optional(),
+  coordinationStressCost: z.number().int().nonnegative().optional(),
   target: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('none') }),
     z.object({ kind: z.literal('member'), relation: z.enum(['ally', 'enemy']), skillPicker: z.boolean().optional() }),
     z.object({ kind: z.literal('work'), relation: z.enum(['ally', 'enemy']) }),
     z.object({ kind: z.literal('voiceMode') }),
+    z.object({ kind: z.literal('polishMode') }),
   ]),
   effects: z.array(effectSchema).optional(),
   customHandler: z.string().optional(),

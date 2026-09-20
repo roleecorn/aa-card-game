@@ -227,4 +227,17 @@ CI / release workflow 另外執行資產與 build 驗證。
 
 BattleRoom 已增加容器自適應作品／角色排欄、窄螢幕底部區域導覽、44px 觸控按鈕、可點開的技能說明與一般對局目標選擇提示。Standard／Online 維持同一 component tree 與 runtime validator。
 
-Figma 同步尚未完成：此次同步請求被 Starter plan MCP 額度限制拒絕；版面規格與驗證紀錄見 FIGMA.md、docs/responsive-ui-validation.md。真實手機觸控與 Online 人工雙端測試仍須在 merge 前完成。
+
+### 2026-09-19 discussion update — PR #75
+
+Implemented and automated-regression-covered on `feature/20260919-discussion-update-p3`:
+
+- **P0 shared rules/setup**: removed live work type `色`; added primary + additive work types; initial work-type selection in Offline and Online protocol v3; shared forbidden-face roll constraints; no-legal-face die removal; coordination Stress-bearer headroom legality; updated 指導 semantics.
+- **P1 card pool**: Standard deck is 15 cards (10 coordination / 5 event) with the finalized 安撫、一對一討論、指導、語音會議、精修、靈感爆發、趕工、突發加班、突發事故、卡文、技術故障、思維阻滯 behavior. Standard draw timing remains 10 cards per player through round 5.
+- **P2 finalized characters**: updated 高興、酪梨、Pintbox、E、流星、Enki、旁白、銀櫻、キツ; fixed 姆咪共鳴 effective-cap trigger and preserved 弱智 final-settlement dice outside pending-die review flow.
+- **P3 cross-mechanic regressions**: covers 指導 / 情緒 / 副組長力, temporary stat-zero + permanent upgrades, stacked roll restrictions, add-type vs replace-type, owner placement after type replacement, online perspective state, multi-type placement legality, and 3/5-player active-skill target availability.
+- **Online work-type handshake**: pure validation tests ensure Host/Guest mappings are validated against only their own completed draft rosters; App still creates the authoritative game only after both mappings exist.
+
+Not included because the discussion is not finalized: 塔卡斯、二蕉、FLA、逐牌狂途、心結爆發、3-player cross-affinity experiment, selectable initial work length, extra anti-deadlock opening cards, solo score/tier rules, and leader Stress bonus +3.
+
+Automated validation is required before merge (`npm run typecheck`, full `npm run test`, `npm run build`). A real two-browser/WebRTC transport smoke test remains a manual release/review check because it depends on two live browser peers and signaling infrastructure.

@@ -257,7 +257,7 @@ Game Event
 - **風揚**：`起來` 已實作；回合開始時若自身達有效 Stress 上限，會依技能規則處理自身／組長 Stress。
 - **情緒**：`屬陀螺的` 以實際統籌卡 target 判斷；每回合第一次成為統籌卡目標時，己方組長 Stress -1。
 - **流星**：`軌之共鳴` 只有自己的作品為（燃）且存在可重擲 pending die 時才可發動。
-- **格林**：`對托內利可的愛` 只有自己的（情）作品存在已放置進度時可發動。
+- **格林**：有兩個獨立技能；`燃燒畫面` 可用自身 Stress 強化自己的 pending AA 骰，`對托內利可的愛` 則只有自己的（情）作品存在已放置進度時可發動。
 - **鬼影**：`貓影共鳴` 必須真的存在可重擲的 Design 進度，不能空付 Stress。
 - **鴿子的化身／嘆息**：加骰值技能不會把已經沒有提升空間的 6 點骰當成合法 target。
 - **Pray**：`高產` 不能對 1 點骰做 1→1 的 no-op 拆分。
@@ -298,3 +298,12 @@ Game Event
 ## Responsive battle UI
 
 Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽。導覽只捲動頁面，技能說明展開只影響顯示；不改變 phase、合法目標、使用次數、事件、計分或角色／卡牌資料。目標選取提示與取消控制現在也顯示於一般對局，仍呼叫原有 cancelSelection。
+
+## 2026-09-19 P0 discussion rules
+
+- Live work types are now **燃 / 謀 / 笑 / 情 / 怪**; **色** is removed from the runtime vocabulary.
+- A work has one primary type plus optional extra types. Affinity checks and work-type skill conditions match any current type. A replace-type effect clears extra types; an add-type effect preserves the primary type.
+- Initial game construction and the player-facing setup flow both support an explicit legal work-type choice per character; choices must be within that character's effective affinity (including all-affinity passives). Offline selection happens after leader choice; Online protocol v3 collects Host and Guest selections independently before the authoritative GameState is created.
+- Dice rolls resolve against a shared forbidden-face set. If no legal face remains, that die disappears instead of retrying indefinitely.
+- Coordination-card stress cost must have a legal bearer before the card can be used. Vice-leader bearers are chosen by remaining Stress headroom, not raw Stress.
+- 指導 has coordination stress cost 0; it instead gives its target +1 Stress. A stat 0 target succeeds on 5–6, a stat 1 target succeeds on 6.

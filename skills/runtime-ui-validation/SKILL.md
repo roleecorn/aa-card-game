@@ -1,6 +1,6 @@
 ---
 name: runtime-ui-validation
-description: "Validate the actual React/Vite runtime UI with typecheck, tests, browser rendering, and screenshots; never substitute Figma or mockups for the running app."
+description: "Validate the actual React/Vite runtime UI with typecheck, tests, browser rendering, and screenshots."
 ---
 
 # Runtime UI Validation Skill
@@ -12,11 +12,9 @@ description: "Validate the actual React/Vite runtime UI with typecheck, tests, b
 - 「目前 UI 實際跑起來長什麼樣」
 - 「給我看現在程式碼的畫面」
 - 「跑起來截圖」
-- 驗證 Figma 與 runtime 是否一致
 
 ## Core rule
 
-**Figma screenshot、設計稿、mockup 都不能冒充 runtime UI。**
 
 如果使用者問「目前程式實際跑起來」，唯一可接受的基準是執行目前 Git commit 的 React/Vite app。
 
@@ -59,12 +57,7 @@ release / build validation 應另外跑：
 npm run verify
 ```
 
-## Figma comparison
 
-若要比較 Figma：
 
 - 先取得 runtime screenshot。
-- 再讀 Figma frame。
 - 兩者做差異比較。
-
-順序不能反過來，也不能只展示 Figma 就回答「目前 UI」。

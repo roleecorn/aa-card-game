@@ -57,7 +57,7 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   }, [memberId, skillId]);
 
   const spec = skill?.activeTarget ?? { kind: 'none' as const };
-  const isGrimmTonelico = skillId === 'grimmBurningFrame';
+  const isGrimmTonelico = skillId === 'grimmLoveForTonelico';
 
   const memberOptions = useMemo(() => {
     if (!memberId) return [];
@@ -105,20 +105,24 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   }, [game.player.works, isGrimmTonelico, selectedWorkId]);
 
   const sourceDice = useMemo(() => {
-    const candidates = game.player.pendingDice.filter((die) => memberId && die.ownerId !== memberId);
+    if (!memberId || spec.kind !== 'copyPendingDie') return [];
+    const candidates = game.player.pendingDice.filter((die) =>
+      spec.source === 'self' ? die.ownerId === memberId : die.ownerId !== memberId);
     if (mode === 'tutorial' && skillId === 'mashiroSynthesis') {
       return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.mashiroSynthesis.sourceDie);
     }
     return candidates;
-  }, [game, memberId, mode, skillId]);
+  }, [game, memberId, mode, skillId, spec]);
 
   const copyTargetDice = useMemo(() => {
-    const candidates = game.player.pendingDice.filter((die) => die.ownerId === memberId);
+    if (!memberId || spec.kind !== 'copyPendingDie') return [];
+    const candidates = game.player.pendingDice.filter((die) =>
+      spec.target === 'self' ? die.ownerId === memberId : die.ownerId !== memberId);
     if (mode === 'tutorial' && skillId === 'mashiroSynthesis') {
       return fixedDieOption(candidates, TUTORIAL_SKILL_TARGETS.mashiroSynthesis.targetDie);
     }
     return candidates;
-  }, [game, memberId, mode, skillId]);
+  }, [game, memberId, mode, skillId, spec]);
 
   const pendingDieOptions = useMemo(() => {
     if (!memberId || spec.kind !== 'pendingDie') return [];

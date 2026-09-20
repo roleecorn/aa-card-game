@@ -20,7 +20,7 @@ Final rule:
 - Choose any already-placed Design / Text / AA die in that work and set its value to `3`.
 - Then Grimm's Stress `-1`.
 
-Runtime keeps the existing skill id `grimmBurningFrame` for compatibility, but the visible skill name and behavior are `對托內利可的愛`.
+This rule is an additional Grimm skill, not a replacement for `燃燒畫面`. Runtime keeps `grimmBurningFrame` for the original `燃燒畫面` behavior and registers `對托內利可的愛` separately as `grimmLoveForTonelico`.
 
 ### 三角希 — triangle-creature Stress behavior
 
