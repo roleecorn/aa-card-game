@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STANDARD_GAME_DEFINITION } from '../content/catalog';
+import { BASE_DECK, CARDS, STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
 import type { GameDefinition } from '../game/gameDefinition';
 import { getDiePlacementLegality, getSkillAvailability, getSkillSelectionPlan } from '../game/targeting';
@@ -29,6 +29,14 @@ function createHarness(teamSize: 3 | 5, ownerId: string) {
 }
 
 describe('PR #75 closeout regressions', () => {
+  it('gives every card in the Standard deck an art asset', () => {
+    const uniqueCardIds = [...new Set(BASE_DECK)];
+    expect(uniqueCardIds.length).toBeGreaterThan(0);
+    for (const cardId of uniqueCardIds) {
+      expect(CARDS[cardId]?.art, `${cardId} should have card art`).toMatch(/assets\/cards\/.+\.(?:svg|webp|png)$/);
+    }
+  });
+
   it('uses every current work type for UI placement legality, matching EngineSession.canPlaceDie', () => {
     const { game, engine } = createHarness(3, 'kitsu');
     const targetWork = game.player.works.find((work) => work.ownerId === 'narrator')!;
