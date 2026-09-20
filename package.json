@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:tutorial": "vitest run src/tests/tutorial.test.ts",
+    "test:assets": "vitest run scripts/card-art-style.test.ts scripts/runtime-assets.test.ts",
     "test:watch": "vitest",
     "verify": "npm run art:validate && npm run test && npm run build",
     "storybook": "storybook dev -p 6006",

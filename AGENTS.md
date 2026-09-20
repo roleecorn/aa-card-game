@@ -132,7 +132,7 @@
 - 不得用 blurred padding、letterbox、延伸背景偽裝錯誤比例。
 - 圖片不要包含角色名稱、能力值、技能文字、卡框、badge 等 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area。
-- 使用者新增／替換正式 portrait 後應執行 `npm run art:normalize` 與 `npm run art:validate`。
+- 使用者新增／替換正式 portrait 後應執行 `npm run art:normalize` 與 `npm run art:validate`；compact 是目前 pipeline 由 portrait 產生的 derivative，不是獨立 source-of-truth。
 - validator 必須檢查 WebP RIFF 宣告長度與實際 bytes；檔案存在不代表 binary 完整。
 - WebP 檔案大小不要求相同，只要求 canonical dimensions / encoding / container 完整性。
 - **Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。** 不得用 base64、Git blob/tree API、Contents API、Actions decode、臨時 branch 等方式繞過。
@@ -144,8 +144,8 @@
 - Individual runtime card illustrations 使用 `public/assets/cards/*.svg`，canonical canvas 為 768×480（8:5）。
 - 新卡圖必須先指定現有 SVG reference，沿用既有 `paper` / `crayon` texture、粗圓角 stroke、簡化幾何構圖與既有 palette family。
 - 不得用 raster Image Generation 結果、WebP / PNG 或 `<image>` embedding 取代既有 individual-card SVG 畫風。
-- `coordination.png` / `event.png` 是 category/UI asset，不是 individual card illustration 的格式 precedent。
-- 詳細格式、reference mapping 與提交流程見 `CARD_ART_STYLE.md`。
+- `public/assets/cards/` 僅放 individual runtime card SVG；舊 `coordination.png` / `event.png` category raster 已因未使用且尺寸不一致而移除，不得當作格式 precedent。
+- 詳細格式、reference mapping 與提交流程見 `CARD_ART_STYLE.md`；所有 asset family 的 registry / ownership / validation 見 `ASSET_CONVENTIONS.md`。
 
 ## 編碼與 shell
 

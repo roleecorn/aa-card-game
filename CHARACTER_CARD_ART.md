@@ -23,7 +23,7 @@
 2. 在 `CHARACTER_CARD_ART.md` 或該角色專屬文件寫入固定 visual brief、構圖限制與 runtime asset 規格。
 3. 文件內容先固定，再開始 Image Generation。
 4. 只針對當前角色生成候選圖，不把其他待辦角色混入同一次生成。
-5. 完成後可在本地 resize / crop / convert / validate，整理成 portrait / compact 與 ZIP。
+5. 完成後可在本地 resize / convert / validate；`portrait` 是 canonical source，`compact` 由 `npm run art:normalize` 依目前 pipeline 以 `cover` 衍生，再整理成 ZIP。
 6. **圖片 binary 由使用者手動上傳到 GitHub / repository。Chat / AI agent 不執行圖片上傳。**
 
 前置文件 Gate 約束的是「先寫規格、再生成」的工作順序，不代表正式圖片必須和角色程式碼在同一 commit，也不代表沒有正式圖就不能完成角色實作。
@@ -56,7 +56,7 @@
 | 格式 | WebP |
 | Aspect ratio | 3:4 |
 | Runtime 尺寸 | 768 x 1024 px |
-| Compact slot 尺寸 | 384 x 320 px（僅需要橫向構圖的角色） |
+| Compact slot 尺寸 | 384 x 320 px（目前所有角色皆由 canonical portrait 透過 `art:normalize` 以 `cover` 衍生） |
 | 生成母版 | 建議至少 768 x 1024；可使用更高解析度後等比例縮小 |
 | 色彩 | sRGB |
 | Alpha | 允許 RGB 或 RGBA；透明背景不是強制 |
@@ -64,11 +64,11 @@
 | Frame | 單幀；禁止 animated WebP |
 | Container | RIFF 宣告長度必須等於實際檔案長度，禁止 truncated WebP |
 | 檔名 | `character-id.webp` |
-| 位置 | `public/assets/characters/` |
+| 位置 | portrait：`public/assets/characters/portrait/`；compact：`public/assets/characters/compact/` |
 
 所有正式角色 runtime asset 必須具有完全相同的 pixel dimensions。**壓縮後 byte size 不要求相同**；WebP 檔案大小會隨畫面細節、透明區域與色彩複雜度改變。不得為了追求相同 KB 數而降低或填充圖片。
 
-`compactPortrait` 是為主畫面橫向 slot 重新構圖的獨立正式素材，不得由 3:4 portrait 機械裁切或補邊。角色資料頁仍使用標準 `portrait`，compact 卡片優先使用 `compactPortrait`。
+`compactPortrait` 目前不是獨立 source-of-truth；repository 的 canonical pipeline 會由 3:4 `portrait` 以 `cover` 產生 384×320 derivative。角色資料頁使用標準 `portrait`，compact 卡片使用這個 derivative。若未來要允許人工獨立構圖的 compact，必須先修改 `scripts/character-art.ts`、本文件與 validation contract，再新增該做法；不得只手動覆蓋一張 compact，因為下一次 `art:normalize` 會重建它。
 
 不得用 blurred padding、letterbox、延伸背景或重複像素把錯誤比例硬補成 3:4。
 
@@ -116,8 +116,8 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 {
   id: 'pintbox',
   name: 'Pintbox',
-  portrait: '/assets/characters/portrait/pintbox.webp',
-  compactPortrait: '/assets/characters/compact/pintbox.webp',
+  portrait: 'assets/characters/portrait/pintbox.webp',
+  compactPortrait: 'assets/characters/compact/pintbox.webp',
   stats: { design: 2, text: 0, aa: 2 },
 }
 ```
@@ -132,12 +132,12 @@ MUI component 應保留完整 3:4 frame，不以角色卡整體高度強迫錯�
 2. 決定角色固定 visual brief 與辨識元素。
 3. 需要正式美術時，生成獨立 3:4 portrait；禁止先做 UI mockup 再裁切。
 4. 檢查人物 safe area、文字污染、鄰近物件與 alpha 邊緣。
-5. 本地整理成 768×1024 portrait / 384×320 compact WebP。
-6. 本地完整 decode 並確認尺寸、單幀與 RIFF/container 完整性。
-7. 將 portrait / compact、manifest/checksum 整理成 ZIP 或檔案交給使用者。
+5. 本地整理 canonical 768×1024 portrait WebP，執行 `npm run art:normalize` 產生 384×320 compact derivative。
+6. 本地完整 decode 並確認 portrait / compact 尺寸、單幀與 RIFF/container 完整性。
+7. 將 portrait、衍生 compact、manifest/checksum 整理成 ZIP 或檔案交給使用者。
 8. 告知使用者應上傳到 `public/assets/characters/portrait/` / `public/assets/characters/compact/` 的確切檔名。
 9. **由使用者手動上傳圖片。** Chat / AI agent 不做 binary GitHub upload。
-10. 使用者上傳後再執行 `npm run art:normalize` / `npm run art:validate`、確認 `CharacterDefinition` reference，並以 `CharacterCard` desktop / narrow layout 驗證。
+10. 使用者上傳後執行 `npm run art:validate`、確認 `CharacterDefinition` 使用 repository-relative reference，並以 `CharacterCard` desktop / narrow layout 驗證。
 
 在正式圖片尚未上傳前，角色可以使用 placeholder / 代用圖完成 runtime implementation 與提交。
 

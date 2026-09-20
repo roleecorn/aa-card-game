@@ -10,8 +10,7 @@ The new asset must follow that file family's format, composition language, filte
 
 If no suitable reference exists, do not invent a new asset format or visual language first. Document the missing convention here, review it, and only then add the new asset.
 
-The two raster files `coordination.png` and `event.png` are category/UI assets, not precedent for individual card illustrations.
-Individual runtime card illustrations use SVG.
+`public/assets/cards/` is reserved for individual runtime card SVGs. The historical `coordination.png` / `event.png` category rasters were unused, had inconsistent dimensions, and are removed rather than promoted into a second card-art convention. A future card-category visual must first be registered as a new asset family in `ASSET_CONVENTIONS.md`.
 
 ## 2. Canonical SVG structure
 

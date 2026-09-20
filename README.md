@@ -123,8 +123,9 @@ Repository 內建圖片工具：
 - `npm run image:webp -- <input> <output> ...`
 - `npm run art:normalize`
 - `npm run art:validate`
+- `npm run test:assets`
 
-角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)。
+所有 runtime/reference asset family 的 registry、路徑 ownership 與新增 gate 見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)，單卡 SVG 規格見 [`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)。
 
 ## 規則與內容架構
 
@@ -168,7 +169,9 @@ src/content/<character-id>.ts
 - 架構：[`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - Character authoring：[`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- Asset registry / 共通規範：[`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
+- 卡牌 SVG 美術：[`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)
 - 歷史驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
 - Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
