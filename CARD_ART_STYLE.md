@@ -12,6 +12,8 @@ If no suitable reference exists, do not invent a new asset format or visual lang
 
 `public/assets/cards/` is reserved for individual runtime card SVGs. The historical `coordination.png` / `event.png` category rasters were unused, had inconsistent dimensions, and are removed rather than promoted into a second card-art convention. A future card-category visual must first be registered as a new asset family in `ASSET_CONVENTIONS.md`.
 
+A card does **not** stop being governed by this specification merely because it is absent from `BASE_DECK`. Compatibility/legacy definitions that remain in `CARDS` are still runtime card objects and must keep canonical art. Deck composition decides availability; `CARDS` decides the complete set of currently supported card-art assets.
+
 ## 2. Canonical SVG structure
 
 Existing references: `soothe.svg`, `guide.svg`, `voice.svg`, `polish.svg`, `rush.svg`, `overtime.svg`, `writer-block.svg`.
@@ -71,12 +73,13 @@ Each newly authored SVG should include a short source comment naming its referen
 
 ## 5. Automated enforcement
 
-`scripts/card-art-style.test.ts` protects the established convention for Standard-deck card art. It verifies that:
+`scripts/card-art-style.test.ts` protects the established convention for **all currently defined cards in `CARDS`**, including compatibility cards outside `BASE_DECK`. It verifies that:
 
-- every Standard-deck card points to `assets/cards/*.svg`;
+- every card definition points to `assets/cards/*.svg`;
 - every referenced card SVG uses the canonical `0 0 768 480` viewBox;
 - every referenced card SVG retains the `paper` and `crayon` texture definitions;
 - individual card SVGs do not embed raster content through `<image>`;
+- the physical files in `public/assets/cards/` exactly match the unique art files referenced by `CARDS`, so orphan/unreferenced card art and missing art are both rejected;
 - the 2026-09-19 additions retain comments naming their approved existing reference SVGs.
 
 This test is a guardrail, not a substitute for visual review. A technically valid SVG can still be rejected in review if its composition, palette, stroke language, or visual hierarchy does not match the cited references.
