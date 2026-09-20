@@ -64,7 +64,7 @@ describe('action feedback observation', () => {
     work.slots[0]!.aa = 5;
     grimm.stress = 2;
 
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {
       workId: work.id,
       targetDieId: '0:aa',
     })).toBe(true);
@@ -79,7 +79,7 @@ describe('action feedback observation', () => {
 
   it('rejects invalid skills without presenting successful activation', () => {
     const { state, engine } = setup();
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {})).toBe(false);
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {})).toBe(false);
     expect(state.feedback).toEqual([]);
   });
 

@@ -19,15 +19,15 @@ describe('active skill availability contracts', () => {
     const work = ownWork(engine, 'grimm');
     work.type = '燃';
     work.slots[0]!.design = 5;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.type = '情';
     work.slots[0] = {};
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(false);
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(false);
 
     work.slots[0]!.design = 5;
-    expect(getSkillAvailability(engine, 'grimm', 'grimmBurningFrame').allowed).toBe(true);
-    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmBurningFrame').candidates
+    expect(getSkillAvailability(engine, 'grimm', 'grimmLoveForTonelico').allowed).toBe(true);
+    expect(getSkillSelectionPlan(engine, 'grimm', 'grimmLoveForTonelico').candidates
       .find((candidate) => candidate.id === work.id)?.allowed).toBe(true);
   });
 

@@ -340,7 +340,9 @@ export function BattleRoom({ onRestart }: BattleRoomProps) {
     || pendingCard.target.kind === 'polishMode'
     || (pendingCard.target.kind === 'member' && !!pendingCard.target.skillPicker)
   );
-  const useLegacySkillDialog = mode === 'tutorial' || pendingSkill?.id === 'grimmBurningFrame';
+  const useLegacySkillDialog = mode === 'tutorial'
+    || pendingSkill?.id === 'grimmBurningFrame'
+    || pendingSkill?.id === 'grimmLoveForTonelico';
 
   let memberCandidates: TargetCandidate[] | undefined;
   let workCandidates: TargetCandidate[] | undefined;

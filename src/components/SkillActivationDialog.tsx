@@ -57,7 +57,7 @@ export function SkillActivationDialog({ open, memberId, skillId, game, onClose, 
   }, [memberId, skillId]);
 
   const spec = skill?.activeTarget ?? { kind: 'none' as const };
-  const isGrimmTonelico = skillId === 'grimmBurningFrame';
+  const isGrimmTonelico = skillId === 'grimmLoveForTonelico';
 
   const memberOptions = useMemo(() => {
     if (!memberId) return [];
