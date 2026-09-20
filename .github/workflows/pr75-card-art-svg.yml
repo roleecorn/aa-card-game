@@ -1,0 +1,57 @@
+name: Validate PR75 card-art SVG correction
+
+on:
+  push:
+    branches:
+      - feature/20260919-discussion-update-p3
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/20260919-discussion-update-p3
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply SVG correction
+        run: python scripts/apply-pr75-card-art-svg.py
+      - name: Validate SVG XML and references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          for path in Path('public/assets/cards').glob('*.svg'):
+              source = path.read_text(encoding='utf-8')
+              root = ET.fromstring(source)
+              assert root.attrib.get('viewBox') == '0 0 768 480', path
+              assert '<image' not in source.lower(), path
+          PY
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm run test
+      - name: Build
+        run: npm run build
+      - name: Remove temporary applicator and workflow
+        run: |
+          rm scripts/apply-pr75-card-art-svg.py
+          rm .github/workflows/pr75-card-art-svg.yml
+      - name: Commit validated SVG correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: align new card art with canonical SVG style"
+          git push origin HEAD:feature/20260919-discussion-update-p3
