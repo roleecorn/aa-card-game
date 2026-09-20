@@ -11,6 +11,8 @@
 
 不得因工具方便在同一 runtime role 平行建立第二種格式。不得把暫存、轉檔中間產物或 mockup 放入 runtime asset directory。
 
+`public/` 本身也是 registry 邊界：目前只允許 `assets/` 與 `fonts/` 兩個正式 family root。若未來需要 favicon、manifest、音訊或其他公開檔案，必須先在本文件新增 family，而不是直接把檔案丟進 `public/` 根目錄。
+
 ## 2. Canonical asset registry
 
 | Family | Canonical path | Format / geometry | Source of truth | Validation / detail |
@@ -47,7 +49,8 @@
 - 不得把 384×512 視為合法 compact 尺寸；
 - 不得複製這 13 個舊檔的 geometry 作為新角色 reference；
 - runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序；
-- `scripts/runtime-assets.test.ts` 會直接讀取 Git `HEAD` 中的 binary metadata，要求 **只有上述 13 個檔案**可以是 384×512；任何新增的 legacy-size compact、其他錯誤尺寸，或清單與實際 binary 不一致都會失敗。
+- `scripts/runtime-assets.test.ts` 會直接讀取 Git `HEAD` 中的 binary metadata，要求 **只有上述 13 個檔案**可以是 384×512；任何新增的 legacy-size compact、其他錯誤尺寸，或清單與實際 binary 不一致都會失敗；
+- 即使是 legacy exception，也仍必須符合其餘 canonical binary 規格：檔名等於 `<character-id>.webp`、WebP、單幀、sRGB。例外只涵蓋 384×512 這個暫時尺寸差異。
 
 這個清單是 migration ledger，不是永久 allowlist。人工修正其中一個 binary 時，必須在同一個 commit 移除對應 exception；最終目標是清單歸零。
 
@@ -75,7 +78,7 @@
 
 ## 5. Visual/reference rules
 
-- **Card SVG:** closest existing card SVG is mandatory reference; see `CARD_ART_STYLE.md`.
+- **Card SVG:** closest existing card SVG is mandatory reference; see `CARD_ART_STYLE.md`. `CARDS` is the authoritative supported-card set; being absent from `BASE_DECK` does not exempt a compatibility card from the art contract.
 - **Character art:** visual brief and portrait constraints live in `CHARACTER_CARD_ART.md`; compact is currently a derived artifact, not an independently authored image.
 - **UI vector:** use the closest existing UI vector/component. If a new asset introduces a distinct visual family rather than a one-off icon, document that subfamily here before adding it.
 - **Documentation reference art:** may preserve external/reference appearance, but cannot silently become runtime art.
@@ -84,14 +87,22 @@
 
 `scripts/runtime-assets.test.ts` enforces the repository-level contract:
 
-- only registered directories exist under `public/assets`;
-- card runtime assets are SVG-only;
+- `public/` contains only registered family roots (`assets`, `fonts`);
+- `public/assets` contains only `cards` and `characters`, and `public/assets/characters` contains only `portrait` and `compact`;
 - portrait/compact directories contain exactly the assets referenced by `CHARACTERS` and no temp files;
-- checked-in portrait dimensions must all be canonical, while checked-in compact dimension exceptions must exactly match the migration ledger above;
+- character portrait/compact filenames must equal `<character-id>.webp`;
+- checked-in character binaries must be single-frame sRGB WebP; portrait dimensions must all be canonical, while checked-in compact dimension exceptions must exactly match the migration ledger above;
 - `src/assets` is SVG-only, with a `viewBox`, no `<image>` raster embedding, and no external URL dependency;
 - production `src/` code does not hard-code root-absolute `/assets/...` literals;
 - runtime code does not reference `docs/art`;
 - the public font directory keeps the canonical font/license/readme set and a valid WOFF2 signature.
+
+`scripts/card-art-style.test.ts` separately enforces the complete `CARDS` art set:
+
+- every card definition has canonical `assets/cards/*.svg` art, including compatibility cards outside `BASE_DECK`;
+- every SVG keeps the canonical 768×480 canvas, rounded frame, `bg`, `paper`, and `crayon` structure;
+- no raster embedding, baked `<text>`, executable/foreign document content, or external URL dependency;
+- `public/assets/cards/` must exactly equal the unique art files referenced by `CARDS`, so orphan art and missing art both fail.
 
 Family-specific checks continue to run as well:
 
