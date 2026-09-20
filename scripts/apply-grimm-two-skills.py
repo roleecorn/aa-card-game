@@ -98,8 +98,10 @@ describe('格林 complete character package', () => {
   it('燃燒畫面 spends stress to add 2 to selected pending AA dice and is not once-per-round', () => {
     const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
     const engine = new EngineSession(game, () => 0.5, STANDARD_GAME_DEFINITION);
-    const first = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 4)[0]!;
-    const second = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false, 3)[0]!;
+    const first = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false)[0]!;
+    const second = engine.grantDice('player', 'grimm', 'aa', 1, 'test', false)[0]!;
+    first.value = 4;
+    second.value = 3;
 
     expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', { targetDieId: first.id })).toBe(true);
     expect(first.value).toBe(6);
