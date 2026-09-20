@@ -22,6 +22,32 @@
 | Bundled UI font | `public/fonts/noto-sans-tc-ui.woff2` | WOFF2 variable subset, weights 100–900 | generated subset from pinned Noto Sans TC source | `public/fonts/README.md`, `scripts/vendor-ui-font.sh` |
 | Documentation reference art | `docs/art/*` | reference-only; runtime format rules do not apply | documentation | must never be imported by runtime source |
 
+### Checked-in character binary audit (2026-09-20)
+
+`portrait` 目前 39/39 已直接符合 768×1024。`compact` 目前 26/39 已直接符合 384×320；以下 13 個歷史檔仍是 384×512：
+
+- `adao.webp`
+- `axu.webp`
+- `chidori.webp`
+- `e.webp`
+- `enki.webp`
+- `eryang.webp`
+- `ingrid.webp`
+- `linlan.webp`
+- `orangeangel.webp`
+- `pray.webp`
+- `ta.webp`
+- `tiantichilun.webp`
+- `zhise.webp`
+
+這 13 個檔案是 **legacy source exceptions，不是格式 precedent**。CI 與 Pages deploy 都會先執行 `npm run art:normalize`，因此 runtime/deploy output 仍會正規化為 384×320，之後 `art:validate` 會驗證 39/39 portrait 與 compact。由於 repository 明確禁止 Chat / AI agent 上傳或替換圖片 binary，這 13 個 checked-in WebP 必須由人工執行 `npm run art:normalize` 後提交更新，才能讓 Git tree 本身也完全符合 canonical dimensions。
+
+在這批人工 binary refresh 完成前：
+
+- 不得把 384×512 視為合法 compact 尺寸；
+- 不得複製這 13 個舊檔的 geometry 作為新角色 reference；
+- runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序。
+
 ### Current bundled UI vector reference
 
 `src/assets/work-slot-complete-stamp.svg` is the canonical work-slot completion mark. It uses a 96×96 viewBox, pink rubber-stamp geometry, and is imported by `WorkCard.tsx` through the module bundler. The old duplicate `public/assets/work-slot-complete-stamp.png` is removed; do not recreate a public raster fallback for the same role.
@@ -76,7 +102,7 @@ npm run test:assets
 npm run art:validate
 ```
 
-Normal `npm run test` / CI also includes the asset tests.
+Normal `npm run test` / CI also includes the asset tests。角色 binary 的 canonical-dimension 驗證則維持在 `art:normalize` 後執行 `art:validate`；這是因為 compact 是 portrait 的 generated derivative，而不是另一個可自由定義尺寸的 source family。
 
 ## 7. Adding a new asset family
 
