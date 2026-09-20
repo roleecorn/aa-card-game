@@ -60,6 +60,12 @@ async function headImageMetadata(file: string) {
   return sharp(buffer).metadata();
 }
 
+function expectCanonicalWebpMetadata(metadata: Awaited<ReturnType<typeof headImageMetadata>>, label: string) {
+  expect(metadata.format, `${label} format`).toBe('webp');
+  expect(metadata.pages ?? 1, `${label} frame count`).toBe(1);
+  if (metadata.space) expect(metadata.space, `${label} color space`).toBe('srgb');
+}
+
 describe('runtime asset registry', () => {
   it('keeps public and public/assets limited to registered runtime families', async () => {
     const publicEntries = await entries('public');
@@ -79,7 +85,12 @@ describe('runtime asset registry', () => {
     expect(cardFiles.every((file) => file.endsWith('.svg'))).toBe(true);
   });
 
-  it('keeps character directories exact, paired and free of scratch files', async () => {
+  it('keeps character directories exact, paired, id-named and free of scratch files', async () => {
+    for (const character of Object.values(CHARACTERS)) {
+      expect(path.posix.basename(character.portrait ?? ''), `${character.id} portrait filename`).toBe(`${character.id}.webp`);
+      expect(path.posix.basename(character.compactPortrait ?? ''), `${character.id} compact filename`).toBe(`${character.id}.webp`);
+    }
+
     const expectedPortraits = basenames(Object.values(CHARACTERS).map((character) => character.portrait));
     const expectedCompacts = basenames(Object.values(CHARACTERS).map((character) => character.compactPortrait));
     const actualPortraits = (await entries('public/assets/characters/portrait')).filter((entry) => entry.isFile()).map((entry) => entry.name).sort();
@@ -91,10 +102,11 @@ describe('runtime asset registry', () => {
     expect(actualCompacts.every((name) => /^[a-z0-9-]+\.webp$/.test(name))).toBe(true);
   });
 
-  it('locks checked-in character dimensions and permits only the documented legacy compact exceptions', async () => {
+  it('locks checked-in character binary metadata and permits only the documented legacy compact dimensions', async () => {
     const portraitFiles = basenames(Object.values(CHARACTERS).map((character) => character.portrait));
     for (const name of portraitFiles) {
       const metadata = await headImageMetadata(`public/assets/characters/portrait/${name}`);
+      expectCanonicalWebpMetadata(metadata, `${name} portrait`);
       expect(metadata.width, `${name} portrait width`).toBe(768);
       expect(metadata.height, `${name} portrait height`).toBe(1024);
     }
@@ -103,6 +115,7 @@ describe('runtime asset registry', () => {
     const observedLegacy: string[] = [];
     for (const name of compactFiles) {
       const metadata = await headImageMetadata(`public/assets/characters/compact/${name}`);
+      expectCanonicalWebpMetadata(metadata, `${name} compact`);
       if (metadata.width === 384 && metadata.height === 320) continue;
 
       expect(metadata.width, `${name} legacy compact width`).toBe(384);
