@@ -39,8 +39,10 @@ jobs:
       - name: Find raster runtime references
         run: |
           echo '--- coordination/event references ---'
-          rg -n 'coordination\.png|event\.png' src public README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md || true
+          grep -RInE 'coordination\.png|event\.png' src public README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md || true
           echo '--- work-slot stamp references ---'
-          rg -n 'work-slot-complete-stamp' src public README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md || true
+          grep -RIn 'work-slot-complete-stamp' src public README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md || true
           echo '--- root-absolute asset paths in source/docs ---'
-          rg -n "['\"]\/assets\/" src README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md CHARACTER_CARD_ART.md CARD_ART_STYLE.md || true
+          grep -RInE "['\"]\/assets\/" src README.md ARCHITECTURE.md CONTRIBUTING.md AGENTS.md CHARACTER_CARD_ART.md CARD_ART_STYLE.md || true
+          echo '--- tracked temporary assets ---'
+          find public src/assets -type f \( -name '*.tmp' -o -name '*.bak' -o -name '*~' \) -print | sort
