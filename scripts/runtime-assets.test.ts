@@ -61,10 +61,18 @@ async function headImageMetadata(file: string) {
 }
 
 describe('runtime asset registry', () => {
-  it('keeps public/assets limited to registered card and character families', async () => {
-    const rootEntries = await entries('public/assets');
-    expect(rootEntries.map((entry) => entry.name).sort()).toEqual(['cards', 'characters']);
-    expect(rootEntries.every((entry) => entry.isDirectory())).toBe(true);
+  it('keeps public and public/assets limited to registered runtime families', async () => {
+    const publicEntries = await entries('public');
+    expect(publicEntries.map((entry) => entry.name).sort()).toEqual(['assets', 'fonts']);
+    expect(publicEntries.every((entry) => entry.isDirectory())).toBe(true);
+
+    const assetEntries = await entries('public/assets');
+    expect(assetEntries.map((entry) => entry.name).sort()).toEqual(['cards', 'characters']);
+    expect(assetEntries.every((entry) => entry.isDirectory())).toBe(true);
+
+    const characterEntries = await entries('public/assets/characters');
+    expect(characterEntries.map((entry) => entry.name).sort()).toEqual(['compact', 'portrait']);
+    expect(characterEntries.every((entry) => entry.isDirectory())).toBe(true);
 
     const cardFiles = await filesRecursive('public/assets/cards');
     expect(cardFiles.length).toBeGreaterThan(0);
