@@ -50,6 +50,7 @@ npm run build
 npm run verify
 npm run test:tutorial
 npm run test:assets
+npm run test:cards
 npm run test:ui-objects
 npm run art:normalize
 npm run art:validate
@@ -157,6 +158,8 @@ Game Event / Active request
 src/content/<character-id>.ts
 ```
 
+卡牌集中於 `src/content/cards.ts`，由 `CardDefinition` 描述種類、目標、declarative effects、必要時的 custom handler 與 AI metadata。卡牌的 authoring contract、targeting/handler 邊界與 reference validation 見 [`CARD_AUTHORING.md`](./CARD_AUTHORING.md)，可用 `npm run test:cards` 單獨驗證。
+
 `src/content/catalog.ts` 負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。Standard AI 與 Online 共用 `BattleRoom` 與核心 Engine；Online 只另外處理 connection、draft、command / timer authority 與 human turn ownership。
 
 詳細內容：
@@ -164,6 +167,7 @@ src/content/<character-id>.ts
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - [`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- [`CARD_AUTHORING.md`](./CARD_AUTHORING.md)
 - [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)
 
 ## Documentation policy
@@ -181,6 +185,7 @@ src/content/<character-id>.ts
 - 架構：[`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - Character authoring：[`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- Card authoring：[`CARD_AUTHORING.md`](./CARD_AUTHORING.md)
 - Asset registry / 共通規範：[`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)
 - Runtime UI object registry：[`UI_OBJECT_CONVENTIONS.md`](./UI_OBJECT_CONVENTIONS.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
@@ -216,6 +221,7 @@ aa-card-game/
 ├─ AGENTS.md
 ├─ ASSET_CONVENTIONS.md
 ├─ UI_OBJECT_CONVENTIONS.md
+├─ CARD_AUTHORING.md
 ├─ GAME_RULES.md
 ├─ GAME_MANUAL.md
 ├─ ONLINE_MULTIPLAYER.md
