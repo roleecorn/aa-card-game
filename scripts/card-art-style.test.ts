@@ -31,9 +31,15 @@ describe('canonical individual card-art SVG contract', () => {
       const fileName = art!.split('/').at(-1)!;
       const source = readCardSvg(fileName);
       expect(source, `${fileName} should keep the canonical canvas`).toContain('viewBox="0 0 768 480"');
+      expect(source, `${fileName} should keep the canonical rounded outer frame`).toContain('<rect width="768" height="480" rx="28"');
+      expect(source, `${fileName} should keep the canonical background gradient`).toContain('id="bg"');
       expect(source, `${fileName} should keep paper texture`).toContain('id="paper"');
       expect(source, `${fileName} should keep crayon texture`).toContain('id="crayon"');
       expect(source, `${fileName} must not embed raster art`).not.toMatch(/<image\b/i);
+      expect(source, `${fileName} must not bake card/rule text into art`).not.toMatch(/<text\b/i);
+      expect(source, `${fileName} must not contain executable/foreign document content`).not.toMatch(/<(?:script|foreignObject)\b/i);
+      const withoutStandardNamespace = source.replace('http://www.w3.org/2000/svg', '');
+      expect(withoutStandardNamespace, `${fileName} must not depend on external URLs`).not.toMatch(/https?:\/\//i);
     }
   });
 
