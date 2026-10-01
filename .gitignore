@@ -46,3 +46,6 @@ tmp/
 *.zip
 *.7z
 *.rar
+
+# Local ComfyUI character-variant research skill
+skills/comfyui-character-variants/
