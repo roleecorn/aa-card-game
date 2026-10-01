@@ -54,19 +54,14 @@ describe('blocking-safety guards', () => {
     expect(engine.canUseActiveSkill('tanxi', 'tanxiThinkHard')).toBe(true);
   });
 
-  it('conditional active skills reject activation until their work condition is met', () => {
+  it('removed Meteor reroll skill cannot be activated after the P2 rewrite', () => {
     const game = createInitialGame(fixedRng(0.5), STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['meteor', 'lemon', 'tanxi'],
       enemyMemberIds: ['pintbox', 'mashiro', 'narrator'],
     });
     const engine = new EngineSession(game, fixedRng(0.5));
-    const work = game.player.works.find((item) => item.ownerId === 'meteor')!;
     const die = engine.grantDice('player', 'meteor', 'text', 1, 'test', false, 4)[0]!;
-
-    work.type = '謀';
     expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(false);
-    work.type = '燃';
-    expect(engine.activateSkill('player', 'meteor', 'meteorResonance', { targetDieId: die.id })).toBe(true);
   });
 
   it('continues to the next round when one enemy runtime trigger throws', () => {

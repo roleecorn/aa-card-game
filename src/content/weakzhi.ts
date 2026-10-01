@@ -15,6 +15,7 @@ export const weakzhiCharacter = characterDefinitionSchema.parse({
     '2026-09-10 18:27:00（UTC+8）：PintBox 以「15d6」澄清五格作品的 15 個 Design / Text / AA 空位各自獨立擲 1d6，而不是共用同一個骰值。',
     '2026-09-10 18:28:07–18:28:55（UTC+8）：PintBox 補充並確認弱智即使擔任組長也不能使用統籌卡。',
     '2026-09-13 使用者定案：弱智技能暫不改動，不採用依剩餘 Stress 決定最終填槽數量的新版本。',
+    '2026-09-14 規則澄清：最後三天趕稿的 final-fill 直接進入作品結算，不進 pending dice，因此不能被審稿 / reroll 攔截。',
   ],
 });
 

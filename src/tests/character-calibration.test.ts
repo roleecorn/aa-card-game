@@ -41,7 +41,7 @@ describe('2026-09 character card calibration', () => {
     expect(SKILLS.viceLeaderPower?.name).toBe('副組長力');
   });
 
-  it('副組長力 only transfers coordination stress when the vice leader is below the leader', () => {
+  it('副組長力 transfers coordination stress only when the vice leader has more remaining headroom', () => {
     const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['pintbox', 'triangle', 'mashiro'],
       enemyMemberIds: ['narrator', 'ginsakura', 'bluewind'],
@@ -50,15 +50,18 @@ describe('2026-09 character card calibration', () => {
     const leader = engine.getCharacter('player', 'pintbox')!;
     const viceLeader = engine.getCharacter('player', 'triangle')!;
 
-    leader.stress = 2;
+    // Pintbox leader effective cap is 7. At Stress 5 it has headroom 2.
+    // Triangle cap is 4. At Stress 1 it has headroom 3 and should take the cost.
+    leader.stress = 5;
     viceLeader.stress = 1;
     expect(engine.skills.getCoordinationStressBearer('player')).toBe('triangle');
 
+    // Equal or lower vice-leader headroom leaves the cost on the leader.
     viceLeader.stress = 2;
-    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();
+    expect(engine.skills.getCoordinationStressBearer('player')).toBe('pintbox');
 
     viceLeader.stress = 3;
-    expect(engine.skills.getCoordinationStressBearer('player')).toBeUndefined();
+    expect(engine.skills.getCoordinationStressBearer('player')).toBe('pintbox');
   });
 
   it('79 spends one stress to add two to a selected Text die', () => {

@@ -49,6 +49,9 @@ npm run test
 npm run build
 npm run verify
 npm run test:tutorial
+npm run test:assets
+npm run test:cards
+npm run test:ui-objects
 npm run art:normalize
 npm run art:validate
 npm run image:inspect -- <file>
@@ -57,6 +60,8 @@ npm run image:webp -- <input> <output> --width 768 --height 1024 --fit cover
 npm run test:image-tools
 npm run storybook
 ```
+
+`npm run verify` 是 fresh checkout 的 canonical 驗證入口，順序固定為 `art:normalize → art:validate → test → build`。`art:normalize` 會在工作目錄重建 character compact derivative；圖片 binary 的正式 Git 提交仍遵守 `AGENTS.md` 的人工上傳／提交邊界。
 
 ## 對局模式
 
@@ -114,7 +119,9 @@ public/assets/characters/portrait/<character-id>.webp
 public/assets/characters/compact/<character-id>.webp
 ```
 
-正式 portrait 規格為 3:4、768×1024 WebP；compact slot 為 384×320 WebP。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+正式 portrait 規格為 3:4、768×1024 WebP；compact 是由 portrait 經 `art:normalize` 產生的 384×320 WebP derivative。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
+
+目前 checked-in portrait 已 39/39 符合 canonical dimensions；compact 尚有 13 個歷史 384×512 binary migration exception。這些不是第二種合法尺寸，CI / release 會先 normalize 成 384×320；完整 exception ledger 與人工 refresh 規則見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。
 
 Repository 內建圖片工具：
 
@@ -123,8 +130,14 @@ Repository 內建圖片工具：
 - `npm run image:webp -- <input> <output> ...`
 - `npm run art:normalize`
 - `npm run art:validate`
+- `npm run test:assets`
 
-角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)。
+所有 runtime/reference asset family 的 registry、路徑 ownership 與新增 gate 見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。角色圖完整規格見 [`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)，單卡 SVG 規格見 [`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)。
+
+## Runtime UI 物件
+
+由 React/MUI 繪製的 reusable game object 不屬於圖片 asset family。其 canonical reference 目前包含 `CharacterCard`、`CharacterSelectionCard`、`HandCard`、`WorkCard`、`DieToken`；foundation 來自 `src/app/theme.ts`，isolated state 由 Storybook 保存。
+
 
 ## 規則與內容架構
 
@@ -144,6 +157,8 @@ Game Event / Active request
 src/content/<character-id>.ts
 ```
 
+卡牌集中於 `src/content/cards.ts`，由 `CardDefinition` 描述種類、目標、declarative effects、必要時的 custom handler 與 AI metadata。卡牌的 authoring contract、targeting/handler 邊界與 reference validation 見 [`CARD_AUTHORING.md`](./CARD_AUTHORING.md)，可用 `npm run test:cards` 單獨驗證。
+
 `src/content/catalog.ts` 負責聚合、索引與 reference validation；Standard roster / deck / match constants 由 `src/content/match.ts` 管理。Standard AI 與 Online 共用 `BattleRoom` 與核心 Engine；Online 只另外處理 connection、draft、command / timer authority 與 human turn ownership。
 
 詳細內容：
@@ -151,6 +166,7 @@ src/content/<character-id>.ts
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - [`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- [`CARD_AUTHORING.md`](./CARD_AUTHORING.md)
 - [`ONLINE_MULTIPLAYER.md`](./ONLINE_MULTIPLAYER.md)
 
 ## Documentation policy
@@ -168,10 +184,13 @@ src/content/<character-id>.ts
 - 架構：[`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - Skill authoring：[`SKILL_AUTHORING.md`](./SKILL_AUTHORING.md)
 - Character authoring：[`CHARACTER_AUTHORING.md`](./CHARACTER_AUTHORING.md)
+- Card authoring：[`CARD_AUTHORING.md`](./CARD_AUTHORING.md)
+- Asset registry / 共通規範：[`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)
+- Runtime UI object registry：[`UI_OBJECT_CONVENTIONS.md`](./UI_OBJECT_CONVENTIONS.md)
 - 角色美術：[`CHARACTER_CARD_ART.md`](./CHARACTER_CARD_ART.md)
-- 歷史驗證紀錄：[`VALIDATION.md`](./VALIDATION.md)
+- 卡牌 SVG 美術：[`CARD_ART_STYLE.md`](./CARD_ART_STYLE.md)
+- 驗證流程 / 歷史驗證：[`VALIDATION.md`](./VALIDATION.md)
 - 討論整理：[`discussion-notes.md`](./discussion-notes.md)
-- Figma / Storybook workflow：[`FIGMA.md`](./FIGMA.md)
 - Release workflow：[`docs/release-flow.md`](./docs/release-flow.md)
 - Repository-local agent skills：[`skills/README.md`](./skills/README.md)
 
@@ -179,10 +198,17 @@ src/content/<character-id>.ts
 
 ```text
 aa-card-game/
-├─ public/assets/
+├─ public/
+│  ├─ assets/
+│  │  ├─ cards/
+│  │  └─ characters/
+│  │     ├─ portrait/
+│  │     └─ compact/
+│  └─ fonts/
 ├─ src/
+│  ├─ assets/             # Vite-bundled UI SVGs
 │  ├─ app/                # App routing + shared BattleRoom
-│  ├─ components/
+│  ├─ components/         # registered UI primitives + collections/dialogs
 │  ├─ content/            # character/card/match/catalog
 │  ├─ game/               # engine / skill runtime / online turn
 │  ├─ online/             # signaling / session / draft / rope / protocol
@@ -191,6 +217,9 @@ aa-card-game/
 │  └─ tests/
 ├─ docs/
 ├─ AGENTS.md
+├─ ASSET_CONVENTIONS.md
+├─ UI_OBJECT_CONVENTIONS.md
+├─ CARD_AUTHORING.md
 ├─ GAME_RULES.md
 ├─ GAME_MANUAL.md
 ├─ ONLINE_MULTIPLAYER.md
@@ -207,9 +236,7 @@ aa-card-game/
 - Progress 依 `Design → Text → AA`。
 - 高骰可以覆蓋同類型低骰。
 - Work 通常增加 Stress；Slack 降低 Stress。
-- 作品類型為 `燃 / 謀 / 笑 / 情 / 色 / 怪`。
+- 作品類型為 `燃 / 謀 / 笑 / 情 / 怪`。
 - 角色技能與卡牌效果共用 data-driven effect pipeline。
 - Standard / Online 一般 roster eligibility 由 match configuration 管理，不由 Character Tag 決定。
 - `planned` skill status 不會自動把角色排除出一般 roster；目前旁白與銀櫻仍可被 Standard 抽到，也可出現在 Online 候選池。
-
-這仍是 Prototype，不代表 Discord 討論中的所有規則都已定案或實作。

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<!-- References: polish.svg (spark motif), rush.svg (energetic motion and warm coordination palette). -->
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0bd"/><stop offset="1" stop-color="#e5dcff"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="384" cy="257" r="88" fill="#fff8bd" stroke="#d4a942" stroke-width="13"/>
+  <path d="M344 253 Q384 195 424 253 Q431 294 404 317 H364 Q337 294 344 253Z" fill="#fff3a0" stroke="#bd8e34" stroke-width="10"/>
+  <path d="M364 319 h40M370 338 h28" stroke="#8a6a36" stroke-width="9"/>
+  <path d="M384 79 V132M246 132 l40 38M522 132 l-40 38M214 257 h58M496 257 h58M260 370 l38-36M508 370 l-38-36" stroke="#d68b4d" stroke-width="15"/>
+  <path d="M168 170 l16 30 34 6-25 23 6 34-31-16-30 16 6-34-25-23 34-6Z" fill="#fff" stroke="#b49ad6" stroke-width="8"/>
+  <path d="M600 158 l12 24 28 4-20 19 5 27-25-13-24 13 5-27-20-19 27-4Z" fill="#fff" stroke="#8fb6c9" stroke-width="8"/>
+  <path d="M122 338 q64-62 130-12M646 338 q-64-62-130-12" fill="none" stroke="#7a9cc9" stroke-width="12"/>
+</g>
+</svg>

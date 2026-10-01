@@ -53,7 +53,9 @@ describe('three and five member match modes', () => {
     expect(startScreenSource).toContain('chooseTeamSize(5)');
     expect(appSource).toContain('teamSize,');
     expect(appSource).toContain('draftRoster.gameDefinition');
-    expect(appSource).toContain('startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition)');
+    expect(appSource).toContain("setAppStage('work-types')");
+    expect(appSource).toContain('draftRoster.gameDefinition,');
+    expect(appSource).toContain('selections,');
   });
 
   it('lays out five drawn characters as a centered 3 + 2 desktop grid', () => {

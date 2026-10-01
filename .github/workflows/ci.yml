@@ -54,9 +54,6 @@ jobs:
       - name: Generate current UI font subset
         run: bash scripts/vendor-ui-font.sh
 
-      - name: Normalize character art
-        run: npm run art:normalize
-
       - name: Tutorial regression
         run: npm run test:tutorial
 

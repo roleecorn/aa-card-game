@@ -3,11 +3,10 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import SentimentVerySatisfiedIcon from '@mui/icons-material/SentimentVerySatisfied';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import PaletteIcon from '@mui/icons-material/Palette';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import LayersIcon from '@mui/icons-material/Layers';
-import workSlotCompleteStampFallback from '../assets/work-slot-complete-stamp.svg';
+import workSlotCompleteStamp from '../assets/work-slot-complete-stamp.svg';
 import type { WorkType } from '../game/schema';
 import type { TargetLegality } from '../game/targeting';
 import type { DieToken, ProgressSlot, WorkState } from '../game/types';
@@ -17,12 +16,10 @@ const genreIcons: Record<WorkType, React.ReactNode> = {
   謀: <PsychologyIcon fontSize="small" />,
   笑: <SentimentVerySatisfiedIcon fontSize="small" />,
   情: <FavoriteIcon fontSize="small" />,
-  色: <PaletteIcon fontSize="small" />,
   怪: <AutoAwesomeIcon fontSize="small" />,
 };
 
 const workProgressDescription = '這是一部正在製作中的作品。把 Design、Text、AA 逐步填滿，完成共同創作。';
-const workSlotCompleteStamp = '/assets/work-slot-complete-stamp.png';
 
 export const workCardTones = [
   { border: '#ff8dac', bg: '#fff7f9', progress: '#ff7599' },
@@ -251,12 +248,6 @@ function ProgressCell({
           src={workSlotCompleteStamp}
           alt=""
           aria-hidden
-          onError={(event) => {
-            const image = event.currentTarget;
-            if (image.dataset.fallbackApplied === 'true') return;
-            image.dataset.fallbackApplied = 'true';
-            image.src = workSlotCompleteStampFallback;
-          }}
           sx={{
             position: 'absolute',
             top: -10,
