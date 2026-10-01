@@ -320,10 +320,18 @@ export class EngineSession {
       if (event.cancelled) return;
       actual = event.amount ?? amount;
     }
+    if (amount > 0) {
+      const event = this.skills.emit({ type: 'beforeStressIncrease', teamId, targetId: memberId, sourceId, sourceKind: source, amount: actual });
+      if (event.cancelled) return;
+      actual = event.amount ?? actual;
+    }
     const before = member.stress;
     member.stress = allowNegative ? member.stress + actual : Math.max(0, member.stress + actual);
     const delta = member.stress - before;
     if (delta !== 0) this.log(`${this.getDefinition(memberId).name} 因「${source}」壓力 ${delta > 0 ? '+' : ''}${delta}。`);
+    if (delta > 0) {
+      this.skills.emit({ type: 'afterStressIncrease', teamId, targetId: memberId, sourceId, sourceKind: source, amount: delta });
+    }
     if (external && amount > 0) {
       this.skills.emit({ type: 'afterExternalStress', teamId, targetId: memberId, sourceId, sourceKind: source, amount: delta });
     }

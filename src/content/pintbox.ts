@@ -38,7 +38,7 @@ export const pintboxSkills = skillDefinitionSchema.array().parse([
     activation: 'triggered',
     status: 'implemented',
     triggers: [{
-      event: 'beforeExternalStress',
+      event: 'beforeStressIncrease',
       priority: 100,
       usage: { scope: 'round', limit: 1, key: 'shield' },
       condition: {

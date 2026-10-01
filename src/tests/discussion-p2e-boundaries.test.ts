@@ -49,24 +49,17 @@ describe('2026-09-19 P2E finalized boundaries', () => {
     expect(work.type).toBe('怪');
   });
 
-  it('work-time projected Stress can trigger 姆咪共鳴 exactly when the normal work fee will exceed the cap', () => {
+  it('姆咪共鳴 waits until a real Work action pushes Stress over the cap', () => {
     const { game, engine } = createCase(['mashiro', 'orangeangel', 'pintbox']);
     const member = engine.getCharacter('player', 'orangeangel')!;
     const work = game.player.works.find((candidate) => candidate.ownerId === 'orangeangel')!;
     member.stress = 1;
     work.type = '情';
 
-    engine.skills.emit({
-      type: 'afterRollBatch',
-      teamId: 'player',
-      actorId: 'orangeangel',
-      dice: [],
-      amount: 0,
-      sourceKind: 'work',
-    });
+    engine.performPlayerActions({ mashiro: 'slack', orangeangel: 'work', pintbox: 'slack' });
 
-    // 精神不穩先 +1，此時為 2；共鳴預看接下來一般工作 +1，最終 3 > cap 2。
-    expect(member.stress).toBe(2);
+    // 精神不穩使 Stress 到 2；一般工作費用實際結算到 3 後才觸發共鳴。
+    expect(member.stress).toBe(3);
     expect(work.type).toBe('怪');
     expect(work.slots.every((slot) => slot.design !== undefined && slot.text !== undefined && slot.aa !== undefined)).toBe(true);
   });

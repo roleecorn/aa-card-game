@@ -27,6 +27,8 @@
 
 適合收到 game event 自動觸發：
 
+Stress 變動提供通用的 `beforeStressIncrease` / `afterStressIncrease` 事件；前者可在所有正向 Stress 實際套用前修正數值，後者只在 Stress 真正增加後發出。`beforeExternalStress` / `afterExternalStress` 僅用於外部來源及相關免疫規則。
+
 ```ts
 {
   id: 'recoverOnRoundStart',

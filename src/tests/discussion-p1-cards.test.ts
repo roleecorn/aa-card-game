@@ -39,6 +39,10 @@ describe('2026-09-19 P1 Standard card pool', () => {
     for (const id of ['voice', 'polish', 'inspiration', 'rush', 'overtime', 'accident', 'writerBlock', 'techFailure', 'thoughtBlock']) {
       expect(BASE_DECK.filter((cardId) => cardId === id)).toHaveLength(1);
     }
+    const game = createInitialGame(() => 0.5, STANDARD_GAME_DEFINITION, ROSTER);
+    expect(game.player.deck).toHaveLength(13);
+    expect(game.player.deck).not.toContain('reconsider');
+    expect(game.player.hand.map((card) => card.cardId)).not.toContain('reconsider');
   });
 
   it('keeps the existing draw timing at ten cards per player through round five', () => {

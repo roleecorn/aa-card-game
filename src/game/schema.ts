@@ -350,6 +350,8 @@ export const triggerSchema = z.object({
     'afterDiceGranted',
     'beforeExternalStress',
     'afterExternalStress',
+    'beforeStressIncrease',
+    'afterStressIncrease',
     'beforeDieModified',
     'afterDieModified',
     'afterDiePlaced',

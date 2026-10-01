@@ -475,9 +475,8 @@ registerCustomSkillEffect('orangeangelResonanceIfNeeded', (effect, context, engi
   if (!member) return false;
   const key = 'orangeangelResonance:game';
   if ((member.skillUsage[key] ?? 0) > 0) return false;
-  const projected = typeof effect.args?.projectedStress === 'number' ? effect.args.projectedStress : 0;
   const maxStress = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
-  if (maxStress === undefined || maxStress === null || member.stress + projected <= maxStress) return false;
+  if (maxStress === undefined || maxStress === null || member.stress <= maxStress) return false;
   const work = ownerWork(context, engine);
   if (!work) return false;
   const filled = fillOwnerRemainingRandom(context, engine);

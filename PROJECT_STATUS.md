@@ -13,7 +13,7 @@
 - Standard / Online 一般可出戰：**38 名角色**。
 - 一般可出戰池只排除：`chaos`。
 - 旁白 `narrator`、銀櫻 `ginsakura` 雖仍有 `planned` 技能，但保留在一般可出戰池，以支援實機、整合與回歸測試。
-- 基礎牌庫：12 張；初始手牌 2；每回合抽 2；手牌上限 8。
+- Standard 基礎牌庫：15 張（10 張統籌、5 張事件）；初始手牌 2；每回合抽 2；手牌上限 8。舊版「重新考慮一下……」不在牌庫中。
 - Online rope：選角每 batch 15 秒；Battle 每個 Plan / Assign phase 90 秒；最後 10 秒 warning。
 - Tutorial：固定 roster、固定抽牌與 deterministic RNG。
 

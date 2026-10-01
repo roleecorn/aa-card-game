@@ -101,6 +101,20 @@ describe('2026-09-19 P2A character updates', () => {
     expect(pintbox.stress).toBe(4);
   });
 
+  it('Pintbox AI reduces Stress from its own active skill before its once-per-round shield is spent', () => {
+    const { game, engine } = createGame(['pintbox', 'mashiro', 'user79'], undefined, () => 0.999);
+    game.player.pendingDice = [];
+    const lowDice = engine.grantDice('player', 'pintbox', 'design', 2, 'setup', false, 1);
+    lowDice.forEach((die) => { die.value = 1; });
+    const pintbox = engine.getCharacter('player', 'pintbox')!;
+
+    expect(engine.activateSkill('player', 'pintbox', 'pintboxBasicRequirements')).toBe(true);
+    expect(pintbox.stress).toBe(0);
+
+    engine.adjustStress('player', 'pintbox', 1, '後續技能壓力');
+    expect(pintbox.stress).toBe(1);
+  });
+
   it('Pintbox review clears pending dice before reroll if the review Stress pushes a member over cap', () => {
     const { game, engine } = createGame(['pintbox', 'mashiro', 'user79']);
     game.player.pendingDice = [];

@@ -177,6 +177,8 @@ Usage rule 可用：
 
 因此 event-dependent tests 至少要有一個透過 production Engine action 觸發 emitter 的 integration case；人工 construct 一個較完整 event 不能證明 production contract 正確。
 
+Stress 增加由 Engine 在修改狀態前後分別發出 `beforeStressIncrease` 與 `afterStressIncrease`；前者可改變實際增加量，後者反映已結算的正向增量。外部 Stress 仍另經 `beforeExternalStress` / `afterExternalStress`，供外部效果免疫與專屬互動使用。
+
 ## Condition coverage
 
 目前 condition vocabulary 包含：
