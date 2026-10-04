@@ -12,7 +12,7 @@ export const SKILL_FIXTURES = {
   enemyC: 'fixture-enemy-c',
 } as const;
 
-const ALL_AFFINITIES = ['燃', '謀', '笑', '情', '色', '怪'] as const;
+const ALL_AFFINITIES = ['燃', '謀', '笑', '情', '怪'] as const;
 
 function neutralCharacter(id: string, tags?: string[]): CharacterDefinition {
   return {

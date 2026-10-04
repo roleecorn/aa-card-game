@@ -8,6 +8,8 @@ export const GAMEPLAY_STATUS = {
   leaderStressCapBonus: 'leader-stress-cap-bonus',
   actingLeaderStressCapBonus: 'acting-leader-stress-cap-bonus',
   hidden: 'hidden',
+  textStatZero: 'text-stat-zero',
+  aaStatZero: 'aa-stat-zero',
 } as const;
 
 export type GameplayStatus = (typeof GAMEPLAY_STATUS)[keyof typeof GAMEPLAY_STATUS];

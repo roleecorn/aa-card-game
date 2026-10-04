@@ -23,7 +23,7 @@ describe('action feedback observation', () => {
     expect(state.feedback![0].impacts).toContainEqual(expect.objectContaining({ anchor: 'member:mashiro', tone: 'neutral', after: '無可見數值變化' }));
   });
 
-  it('preserves the card caster for delayed writer block and marks the debuff', () => {
+  it('records the immediate round-scoped writer-block debuff at its target', () => {
     const state = createInitialGame(() => 0, STANDARD_GAME_DEFINITION, {
       playerMemberIds: ['mashiro', 'grimm', 'triangle'],
       enemyMemberIds: ['pintbox', 'ginsakura', 'bluewind'],
@@ -35,14 +35,16 @@ describe('action feedback observation', () => {
 
     expect(engine.playCard('player', card.instanceId, { memberId: 'pintbox' })).toBe(true);
     const event = state.feedback!.find((item) => item.name === '卡文')!;
-    expect(event.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', tone: 'negative' }));
+    expect(event).toMatchObject({ actorId: 'mashiro', teamId: 'player', kind: 'card' });
+    expect(event.impacts).toContainEqual(expect.objectContaining({
+      anchor: 'member:pintbox',
+      part: '卡文 · 特殊狀態',
+      tone: 'neutral',
+    }));
 
     state.phase = 'player-assign';
     engine.finishPlayerAssignment();
-
-    const delayed = state.feedback!.find((item) => item.name === '卡文（延遲觸發）')!;
-    expect(delayed).toMatchObject({ actorId: 'mashiro', teamId: 'player', kind: 'card' });
-    expect(delayed.impacts).toContainEqual(expect.objectContaining({ anchor: 'member:pintbox', part: '壓力', tone: 'negative' }));
+    expect(state.feedback!.some((item) => item.name === '卡文（延遲觸發）')).toBe(false);
   });
 
   it('reports partial changes honestly and unwinds observation scopes after errors', () => {
@@ -62,7 +64,7 @@ describe('action feedback observation', () => {
     work.slots[0]!.aa = 5;
     grimm.stress = 2;
 
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {
       workId: work.id,
       targetDieId: '0:aa',
     })).toBe(true);
@@ -77,7 +79,7 @@ describe('action feedback observation', () => {
 
   it('rejects invalid skills without presenting successful activation', () => {
     const { state, engine } = setup();
-    expect(engine.activateSkill('player', 'grimm', 'grimmBurningFrame', {})).toBe(false);
+    expect(engine.activateSkill('player', 'grimm', 'grimmLoveForTonelico', {})).toBe(false);
     expect(state.feedback).toEqual([]);
   });
 

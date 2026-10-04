@@ -27,6 +27,8 @@
 
 適合收到 game event 自動觸發：
 
+Stress 變動提供通用的 `beforeStressIncrease` / `afterStressIncrease` 事件；前者可在所有正向 Stress 實際套用前修正數值，後者只在 Stress 真正增加後發出。`beforeExternalStress` / `afterExternalStress` 僅用於外部來源及相關免疫規則。
+
 ```ts
 {
   id: 'recoverOnRoundStart',
@@ -332,3 +334,13 @@ Standard AI 目前只會自動使用：
 - `planned` 是 skill implementation status，不是 mode eligibility；是否排除角色只能由 match configuration 明確決定。
 
 `status: implemented` 必須有真正 runtime effect 與 tests；資料或文案存在但未完整執行時維持 `partial` / `planned`。
+
+## 2026-09-19 vocabulary additions
+
+New gameplay vocabulary:
+
+- `work.type.add`: add a work type without replacing its primary type.
+- `roll.forbid` effect: forbid one or more die faces for selected members through the current round.
+- `roll.forbid` passive: permanently forbid one or more faces for a character.
+
+`work.type` remains a replace operation and clears additive extra types. Work-type conditions now match any type currently carried by the work.

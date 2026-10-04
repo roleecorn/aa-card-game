@@ -31,6 +31,8 @@ interface Props {
 const SKILL_STATS: SkillStat[] = ['design', 'text', 'aa'];
 
 function effectiveStat(member: CharacterState, stat: SkillStat): number {
+  if (stat === 'text' && (member.statuses[GAMEPLAY_STATUS.textStatZero]?.stacks ?? 0) > 0) return 0;
+  if (stat === 'aa' && (member.statuses[GAMEPLAY_STATUS.aaStatZero]?.stacks ?? 0) > 0) return 0;
   return Math.max(
     0,
     member.permanentStats[stat]
@@ -52,6 +54,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const [workId, setWorkId] = useState('');
   const [skill, setSkill] = useState<SkillStat>('design');
   const [voiceMode, setVoiceMode] = useState<'relief' | 'design' | 'text'>('relief');
+  const [polishMode, setPolishMode] = useState<'work' | 'pending'>('work');
 
   const tutorialTarget = mode === 'tutorial' && cardInstance?.cardId === 'guide'
     ? TUTORIAL_CARD_TARGETS.guide
@@ -62,6 +65,7 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
     setWorkId('');
     setSkill(tutorialTarget?.skill ?? 'design');
     setVoiceMode('relief');
+    setPolishMode('work');
   }, [cardInstance?.instanceId, tutorialTarget?.skill]);
 
   const members = useMemo(() => {
@@ -90,9 +94,13 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   }, [card, selectedMember, tutorialTarget]);
 
   const works = useMemo(() => {
-    if (!card || card.target.kind !== 'work') return [];
-    const candidates = card.target.relation === 'ally' ? game.player.works : game.enemy.works;
-    return candidates;
+    if (!card) return [];
+    if (card.target.kind === 'polishMode') {
+      return game.player.works.filter((work) => work.slots.some((slot) =>
+        slot.design !== undefined || slot.text !== undefined || slot.aa !== undefined));
+    }
+    if (card.target.kind !== 'work') return [];
+    return card.target.relation === 'ally' ? game.player.works : game.enemy.works;
   }, [card, game]);
 
   if (!card) return null;
@@ -100,7 +108,8 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
   const targetReady = card.target.kind === 'none'
     || card.target.kind === 'voiceMode'
     || (card.target.kind === 'member' && !!memberId && (!card.target.skillPicker || skillOptions.includes(skill)))
-    || (card.target.kind === 'work' && !!workId);
+    || (card.target.kind === 'work' && !!workId)
+    || (card.target.kind === 'polishMode' && (polishMode === 'pending' ? game.player.pendingDice.length > 0 : !!workId));
 
   const confirm = () => {
     const target: SkillActivationTarget = {};
@@ -110,6 +119,10 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
     }
     if (card.target.kind === 'work') target.workId = workId;
     if (card.target.kind === 'voiceMode') target.voiceMode = voiceMode;
+    if (card.target.kind === 'polishMode') {
+      target.polishMode = polishMode;
+      if (polishMode === 'work') target.workId = workId;
+    }
     onConfirm(target);
   };
 
@@ -165,7 +178,16 @@ export function CardPlayDialog({ open, cardInstance, game, onClose, onConfirm }:
               </Select>
             </FormControl>
           )}
-          {card.target.kind === 'work' && (
+          {card.target.kind === 'polishMode' && (
+            <FormControl fullWidth>
+              <InputLabel>精修模式</InputLabel>
+              <Select value={polishMode} label="精修模式" onChange={(event) => setPolishMode(event.target.value as typeof polishMode)}>
+                <MenuItem value="work" disabled={!works.length}>作品中最低的 3 顆骰</MenuItem>
+                <MenuItem value="pending" disabled={!game.player.pendingDice.length}>待分配區最低的 3 顆骰</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          {(card.target.kind === 'work' || (card.target.kind === 'polishMode' && polishMode === 'work')) && (
             <FormControl fullWidth>
               <InputLabel>目標作品</InputLabel>
               <Select value={workId} label="目標作品" onChange={(event) => setWorkId(event.target.value)}>
