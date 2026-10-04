@@ -51,16 +51,34 @@ function basenames(values: Array<string | undefined>): string[] {
   return values.filter((value): value is string => Boolean(value)).map((value) => path.posix.basename(value)).sort();
 }
 
-async function headImageMetadata(file: string) {
-  const buffer = execFileSync('git', ['show', `HEAD:${file}`], {
+function headImageBuffers(files: string[]): Map<string, Buffer> {
+  // One Git process avoids 78 process startups on Windows. Trust only this
+  // checkout for this invocation (sandbox users can differ from its owner).
+  const buffer = execFileSync('git', ['-c', `safe.directory=${ROOT.replaceAll('\\', '/')}`, 'cat-file', '--batch'], {
     cwd: ROOT,
+    input: Buffer.from(files.map((file) => `HEAD:${file}\n`).join(''), 'utf8'),
     encoding: 'buffer',
-    maxBuffer: 16 * 1024 * 1024,
+    maxBuffer: 64 * 1024 * 1024,
   });
-  return sharp(buffer).metadata();
+  const images = new Map<string, Buffer>();
+  let offset = 0;
+  for (const file of files) {
+    const headerEnd = buffer.indexOf(10, offset);
+    const header = buffer.subarray(offset, headerEnd).toString('utf8');
+    const match = /^[a-f0-9]+ blob (\d+)$/.exec(header);
+    if (headerEnd < 0 || !match) throw new Error(`Cannot read HEAD:${file}: ${header}`);
+    const size = Number(match[1]);
+    const start = headerEnd + 1;
+    if (start + size >= buffer.length || buffer[start + size] !== 10) {
+      throw new Error(`Incomplete Git blob for HEAD:${file}`);
+    }
+    images.set(file, buffer.subarray(start, start + size));
+    offset = start + size + 1;
+  }
+  return images;
 }
 
-function expectCanonicalWebpMetadata(metadata: Awaited<ReturnType<typeof headImageMetadata>>, label: string) {
+function expectCanonicalWebpMetadata(metadata: sharp.Metadata, label: string) {
   expect(metadata.format, `${label} format`).toBe('webp');
   expect(metadata.pages ?? 1, `${label} frame count`).toBe(1);
   if (metadata.space) expect(metadata.space, `${label} color space`).toBe('srgb');
@@ -104,17 +122,21 @@ describe('runtime asset registry', () => {
 
   it('locks checked-in character binary metadata and permits only the documented legacy compact dimensions', async () => {
     const portraitFiles = basenames(Object.values(CHARACTERS).map((character) => character.portrait));
+    const compactFiles = basenames(Object.values(CHARACTERS).map((character) => character.compactPortrait));
+    const images = headImageBuffers([
+      ...portraitFiles.map((name) => `public/assets/characters/portrait/${name}`),
+      ...compactFiles.map((name) => `public/assets/characters/compact/${name}`),
+    ]);
     for (const name of portraitFiles) {
-      const metadata = await headImageMetadata(`public/assets/characters/portrait/${name}`);
+      const metadata = await sharp(images.get(`public/assets/characters/portrait/${name}`)!).metadata();
       expectCanonicalWebpMetadata(metadata, `${name} portrait`);
       expect(metadata.width, `${name} portrait width`).toBe(768);
       expect(metadata.height, `${name} portrait height`).toBe(1024);
     }
 
-    const compactFiles = basenames(Object.values(CHARACTERS).map((character) => character.compactPortrait));
     const observedLegacy: string[] = [];
     for (const name of compactFiles) {
-      const metadata = await headImageMetadata(`public/assets/characters/compact/${name}`);
+      const metadata = await sharp(images.get(`public/assets/characters/compact/${name}`)!).metadata();
       expectCanonicalWebpMetadata(metadata, `${name} compact`);
       if (metadata.width === 384 && metadata.height === 320) continue;
 

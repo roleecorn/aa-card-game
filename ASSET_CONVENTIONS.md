@@ -50,6 +50,7 @@
 - 不得複製這 13 個舊檔的 geometry 作為新角色 reference；
 - runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序；
 - `scripts/runtime-assets.test.ts` 會直接讀取 Git `HEAD` 中的 binary metadata，要求 **只有上述 13 個檔案**可以是 384×512；任何新增的 legacy-size compact、其他錯誤尺寸，或清單與實際 binary 不一致都會失敗；
+- Git metadata audit 使用單次 `git cat-file --batch` 讀取圖片，避免 Windows 逐張啟動 Git 造成測試逾時；該次呼叫只信任目前 checkout 的絕對路徑，不變更 global Git 設定。
 - 即使是 legacy exception，也仍必須符合其餘 canonical binary 規格：檔名等於 `<character-id>.webp`、WebP、單幀、sRGB。例外只涵蓋 384×512 這個暫時尺寸差異。
 
 這個清單是 migration ledger，不是永久 allowlist。人工修正其中一個 binary 時，必須在同一個 commit 移除對應 exception；最終目標是清單歸零。
