@@ -24,36 +24,16 @@
 | Bundled UI font | `public/fonts/noto-sans-tc-ui.woff2` | WOFF2 variable subset, weights 100–900 | generated subset from pinned Noto Sans TC source | `public/fonts/README.md`, `scripts/vendor-ui-font.sh` |
 | Documentation reference art | `docs/art/*` | reference-only; runtime format rules do not apply | documentation | must never be imported by runtime source |
 
-### Checked-in character binary audit (2026-09-20)
+### Checked-in character binary audit (2026-10-05)
 
-`portrait` 目前 39/39 已直接符合 768×1024。`compact` 目前 26/39 已直接符合 384×320；以下 13 個歷史檔仍是 384×512：
+`portrait` 39/39 符合 768×1024，`compact` 39/39 符合 384×320。原有 13 張 384×512 compact 已依本次使用者明確授權，由各自的 canonical portrait 透過既有 `scripts/image-tools.ts` 的 `convertToWebp` 產生；沿用 `scripts/character-art.ts` 的 cover、quality 82、alphaQuality 90、effort 6 設定。歷史尺寸例外已清零，不再接受 384×512。
 
-- `adao.webp`
-- `axu.webp`
-- `chidori.webp`
-- `e.webp`
-- `enki.webp`
-- `eryang.webp`
-- `ingrid.webp`
-- `linlan.webp`
-- `orangeangel.webp`
-- `pray.webp`
-- `ta.webp`
-- `tiantichilun.webp`
-- `zhise.webp`
+- `npm run art:validate` 可直接驗證 checkout 中的 39/39 portrait 與 compact，包含 WebP RIFF 長度、尺寸、單幀與 sRGB。
+- CI / release 仍維持 `art:normalize` → `art:validate` 順序。
+- `scripts/runtime-assets.test.ts` 直接讀取 Git `HEAD` 的 binary metadata，所有 portrait / compact 均須符合 canonical dimensions，沒有尺寸 allowlist。
+- Git metadata audit 使用單次 `git cat-file --batch`，避免 Windows 逐張啟動 Git 造成逾時；該次呼叫只信任目前 checkout 的絕對路徑，不變更 global Git 設定。
 
-這 13 個檔案是 **legacy source exceptions，不是格式 precedent**。CI 與 Pages deploy 都會先執行 `npm run art:normalize`，因此 runtime/deploy output 仍會正規化為 384×320，之後 `art:validate` 會驗證 39/39 portrait 與 compact。由於 repository 明確禁止 Chat / AI agent 上傳或替換圖片 binary，這 13 個 checked-in WebP 必須由人工執行 `npm run art:normalize` 後提交更新，才能讓 Git tree 本身也完全符合 canonical dimensions。
-
-在這批人工 binary refresh 完成前：
-
-- 不得把 384×512 視為合法 compact 尺寸；
-- 不得複製這 13 個舊檔的 geometry 作為新角色 reference；
-- runtime / release validation 必須維持 `art:normalize` → `art:validate` 順序；
-- `scripts/runtime-assets.test.ts` 會直接讀取 Git `HEAD` 中的 binary metadata，要求 **只有上述 13 個檔案**可以是 384×512；任何新增的 legacy-size compact、其他錯誤尺寸，或清單與實際 binary 不一致都會失敗；
-- Git metadata audit 使用單次 `git cat-file --batch` 讀取圖片，避免 Windows 逐張啟動 Git 造成測試逾時；該次呼叫只信任目前 checkout 的絕對路徑，不變更 global Git 設定。
-- 即使是 legacy exception，也仍必須符合其餘 canonical binary 規格：檔名等於 `<character-id>.webp`、WebP、單幀、sRGB。例外只涵蓋 384×512 這個暫時尺寸差異。
-
-這個清單是 migration ledger，不是永久 allowlist。人工修正其中一個 binary 時，必須在同一個 commit 移除對應 exception；最終目標是清單歸零。
+本次僅修正 compact derivative 的尺寸與驗證，不改變遊戲規則或角色數據。
 
 ### Current bundled UI vector reference
 

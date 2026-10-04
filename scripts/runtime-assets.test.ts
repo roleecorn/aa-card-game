@@ -8,22 +8,6 @@ import { CHARACTERS } from '../src/content/catalog';
 const ROOT = process.cwd();
 const abs = (...parts: string[]) => path.join(ROOT, ...parts);
 
-const LEGACY_COMPACT_DIMENSION_EXCEPTIONS = [
-  'adao.webp',
-  'axu.webp',
-  'chidori.webp',
-  'e.webp',
-  'enki.webp',
-  'eryang.webp',
-  'ingrid.webp',
-  'linlan.webp',
-  'orangeangel.webp',
-  'pray.webp',
-  'ta.webp',
-  'tiantichilun.webp',
-  'zhise.webp',
-] as const;
-
 async function entries(dir: string) {
   return fs.readdir(abs(dir), { withFileTypes: true });
 }
@@ -120,7 +104,7 @@ describe('runtime asset registry', () => {
     expect(actualCompacts.every((name) => /^[a-z0-9-]+\.webp$/.test(name))).toBe(true);
   });
 
-  it('locks checked-in character binary metadata and permits only the documented legacy compact dimensions', async () => {
+  it('requires canonical dimensions for every checked-in character image', async () => {
     const portraitFiles = basenames(Object.values(CHARACTERS).map((character) => character.portrait));
     const compactFiles = basenames(Object.values(CHARACTERS).map((character) => character.compactPortrait));
     const images = headImageBuffers([
@@ -134,18 +118,13 @@ describe('runtime asset registry', () => {
       expect(metadata.height, `${name} portrait height`).toBe(1024);
     }
 
-    const observedLegacy: string[] = [];
     for (const name of compactFiles) {
       const metadata = await sharp(images.get(`public/assets/characters/compact/${name}`)!).metadata();
       expectCanonicalWebpMetadata(metadata, `${name} compact`);
-      if (metadata.width === 384 && metadata.height === 320) continue;
-
-      expect(metadata.width, `${name} legacy compact width`).toBe(384);
-      expect(metadata.height, `${name} legacy compact height`).toBe(512);
-      observedLegacy.push(name);
+      expect(metadata.width, `${name} compact width`).toBe(384);
+      expect(metadata.height, `${name} compact height`).toBe(320);
     }
 
-    expect(observedLegacy.sort()).toEqual([...LEGACY_COMPACT_DIMENSION_EXCEPTIONS].sort());
   });
 
   it('keeps source-bundled UI assets vector-only and self-contained', async () => {

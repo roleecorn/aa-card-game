@@ -121,7 +121,7 @@ public/assets/characters/compact/<character-id>.webp
 
 正式 portrait 規格為 3:4、768×1024 WebP；compact 是由 portrait 經 `art:normalize` 產生的 384×320 WebP derivative。名稱、數值、技能文字與卡框由 React/MUI render，不烘焙到 raster art。
 
-目前 checked-in portrait 已 39/39 符合 canonical dimensions；compact 尚有 13 個歷史 384×512 binary migration exception。這些不是第二種合法尺寸，CI / release 會先 normalize 成 384×320；完整 exception ledger 與人工 refresh 規則見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。
+目前 checked-in portrait 39/39 符合 768×1024，compact 39/39 符合 384×320；歷史尺寸例外已清零，可直接執行 `npm run art:validate`。完整規格與驗證方式見 [`ASSET_CONVENTIONS.md`](./ASSET_CONVENTIONS.md)。
 
 Repository 內建圖片工具：
 
