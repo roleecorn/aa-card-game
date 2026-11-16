@@ -8,6 +8,7 @@ import type { GameDefinition } from './gameDefinition';
 import { SkillRuntime } from './skillRuntime';
 import { chooseEnemyActions, runEnemyPreTurnAi } from './ai';
 import { GAMEPLAY_STATUS, getStatusStacks, hasGameplayStatus } from './statuses';
+import { getDiePlacementLegality } from './targeting';
 import type { CardDefinition, CharacterDefinition, MemberSelector, SkillEffect, SkillStat, TeamId, WorkSelector, WorkType } from './schema';
 import type {
   ActionChoice,
@@ -30,6 +31,7 @@ export interface InitialGameOptions {
   enemyMemberIds?: string[];
   playerWorkTypes?: Partial<Record<string, WorkType>>;
   enemyWorkTypes?: Partial<Record<string, WorkType>>;
+  opponentControl?: 'ai' | 'human';
 }
 
 function isRosterPlayable(definition: CharacterDefinition, gameDefinition: GameDefinition): boolean {
@@ -132,6 +134,7 @@ export class EngineSession {
     public readonly state: GameState,
     readonly rng: () => number = Math.random,
     gameDefinition: GameDefinition = STANDARD_GAME_DEFINITION,
+    private readonly opponentControl: 'ai' | 'human' = 'ai',
   ) {
     this.gameDefinition = gameDefinition;
     this.content = gameDefinition.content;
@@ -458,16 +461,16 @@ export class EngineSession {
         team.discard = [];
       }
       const cardId = team.deck.shift();
-      if (!cardId) return;
+      if (!cardId) break;
       team.hand.push({ instanceId: this.uid('card'), cardId });
     }
-    if (teamId === 'enemy') this.discardEnemyOverflow();
+    if (teamId === 'enemy' && this.opponentControl === 'ai') this.discardEnemyOverflow();
   }
 
   addCard(teamId: TeamId, cardId: string, count: number): void {
     const team = this.getTeam(teamId);
     for (let i = 0; i < count; i += 1) team.hand.push({ instanceId: this.uid('card'), cardId });
-    if (teamId === 'enemy') this.discardEnemyOverflow();
+    if (teamId === 'enemy' && this.opponentControl === 'ai') this.discardEnemyOverflow();
   }
 
   discardCards(teamId: TeamId, instanceIds: string[]): boolean {
@@ -500,19 +503,7 @@ export class EngineSession {
   }
 
   canPlaceDie(teamId: TeamId, die: DieToken, work: WorkState, slotIndex: number): boolean {
-    const team = this.getTeam(teamId);
-    if (!team.pendingDice.some((candidate) => candidate.id === die.id)) return false;
-    if (!team.works.some((candidate) => candidate.id === work.id)) return false;
-    if (slotIndex < 0 || slotIndex >= work.slots.length) return false;
-    if (die.skill !== 'aa' && work.ownerId !== die.ownerId) {
-      const affinity = this.getEffectiveAffinity(die.ownerId);
-      if (affinity !== 'all' && !this.getWorkTypes(work).some((type) => affinity.includes(type))) return false;
-    }
-    const slot = work.slots[slotIndex];
-    if (!slot) return false;
-    if (die.skill === 'text' && slot.design === undefined) return false;
-    if (die.skill === 'aa' && slot.text === undefined) return false;
-    return true;
+    return getDiePlacementLegality(this, teamId, die, work, slotIndex).allowed;
   }
 
   placeDie(teamId: TeamId, dieId: string, workId: string, slotIndex: number): boolean {
@@ -520,10 +511,7 @@ export class EngineSession {
     const die = team.pendingDice.find((candidate) => candidate.id === dieId);
     const work = team.works.find((candidate) => candidate.id === workId);
     if (!die || !work || !this.canPlaceDie(teamId, die, work, slotIndex)) return false;
-    const slot = work.slots[slotIndex];
-    if (!slot) return false;
-    const existing = slot[die.skill] ?? 0;
-    if (existing >= die.value) return false;
+    const slot = work.slots[slotIndex]!;
     slot[die.skill] = die.value;
     team.pendingDice = team.pendingDice.filter((candidate) => candidate.id !== dieId);
     this.log(`${this.getDefinition(die.ownerId).name} 將 ${die.skill.toUpperCase()} ${die.value} 放入「${work.title}」第 ${slotIndex + 1} 格。`);
@@ -690,6 +678,7 @@ export class EngineSession {
 
   finishPlayerAssignment(): void {
     if (this.state.phase !== 'player-assign') return;
+    if (this.state.player.hand.length > this.gameDefinition.rules.handLimit) return;
     if (this.state.player.pendingDice.length) {
       this.log(`你放棄了 ${this.state.player.pendingDice.length} 顆未分配骰。`);
       this.state.player.pendingDice = [];
@@ -728,14 +717,18 @@ export class EngineSession {
 
   private autoAssign(teamId: TeamId): void {
     const team = this.getTeam(teamId);
-    for (const die of [...team.pendingDice].sort((a, b) => b.value - a.value)) {
-      const legal = team.works.flatMap((work) => work.slots.flatMap((slot, slotIndex) =>
-        this.canPlaceDie(teamId, die, work, slotIndex)
-          ? [{ work, slotIndex, existing: slot[die.skill] ?? 0 }]
-          : []));
-      legal.sort((a, b) => a.existing - b.existing || Number(a.work.ownerId !== die.ownerId) - Number(b.work.ownerId !== die.ownerId));
-      const target = legal.find((item) => item.existing < die.value);
-      if (target) this.placeDie(teamId, die.id, target.work.id, target.slotIndex);
+    for (const skill of ['design', 'text', 'aa'] as const) {
+      const dice = team.pendingDice.filter((die) => die.skill === skill).sort((a, b) => b.value - a.value);
+      for (const die of dice) {
+        if (this.isGameFinished()) return;
+        const legal = team.works.flatMap((work) => work.slots.flatMap((slot, slotIndex) =>
+          this.canPlaceDie(teamId, die, work, slotIndex)
+            ? [{ work, slotIndex, existing: slot[skill] ?? 0 }]
+            : []));
+        legal.sort((a, b) => a.existing - b.existing || Number(a.work.ownerId !== die.ownerId) - Number(b.work.ownerId !== die.ownerId));
+        const target = legal[0];
+        if (target) this.placeDie(teamId, die.id, target.work.id, target.slotIndex);
+      }
     }
   }
 
@@ -923,7 +916,7 @@ export function createInitialGame(
   const player = createTeam(bootstrap, 'player', rules.player.name, playerMemberIds, options.playerWorkTypes);
   const enemy = createTeam(bootstrap, 'enemy', rules.enemy.name, enemyMemberIds, options.enemyWorkTypes);
   const state: GameState = { round: 1, maxRounds: rules.maxRounds, phase: 'player-plan', player, enemy, logs: [] };
-  const engine = new EngineSession(state, rng, gameDefinition);
+  const engine = new EngineSession(state, rng, gameDefinition, options.opponentControl);
   engine.drawCards('player', rules.initialHandSize);
   engine.drawCards('enemy', rules.initialHandSize);
   engine.log(`本局隨機隊伍：我方 ${playerMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}；對手 ${enemyMemberIds.map((id) => content.characters[id]?.name ?? id).join('、')}。`);

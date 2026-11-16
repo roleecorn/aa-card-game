@@ -27,6 +27,7 @@
 - 我方初始隊伍揭曉後，本局有一次重抽一名角色的機會。
 - 我方確認隊伍後手動選組長；AI 初始組長為其 roster 第一名。
 - 玩家完成 assignment 後由 Standard AI 自動執行對手回合。
+- AI 先配置 Design，再配置 Text 與 AA，並套用共用的骰子放置限制。
 - 不使用 Online rope timer。
 
 ### Online multiplayer
@@ -52,7 +53,7 @@
 - 每個 Plan / Assign phase 都有新的 90 秒 deadline；操作不重設時間，最後 10 秒進 warning。
 - Plan timeout 提交目前 action choices；Guest choices 透過 `planPreview` 給 Host 做 authoritative timeout resolution。
 - Assign timeout 走正常 `finishOnlineAssignment()`，清掉未使用 pending dice 後 handoff。
-- Online 正常情況仍由真人自行處理手牌上限；timeout 時若仍超量，Host 會先隨機棄到 hand limit。
+- Online 雙方在開局、回合抽牌及技能結算時皆保留取得的卡牌。若超量，玩家須棄到上限才能提交規劃或結束配置；timeout 時由 Host 隨機棄到上限。
 - Timer 使用 absolute deadline；browser background throttling 或 callback 延遲不會延長規則時間。
 - Authoritative phase 改變時 Online BattleRoom 重新建立互動狀態，避免半完成 card / skill / target / selected-die UI 跨 phase 殘留。
 

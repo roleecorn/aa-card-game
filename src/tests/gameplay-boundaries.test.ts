@@ -3,6 +3,7 @@ import { CHARACTERS, SKILLS, STANDARD_GAME_DEFINITION } from '../content/catalog
 import { createInitialGame, EngineSession, selectStandardRosters } from '../game/engine';
 import { GAMEPLAY_STATUS, hasGameplayStatus } from '../game/statuses';
 import type { GameState } from '../game/types';
+import { createSkillHarness, SKILL_FIXTURES } from './helpers/skillHarness';
 
 const FORBIDDEN_BEHAVIOR_TAGS = [
   'no-stress',
@@ -13,6 +14,22 @@ const FORBIDDEN_BEHAVIOR_TAGS = [
 ];
 
 describe('gameplay state boundaries', () => {
+  it('lets AI place higher Text and AA dice after filling their prerequisites', () => {
+    const { game, engine } = createSkillHarness();
+    game.phase = 'player-assign';
+    const ownerId = SKILL_FIXTURES.enemyA;
+    const work = game.enemy.works.find((candidate) => candidate.ownerId === ownerId)!;
+    engine.grantDice('enemy', ownerId, 'aa', 1, 'test', false, 6);
+    engine.grantDice('enemy', ownerId, 'text', 1, 'test', false, 5);
+    const design = engine.grantDice('enemy', ownerId, 'design', 1, 'test', false)[0]!;
+    for (const member of game.enemy.members) member.stress = 5;
+
+    engine.finishPlayerAssignment();
+
+    expect(work.slots[0]).toEqual({ design: design.value, text: 5, aa: 6 });
+    expect(game.round).toBe(2);
+  });
+
   it('keeps gameplay behavior out of character tags and assigns behavior skills explicitly', () => {
     for (const character of Object.values(CHARACTERS)) {
       for (const tag of FORBIDDEN_BEHAVIOR_TAGS) {

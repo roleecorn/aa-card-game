@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { createInitialGame, EngineSession } from '../game/engine';
-import { placeDieWithLegality } from '../game/placement';
 import {
   getCardAvailability,
   getDiePlacementLegality,
@@ -85,7 +84,8 @@ describe('target legality', () => {
 
     const legality = getDiePlacementLegality(engine, 'player', die, work, 0);
     expect(legality.allowed).toBe(false);
-    expect(placeDieWithLegality(engine, 'player', die.id, work.id, 0)).toBe(false);
+    expect(engine.canPlaceDie('player', die, work, 0)).toBe(false);
+    expect(engine.placeDie('player', die.id, work.id, 0)).toBe(false);
   });
 
   it('lets Lemon rescue dice bypass normal cross-work affinity restrictions', () => {
@@ -103,7 +103,8 @@ describe('target legality', () => {
     const grimmWork = game.player.works.find((work) => work.ownerId === 'grimm')!;
     grimmWork.type = '情';
     expect(getDiePlacementLegality(engine, 'player', rescueDesign, grimmWork, 0).allowed).toBe(true);
-    expect(placeDieWithLegality(engine, 'player', rescueDesign.id, grimmWork.id, 0)).toBe(true);
+    expect(engine.canPlaceDie('player', rescueDesign, grimmWork, 0)).toBe(true);
+    expect(engine.placeDie('player', rescueDesign.id, grimmWork.id, 0)).toBe(true);
     expect(grimmWork.slots[0]!.design).toBe(rescueDesign.value);
   });
 

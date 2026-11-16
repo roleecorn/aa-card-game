@@ -413,7 +413,7 @@ Timeout 行為仍呼叫正式 store / Engine API，不另外 fork gameplay imple
 
 `player-plan → player-assign → enemy-plan → enemy-assign → advanceRound`
 
-Online transition 暫時替換 draw/add-card 的 enemy auto-discard 行為，避免把真人 Guest 當 AI 自動棄牌。正常情況由真人自己處理 hand limit；如果 timer deadline 到達且該 side 仍超量，Online session 才用正式 `discardCards()` 隨機棄掉 excess，讓 timeout transition 可繼續。
+Online store 在建立對局及執行指令時，會指定 `EngineSession` 的對手由真人控制。開局、技能及回合轉換共用 `drawCards()`／`addCard()`；只有 Standard AI 對手會在取得卡牌時自動棄牌。真人自行棄到 hand limit 才能提交規劃或結束配置；若 timer deadline 到達且仍超量，Online session 用 `discardCards()` 隨機棄掉超出張數後推進 phase。
 
 Guest 的 Plan UI state 不進 core GameState；`planPreview` 只把目前 Work / Slack choice 傳給 Host session，讓 Host Plan timeout 能提交 Guest 當下選擇。Host 自己的 choice 直接讀 authoritative local game store。
 
@@ -450,6 +450,8 @@ Gameplay / ability / target / turn flow 修改必須跑 tutorial regression。
 不要用「某個 assertion 綠」取代行為隔離；如果 fixture 有其他角色技能能產生同一結果，測試就不可信。
 
 ## AI boundary
+
+AI 依 Design → Text → AA 的前置順序配置骰子，同類骰優先處理高點數。AI、玩家與 UI 使用相同的放置合法性判定。
 
 Standard AI 目前不是完整通用 skill planner：
 
