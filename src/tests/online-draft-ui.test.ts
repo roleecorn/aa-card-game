@@ -56,7 +56,7 @@ describe('online draft character UI', () => {
     expect(draftSource).toContain('&& !landingId');
     expect(draftSource).toContain('onAnimationSettled();');
     expect(appSource).toContain('const [onlineDraftSettled, setOnlineDraftSettled] = useState(false)');
-    expect(appSource).toContain('if (onlineDraft && !onlineDraftSettled)');
+    expect(appSource).toContain("onlineDraft.status === 'complete' && onlineDraftSettled ? 'online-work-types' : 'online-draft'");
     expect(appSource).toContain('|| !onlineDraftSettled');
     expect(appSource).toContain('onAnimationSettled={handleOnlineDraftAnimationSettled}');
   });

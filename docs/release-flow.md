@@ -16,6 +16,14 @@
 
 ## Development flow
 
+### Build diagnostics
+
+The Vite build separates React, MUI/Emotion UI, and Zod validation into vendor chunks. The default 500 kB chunk warning remains enabled. `vite.config.ts` filters only the two known Zod 4.5.4 prose-comment `INVALID_ANNOTATION` warnings in `core/util.js` and `core/regexes.js`; Rollup removes those invalid annotations as usual, and all other diagnostics still reach the default handler. Recheck this narrow workaround when upgrading Zod.
+
+These build and asset-audit changes do not alter gameplay rules or content data.
+
+### Branch workflow
+
 Normal development never deploys GitHub Pages:
 
 1. Create a feature/fix branch.

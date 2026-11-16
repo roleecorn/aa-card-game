@@ -190,16 +190,22 @@ Hidden 是共用 gameplay status：
 
 ## Cards
 
-基礎牌庫固定 12 張：
+Standard 基礎牌庫固定 15 張（10 張統籌、5 張事件）：
 
 - 安撫 ×2
+- 一對一討論 ×2
 - 指導 ×2
+- 語音會議 ×1
 - 精修 ×1
-- 重新考慮一下…… ×1
+- 靈感爆發 ×1
 - 趕工 ×1
-- 語音會議 ×2
-- 突發加班 ×2
+- 突發加班 ×1
+- 突發事故 ×1
 - 卡文 ×1
+- 技術故障 ×1
+- 思維阻滯 ×1
+
+「重新考慮一下……」保留為舊版相容卡，不屬於 Standard 牌庫。
 
 每隊使用自己的 deck / hand / discard pile。
 
@@ -209,7 +215,7 @@ Hidden 是共用 gameplay status：
 - 牌庫耗盡時把棄牌堆洗回牌庫。
 - 真人正常操作時若超過上限，需棄到 8 張才能繼續；Online rope timeout 若遇到仍超量的手牌，會由 Host 隨機棄掉恰好超出的張數後再推進 phase。
 
-所有卡牌都由當前組長使用。統籌卡成功使用後，一般由組長承擔 +1 外部 Stress；副組長能力可能依規則在**結算前**改變 Stress bearer。
+所有卡牌都由當前組長使用。統籌卡成功使用後，一般由組長承擔 +1 外部 Stress；副組長能力可能依規則在**結算前**改變 Stress bearer。角色被動可以修正符合條件的壓力增加；減免只套用於實際發生的增加量。
 
 各卡牌完整 target / effect 以 `src/content/cards.ts` 為 authoritative source；玩家向說明見 `GAME_MANUAL.md`。
 
@@ -253,11 +259,12 @@ Game Event
 
 角色的完整數值與技能仍以 per-character package 為準。近期容易與舊文件混淆的規則：
 
-- **Pintbox**：`審稿` 可主動重擲己方所有 1/2 pending dice；每重擲一顆，該骰 owner +1 Stress。`這只是基本的要求……` 在 Pintbox Stress >=3 且工作批次出現 1/2 時，自動處理該批與既有 pending 低骰直到沒有 1/2。
+- **Pintbox**：「這只是基本的要求……」每回合可主動使用一次，逐一處理我方有 1/2 pending dice 的角色；該角色 Stress +1 並重擲其全部低骰，直到沒有 1/2。「AI」每回合第一次因工作與使用統籌卡以外原因增加 Stress 時，將該次增加量減 1，最低為 0。
+- **橘天使**：「姆咪共鳴」只在實際 Stress 超過有效上限後觸發；剛好到達上限不會觸發。工作造成的通常 Stress 費用也會納入判定。
 - **風揚**：`起來` 已實作；回合開始時若自身達有效 Stress 上限，會依技能規則處理自身／組長 Stress。
 - **情緒**：`屬陀螺的` 以實際統籌卡 target 判斷；每回合第一次成為統籌卡目標時，己方組長 Stress -1。
 - **流星**：`軌之共鳴` 只有自己的作品為（燃）且存在可重擲 pending die 時才可發動。
-- **格林**：`對托內利可的愛` 只有自己的（情）作品存在已放置進度時可發動。
+- **格林**：有兩個獨立技能；`燃燒畫面` 可用自身 Stress 強化自己的 pending AA 骰，`對托內利可的愛` 則只有自己的（情）作品存在已放置進度時可發動。
 - **鬼影**：`貓影共鳴` 必須真的存在可重擲的 Design 進度，不能空付 Stress。
 - **鴿子的化身／嘆息**：加骰值技能不會把已經沒有提升空間的 6 點骰當成合法 target。
 - **Pray**：`高產` 不能對 1 點骰做 1→1 的 no-op 拆分。
@@ -298,3 +305,12 @@ Game Event
 ## Responsive battle UI
 
 Standard、Online、Tutorial 共用 BattleRoom 的響應式欄位與區域導覽。導覽只捲動頁面，技能說明展開只影響顯示；不改變 phase、合法目標、使用次數、事件、計分或角色／卡牌資料。目標選取提示與取消控制現在也顯示於一般對局，仍呼叫原有 cancelSelection。
+
+## 2026-09-19 P0 discussion rules
+
+- Live work types are now **燃 / 謀 / 笑 / 情 / 怪**; **色** is removed from the runtime vocabulary.
+- A work has one primary type plus optional extra types. Affinity checks and work-type skill conditions match any current type. A replace-type effect clears extra types; an add-type effect preserves the primary type.
+- Initial game construction and the player-facing setup flow both support an explicit legal work-type choice per character; choices must be within that character's effective affinity (including all-affinity passives). Offline selection happens after leader choice; Online protocol v3 collects Host and Guest selections independently before the authoritative GameState is created.
+- Dice rolls resolve against a shared forbidden-face set. If no legal face remains, that die disappears instead of retrying indefinitely.
+- Coordination-card stress cost must have a legal bearer before the card can be used. Vice-leader bearers are chosen by remaining Stress headroom, not raw Stress.
+- 指導 has coordination stress cost 0; it instead gives its target +1 Stress. A stat 0 target succeeds on 5–6, a stat 1 target succeeds on 6.

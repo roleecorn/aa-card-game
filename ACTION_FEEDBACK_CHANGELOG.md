@@ -120,17 +120,6 @@ Next Presentation or Unlock Player Input
 - 390 × 844 窄螢幕曾驗證目前提示 panel 與 floating notification；此項不能取代後續 full-screen overlay、touch-to-skip 與 viewport coverage 驗證。
 - public asset resolver 既有 regression 涵蓋 `/aa-card-game/` 下的 portrait 與 compact 圖片。
 
-## Figma 對照
-
-目前 Figma 節點記錄的是舊的 notification / panel 方向，後續若重做 runtime layout，應同步更新或新增 full-screen presentation flow，不可把舊節點視為最終 UX source。
-
-- [FeedbackImpact 三種效果列](https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH?node-id=9-256)
-- [ActionFeedback 提示元件](https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH?node-id=10-250)
-- [360px 窄版元件](https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH?node-id=10-260)
-- [主畫面內的提示位置](https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH?node-id=10-270)
-
-已新增提示用色彩／間距／圓角共 12 個變數與字體樣式，確認使用 Noto Sans TC。這些既有 token 可視需要沿用，但不應限制新的 full-screen composition。
-
 ## 目前實作與目標需求差異
 
 - **目前：** 短橫幅與固定「戰況提示」區域。  

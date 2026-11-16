@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<!-- References: guide.svg (two-person guidance composition), voice.svg (discussion/table language). -->
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dcecff"/><stop offset="1" stop-color="#f7e8c8"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <ellipse cx="384" cy="356" rx="208" ry="68" fill="#f5ddb4" stroke="#9e7651" stroke-width="12"/>
+  <circle cx="245" cy="236" r="52" fill="#f0c6a5" stroke="#77584d" stroke-width="9"/>
+  <circle cx="523" cy="236" r="52" fill="#f0c6a5" stroke="#77584d" stroke-width="9"/>
+  <path d="M188 347 Q238 282 309 335" fill="#789fd0" stroke="#4f6d9a" stroke-width="11"/>
+  <path d="M458 335 Q518 280 580 347" fill="#e9a47f" stroke="#a56548" stroke-width="11"/>
+  <rect x="324" y="302" width="120" height="67" rx="12" fill="#e7edf2" stroke="#6f7d8d" stroke-width="9"/>
+  <path d="M344 326 h80M344 345 h56" stroke="#a0adb9" stroke-width="7"/>
+  <path d="M225 109 q0-34 43-34 h74 q43 0 43 34 t-43 34 h-31 l-26 27 5-27h-22q-43 0-43-34Z" fill="#fff" stroke="#8095ba" stroke-width="9"/>
+  <path d="M424 111 q0-32 40-32 h72 q40 0 40 32 t-40 32 h-24 l18 24-34-24h-32q-40 0-40-32Z" fill="#fff7c9" stroke="#aa9a61" stroke-width="9"/>
+  <path d="M260 110 h88M458 111 h80" stroke="#b4a8c4" stroke-width="8"/>
+  <path d="M292 260 q36 26 73 14M476 259 q-36 26-72 15" fill="none" stroke="#725548" stroke-width="9"/>
+</g>
+</svg>
