@@ -1,8 +1,11 @@
 import type { MatchRules } from '../game/gameDefinition';
 
 export const BASE_DECK = [
-  'soothe', 'guide', 'polish', 'reconsider', 'rush', 'voice',
-  'overtime', 'writerBlock', 'soothe', 'guide', 'voice', 'overtime',
+  'soothe', 'soothe',
+  'oneOnOne', 'oneOnOne',
+  'guide', 'guide',
+  'voice', 'polish', 'inspiration', 'rush',
+  'overtime', 'accident', 'writerBlock', 'techFailure', 'thoughtBlock',
 ] as const;
 
 // Planned skills do not remove a character from the normal roster. Keeping

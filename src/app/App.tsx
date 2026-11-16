@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { selectStandardRosters } from '../game/engine';
+import type { WorkType } from '../game/schema';
 import type { GameDefinition } from '../game/gameDefinition';
 import { persistTeamNameCookie, readTeamNameCookie } from '../preferences/teamName';
 import { useGameStore } from '../store/gameStore';
@@ -9,10 +10,11 @@ import { OnlineConnectionDialog } from '../components/OnlineConnectionDialog';
 import { OnlineDraftScreen } from '../components/OnlineDraftScreen';
 import { StartScreen, type TeamSizeOption } from '../components/StartScreen';
 import { DrawPhaseScreen } from '../components/DrawPhaseScreen';
+import { WorkTypeSelectionScreen } from '../components/WorkTypeSelectionScreen';
 import { useOnlineSession } from '../online/onlineSession';
 import { BattleRoom } from './BattleRoom';
 
-type AppStage = 'start' | 'draw' | 'online-draft' | 'battle';
+type AppStage = 'start' | 'draw' | 'work-types' | 'online-draft' | 'online-work-types' | 'battle';
 
 interface AppProps {
   gameDefinition?: GameDefinition;
@@ -22,6 +24,7 @@ interface DraftRoster {
   player: string[];
   enemy: string[];
   gameDefinition: GameDefinition;
+  leaderId?: string;
 }
 
 export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppProps) {
@@ -33,6 +36,8 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
   const onlineStatus = useOnlineSession((state) => state.status);
   const onlineTeamSize = useOnlineSession((state) => state.teamSize);
   const onlineDraft = useOnlineSession((state) => state.draft);
+  const onlineWorkTypeSelections = useOnlineSession((state) => state.workTypeSelections);
+  const submitOnlineWorkTypes = useOnlineSession((state) => state.submitWorkTypes);
   const onlineLocalTeamName = useOnlineSession((state) => state.localTeamName);
   const onlineRemoteTeamName = useOnlineSession((state) => state.remoteTeamName);
   const startHostDraft = useOnlineSession((state) => state.startHostDraft);
@@ -69,16 +74,12 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     if (onlineStatus !== 'connected') return;
     if (game) {
       setOnlineOpen(false);
-      if (onlineDraft && !onlineDraftSettled) {
-        setAppStage('online-draft');
-        return;
-      }
       setAppStage('battle');
       return;
     }
     if (onlineDraft) {
       setOnlineOpen(false);
-      setAppStage('online-draft');
+      setAppStage(onlineDraft.status === 'complete' && onlineDraftSettled ? 'online-work-types' : 'online-draft');
       return;
     }
     if (onlineRole === 'host' && onlineTeamSize) {
@@ -94,6 +95,8 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       || !onlineDraft
       || onlineDraft.status !== 'complete'
       || !onlineDraftSettled
+      || !onlineWorkTypeSelections.host
+      || !onlineWorkTypeSelections.guest
       || game
     ) return;
     const selectedGameDefinition: GameDefinition = {
@@ -110,9 +113,11 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       onlineDraft.guestPicks,
       onlineDraft.hostPicks[0],
       selectedGameDefinition,
+      onlineWorkTypeSelections.host,
+      onlineWorkTypeSelections.guest,
     );
     broadcastCurrentGame();
-  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineLocalTeamName, onlineRemoteTeamName, onlineRole, onlineStatus, startGame]);
+  }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineLocalTeamName, onlineRemoteTeamName, onlineRole, onlineStatus, onlineWorkTypeSelections, startGame]);
 
   const handleStart = (teamSize: TeamSizeOption, requestedTeamName: string) => {
     if (onlineRole) disconnectOnline();
@@ -157,7 +162,19 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
 
   const handleConfirmRoster = (leaderId: string) => {
     if (!draftRoster) return;
-    startGame(draftRoster.player, draftRoster.enemy, leaderId, draftRoster.gameDefinition);
+    setDraftRoster((current) => current ? { ...current, leaderId } : current);
+    setAppStage('work-types');
+  };
+
+  const handleConfirmWorkTypes = (selections: Record<string, WorkType>) => {
+    if (!draftRoster?.leaderId) return;
+    startGame(
+      draftRoster.player,
+      draftRoster.enemy,
+      draftRoster.leaderId,
+      draftRoster.gameDefinition,
+      selections,
+    );
     setAppStage('battle');
   };
 
@@ -219,6 +236,20 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
     );
   }
 
+  if (appStage === 'work-types' && draftRoster?.leaderId) {
+    const workTypeCharacters = draftRoster.player.flatMap((memberId) => {
+      const character = draftRoster.gameDefinition.content.characters[memberId];
+      return character ? [character] : [];
+    });
+    return (
+      <WorkTypeSelectionScreen
+        characters={workTypeCharacters}
+        gameDefinition={draftRoster.gameDefinition}
+        onConfirm={handleConfirmWorkTypes}
+      />
+    );
+  }
+
   if (appStage === 'online-draft' && onlineDraft && onlineRole) {
     const draftCharacters = onlineDraft.poolIds.flatMap((memberId) => {
       const character = gameDefinition.content.characters[memberId];
@@ -231,6 +262,28 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
         characters={draftCharacters}
         onPick={(characterId) => pickDraftCharacter(characterId)}
         onAnimationSettled={handleOnlineDraftAnimationSettled}
+      />
+    );
+  }
+
+  if (appStage === 'online-work-types' && onlineDraft && onlineRole) {
+    const localIds = onlineRole === 'host' ? onlineDraft.hostPicks : onlineDraft.guestPicks;
+    const localCharacters = localIds.flatMap((memberId) => {
+      const character = gameDefinition.content.characters[memberId];
+      return character ? [character] : [];
+    });
+    const submitted = onlineRole === 'host'
+      ? !!onlineWorkTypeSelections.host
+      : !!onlineWorkTypeSelections.guest;
+    return (
+      <WorkTypeSelectionScreen
+        characters={localCharacters}
+        gameDefinition={gameDefinition}
+        submitted={submitted}
+        title="確認連線對局作品類型"
+        description="請為自己隊伍的每名角色選擇初始作品類型。雙方都確認後才會建立對局。"
+        confirmLabel="送出作品類型"
+        onConfirm={(selections) => { submitOnlineWorkTypes(selections); }}
       />
     );
   }

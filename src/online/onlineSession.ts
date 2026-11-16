@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { EngineSession } from '../game/engine';
-import type { TeamId } from '../game/schema';
+import { EngineSession, getInitialWorkTypeChoices } from '../game/engine';
+import type { TeamId, WorkType } from '../game/schema';
 import type { ActionChoice } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { DEFAULT_TEAM_NAME, normalizeTeamName } from '../preferences/teamName';
@@ -33,12 +33,18 @@ import { generateRoomCode, MqttSignalingClient, type SignalingMessage } from './
 type OnlineRole = 'host' | 'guest';
 type OnlineStatus = 'idle' | 'preparing' | 'waiting' | 'connecting' | 'connected' | 'closed' | 'error';
 
+export interface OnlineWorkTypeSelections {
+  host: Record<string, WorkType> | null;
+  guest: Record<string, WorkType> | null;
+}
+
 interface OnlineSessionStore {
   role: OnlineRole | null;
   status: OnlineStatus;
   roomCode: string;
   teamSize: OnlineTeamSize | null;
   draft: OnlineDraftState | null;
+  workTypeSelections: OnlineWorkTypeSelections;
   localTeamName: string;
   remoteTeamName: string | null;
   timer: OnlineRopeTimer | null;
@@ -49,6 +55,7 @@ interface OnlineSessionStore {
   startHostDraft: (playableIds: string[]) => boolean;
   markDraftReady: () => void;
   pickDraftCharacter: (characterId: string) => boolean;
+  submitWorkTypes: (selections: Record<string, WorkType>) => boolean;
   sendCommand: (command: OnlineCommand) => boolean;
   broadcastCurrentGame: () => boolean;
   disconnect: () => void;
@@ -183,6 +190,29 @@ function broadcastDraft(draft: OnlineDraftState): boolean {
     hostTeamName: state.localTeamName,
     guestTeamName: state.remoteTeamName ?? undefined,
   });
+}
+
+export function normalizeOnlineWorkTypeSelections(
+  draft: OnlineDraftState | null,
+  side: OnlineDraftSide,
+  requested: Record<string, WorkType>,
+): Record<string, WorkType> | null {
+  if (!draft || draft.status !== 'complete') return null;
+  const memberIds = side === 'host' ? draft.hostPicks : draft.guestPicks;
+  const normalized: Record<string, WorkType> = {};
+  for (const memberId of memberIds) {
+    const requestedType = requested[memberId];
+    if (!requestedType || !getInitialWorkTypeChoices(memberId).includes(requestedType)) return null;
+    normalized[memberId] = requestedType;
+  }
+  return normalized;
+}
+
+function normalizeWorkTypeSelections(
+  side: OnlineDraftSide,
+  requested: Record<string, WorkType>,
+): Record<string, WorkType> | null {
+  return normalizeOnlineWorkTypeSelections(useOnlineSession.getState().draft, side, requested);
 }
 
 function publishTimeoutNotice(title: string, message: string): void {
@@ -371,6 +401,18 @@ function handleGameMessage(raw: string, role: OnlineRole): void {
     }
     useOnlineSession.setState({ remoteTeamName: normalizeTeamName(message.teamName ?? DEFAULT_TEAM_NAME) });
     updateHostDraft(current, next);
+    return;
+  }
+
+  if (role === 'host' && message.type === 'workTypes') {
+    const normalized = normalizeWorkTypeSelections('guest', message.selections);
+    if (!normalized) {
+      send({ version: ONLINE_PROTOCOL_VERSION, type: 'error', message: '對手送出的作品類型設定無效。' });
+      return;
+    }
+    useOnlineSession.setState((current) => ({
+      workTypeSelections: { ...current.workTypeSelections, guest: normalized },
+    }));
     return;
   }
 
@@ -565,6 +607,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
   roomCode: '',
   teamSize: null,
   draft: null,
+  workTypeSelections: { host: null, guest: null },
   localTeamName: DEFAULT_TEAM_NAME,
   remoteTeamName: null,
   timer: null,
@@ -582,6 +625,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
       roomCode,
       teamSize,
       draft: null,
+      workTypeSelections: { host: null, guest: null },
       localTeamName,
       remoteTeamName: null,
       timer: null,
@@ -618,6 +662,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
       roomCode,
       teamSize: null,
       draft: null,
+      workTypeSelections: { host: null, guest: null },
       localTeamName,
       remoteTeamName: null,
       timer: null,
@@ -649,7 +694,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     try {
       draftReadyBySide = { host: false, guest: false };
       const draft = createOnlineDraft(state.teamSize, playableIds);
-      set({ draft, timer: null, error: null });
+      set({ draft, workTypeSelections: { host: null, guest: null }, timer: null, error: null });
       broadcastDraft(draft);
       return true;
     } catch (error) {
@@ -689,6 +734,21 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
     return true;
   },
 
+  submitWorkTypes: (selections) => {
+    const state = get();
+    if (!state.role || state.status !== 'connected' || !state.draft || state.draft.status !== 'complete') return false;
+    const normalized = normalizeWorkTypeSelections(state.role, selections);
+    if (!normalized) return false;
+    if (state.role === 'guest') {
+      const sent = send({ version: ONLINE_PROTOCOL_VERSION, type: 'workTypes', selections: normalized });
+      if (!sent) return false;
+      set({ workTypeSelections: { ...state.workTypeSelections, guest: normalized } });
+      return true;
+    }
+    set({ workTypeSelections: { ...state.workTypeSelections, host: normalized } });
+    return true;
+  },
+
   sendCommand: (command) => send({ version: ONLINE_PROTOCOL_VERSION, type: 'command', command }),
 
   broadcastCurrentGame: () => {
@@ -716,6 +776,7 @@ export const useOnlineSession = create<OnlineSessionStore>((set, get) => ({
       roomCode: '',
       teamSize: null,
       draft: null,
+      workTypeSelections: { host: null, guest: null },
       remoteTeamName: null,
       timer: null,
       timeoutNotice: null,

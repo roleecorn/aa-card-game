@@ -8,4 +8,4 @@
 
 - `character-package/SKILL.md`：新增／完成角色，包含美術與 atomic commit。
 - `discussion-grounding/SKILL.md`：根據 Discord 討論判定 source-backed / assumption。
-- `runtime-ui-validation/SKILL.md`：取得真正程式 runtime UI，不以 Figma mockup 替代。
+- `runtime-ui-validation/SKILL.md`：以真正程式 runtime UI、browser rendering 與 screenshot 驗證畫面。

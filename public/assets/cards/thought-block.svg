@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 480">
+<!-- References: writer-block.svg (blocked-creation metaphor and muted event palette). -->
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d1ccdf"/><stop offset="1" stop-color="#8694ad"/></linearGradient>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5"/></filter>
+  <filter id="paper"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="3" result="noise"/><feBlend in="SourceGraphic" in2="noise" mode="soft-light"/></filter>
+</defs>
+<rect width="768" height="480" rx="28" fill="url(#bg)"/>
+<g filter="url(#paper)" opacity=".22"><rect width="768" height="480" fill="#fff"/></g>
+<g filter="url(#crayon)" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="264" cy="255" r="72" fill="#efc3a2" stroke="#6f514a" stroke-width="11"/>
+  <path d="M190 400 Q247 314 330 385" fill="#7a8ba5" stroke="#4d5b72" stroke-width="12"/>
+  <path d="M231 245 q32-42 66 0M240 278 q24 22 48 0" fill="none" stroke="#6f514a" stroke-width="9"/>
+  <path d="M358 126 Q420 88 452 140 Q478 184 438 215 Q400 246 450 282 Q500 319 458 367" fill="none" stroke="#5e6d86" stroke-width="18"/>
+  <path d="M386 121 Q438 156 404 196 Q370 235 426 259 Q482 285 448 338" fill="none" stroke="#7a5f86" stroke-width="13"/>
+  <rect x="520" y="104" width="84" height="274" rx="16" fill="#8e8799" stroke="#514b5d" stroke-width="12"/>
+  <path d="M468 174 h50M472 240 h46M471 306 h47" stroke="#f3e9cf" stroke-width="11"/>
+  <path d="M484 155 l32 19-32 19M488 221 l30 19-30 19M486 287 l32 19-32 19" fill="none" stroke="#f3e9cf" stroke-width="10"/>
+  <path d="M630 150 q35 35 0 70M646 270 q35 35 0 70" fill="none" stroke="#fff" stroke-width="10" opacity=".65"/>
+</g>
+</svg>

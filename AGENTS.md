@@ -11,6 +11,13 @@
 - build 使用 **Vite**，測試使用 **Vitest**。
 - 新 dependency 必須有明確用途；不要為一個很小的 helper 引入大型套件。
 
+## Reference-first implementation gate
+
+- **新增任何程式、UI、content、test、文件結構或 asset 前，先找 repository 內職責最接近的既有檔案作 reference。** 新增項目應延續既有 naming、目錄、schema、component pattern、測試方式與視覺格式，不得在未確認 reference 的情況下自行建立第二套做法。
+- 若真的沒有可對應的既有 reference，先把新的 convention / contract 寫入對應 canonical 文件並完成 review，再開始新增實作。
+- 同一類 asset 已有固定格式時，不得因工具方便改用另一種格式。例如 individual card art 已由 `public/assets/cards/*.svg` 建立慣例，就不得自行改成 WebP / PNG。
+- PR summary 應能指出重要新增項目的既有 reference；visual asset 應在 asset 或規格文件中保留可追溯 reference。
+
 ## 部署與 public asset 路徑
 
 - **不得假設此 Web app 部署在 domain root。** GitHub Pages、preview、reverse proxy 或其他 hosting 都可能將程式掛在 `/aa-card-game/` 或其他子路徑。
@@ -125,12 +132,20 @@
 - 不得用 blurred padding、letterbox、延伸背景偽裝錯誤比例。
 - 圖片不要包含角色名稱、能力值、技能文字、卡框、badge 等 UI text；這些由 React/MUI render。
 - 臉部與主要輪廓需落在中央 safe area。
-- 使用者新增／替換正式 portrait 後應執行 `npm run art:normalize` 與 `npm run art:validate`。
+- 使用者新增／替換正式 portrait 後應執行 `npm run art:normalize` 與 `npm run art:validate`；compact 是目前 pipeline 由 portrait 產生的 derivative，不是獨立 source-of-truth。
 - validator 必須檢查 WebP RIFF 宣告長度與實際 bytes；檔案存在不代表 binary 完整。
 - WebP 檔案大小不要求相同，只要求 canonical dimensions / encoding / container 完整性。
 - **Chat / AI agent 不得自行把圖片 binary 上傳、替換或提交到 GitHub / repository。** 不得用 base64、Git blob/tree API、Contents API、Actions decode、臨時 branch 等方式繞過。
 - Chat / AI agent 可以產生、裁切、轉檔、驗證圖片並整理 ZIP，標示正確 repo path，由使用者手動上傳 binary。
 - 詳細規格見 `CHARACTER_CARD_ART.md`。
+
+## 卡牌美術
+
+- Individual runtime card illustrations 使用 `public/assets/cards/*.svg`，canonical canvas 為 768×480（8:5）。
+- 新卡圖必須先指定現有 SVG reference，沿用既有 `paper` / `crayon` texture、粗圓角 stroke、簡化幾何構圖與既有 palette family。
+- 不得用 raster Image Generation 結果、WebP / PNG 或 `<image>` embedding 取代既有 individual-card SVG 畫風。
+- `public/assets/cards/` 僅放 individual runtime card SVG；舊 `coordination.png` / `event.png` category raster 已因未使用且尺寸不一致而移除，不得當作格式 precedent。
+- 詳細格式、reference mapping 與提交流程見 `CARD_ART_STYLE.md`；所有 asset family 的 registry / ownership / validation 見 `ASSET_CONVENTIONS.md`。
 
 ## 編碼與 shell
 
@@ -172,15 +187,6 @@ npm run build
 - 每個角色提交時仍必須有可解析圖片 reference；正式圖尚未提供時使用 placeholder / 代用圖。
 - **角色 package 一輪只處理一名角色。** 除非使用者明確要求 multi-character batch。
 - 不 force-push、不重寫使用者既有歷史，除非使用者明確要求。
-
-## Figma
-
-- 視覺排版與 component design 的 Figma file：`https://www.figma.com/design/sNoL5F3tk7rCOiMSLm38TH`。
-- GitHub/TypeScript 仍是 runtime logic source of truth；Figma 是 visual/layout source。
-- 修改 layout、spacing、typography 或 component composition 時應同步 Figma；從 Figma 回寫需經 design-to-code review。
-- Figma 只處理概念、流程與 layout；不要把 runtime raster asset 上傳／同步到 Figma 當發布流程。
-- 圖片與文字/UI layer 必須分離。
-- 詳見 `FIGMA.md`。
 
 ## Repository-local skills
 

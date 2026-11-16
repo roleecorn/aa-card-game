@@ -3,7 +3,7 @@ import { characterDefinitionSchema, skillDefinitionSchema } from '../game/schema
 export const happyCharacter = characterDefinitionSchema.parse({
   id: 'happy',
   name: '高興',
-  stats: { design: 3, text: 0, aa: 0 },
+  stats: { design: 3, text: 0, aa: 1 },
   maxStress: null,
   affinities: ['怪'],
   skillIds: ['happyContagion', 'happyEditor'],
@@ -11,26 +11,21 @@ export const happyCharacter = characterDefinitionSchema.parse({
   compactPortrait: 'assets/characters/compact/happy.webp',
   portraitPosition: { x: 50, y: 12 },
   sourceNotes: [
-    '原始角色卡明確列出 Design 3、壓力上限 ∞。',
-    'Text / AA 未在角色卡中列出；依目前 prototype 對未列能力的資料慣例採 0。',
-    '技能「高興」：參與的作品類型變為（怪）。',
-    '第二技能採後期修正版：遊戲開始時額外取得三張統籌卡。',
-    '2026-09-10 角色校正：作品適性定案為僅（怪）。',
+    '2026-09-14 final：Design 3 / Text 0 / AA 1，Stress 無上限，適性（怪）。',
+    '「高興素」改為遊戲開始時讓所有組員作品額外獲得（怪），是 add type 而非 replace。',
+    '舊版「高興放骰後把該作品改成怪」已被覆蓋。',
+    '「編輯長」維持遊戲開始時額外取得 3 張統籌卡。',
   ],
 });
 
 export const happySkills = skillDefinitionSchema.array().parse([
   {
     id: 'happyContagion',
-    name: '高興',
-    description: '高興將自己的骰放入作品後，該作品類型變為「怪」。',
+    name: '高興素',
+    description: '遊戲開始時，我方所有組員的作品額外獲得「怪」類型，不覆蓋原本類型。',
     activation: 'triggered',
     status: 'implemented',
-    triggers: [{
-      event: 'afterDiePlaced',
-      condition: { kind: 'relation', field: 'actorId', relation: 'self' },
-      effects: [{ kind: 'work.type', target: 'eventWork', workType: '怪' }],
-    }],
+    triggers: [{ event: 'gameStart', effects: [{ kind: 'work.type.add', target: 'allAllyWorks', workType: '怪' }] }],
   },
   {
     id: 'happyEditor',

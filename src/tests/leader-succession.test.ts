@@ -167,7 +167,7 @@ describe('card ownership after actual succession', () => {
     expect(mashiro.stress).toBe(1);
   });
 
-  it('keeps the leader as card actor when viceLeaderPower redirects coordination Stress', () => {
+  it('keeps the leader as card actor when headroom-based viceLeaderPower redirects coordination Stress', () => {
     const definition = withLeaderCardAudit('pintbox');
     const roster = {
       playerMemberIds: ['pintbox', 'meteor', 'mashiro'],
@@ -177,7 +177,7 @@ describe('card ownership after actual succession', () => {
     const engine = new EngineSession(game, () => 0.5, definition);
     const leader = engine.getCharacter('player', 'pintbox')!;
     const viceLeader = engine.getCharacter('player', 'meteor')!;
-    leader.stress = 2;
+    leader.stress = 4;
     viceLeader.stress = 0;
     engine.getCharacter('player', 'mashiro')!.stress = 2;
     engine.addCard('player', 'soothe', 1);
@@ -185,7 +185,9 @@ describe('card ownership after actual succession', () => {
 
     expect(engine.playCard('player', card.instanceId, { memberId: 'mashiro' })).toBe(true);
     expect(viceLeader.stress).toBe(1);
-    expect(leader.stress).toBe(1);
+    // Coordination cost is redirected, but cardPlayed still reports Pintbox as actor,
+    // so the audit skill reduces Pintbox Stress 4 -> 3.
+    expect(leader.stress).toBe(3);
     expect(game.player.leaderId).toBe('pintbox');
   });
 

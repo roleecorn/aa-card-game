@@ -35,6 +35,11 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
     const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
     return !!owner && compare(owner.stress, condition.op, condition.value);
   }
+  if (condition.kind === 'ownerStressBelowCap') {
+    const owner = engine.getCharacter(context.ownerTeamId, context.ownerId);
+    const cap = engine.getEffectiveMaxStress(context.ownerTeamId, context.ownerId);
+    return !!owner && (cap === null || (cap !== undefined && owner.stress < cap));
+  }
   if (condition.kind === 'memberStress') {
     return engine.resolveMembers(condition.target, context).some(({ member }) => compare(member.stress, condition.op, condition.value));
   }
@@ -63,7 +68,7 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
   }
   if (condition.kind === 'workType') {
     const works = engine.resolveWorks(condition.target, context);
-    return works.some((work) => condition.types.includes(work.type));
+    return works.some((work) => condition.types.some((type) => engine.workHasType(work, type)));
   }
   if (condition.kind === 'workScore') {
     const works = engine.resolveWorks(condition.target, context);
@@ -81,6 +86,14 @@ export function matchesCondition(condition: SkillCondition, context: EffectConte
     const works = engine.resolveWorks(condition.target, context);
     if (!works.length) return false;
     const matches = (work: (typeof works)[number]) => workHasProgress(work, condition.skill);
+    return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
+  }
+  if (condition.kind === 'workHasEmptyProgress') {
+    const works = engine.resolveWorks(condition.target, context);
+    if (!works.length) return false;
+    const matches = (work: (typeof works)[number]) => work.slots.some((slot) =>
+      condition.skill ? slot[condition.skill] === undefined :
+        slot.design === undefined || slot.text === undefined || slot.aa === undefined);
     return condition.quantifier === 'all' ? works.every(matches) : works.some(matches);
   }
   if (condition.kind === 'chance') return engine.random() < condition.probability;
@@ -260,6 +273,26 @@ export class SkillRuntime {
     return result;
   }
 
+  getStatModifier(memberId: string, skill: 'design' | 'text' | 'aa'): number {
+    const teamId = this.engine.findMemberTeam(memberId);
+    if (!teamId) return 0;
+    const team = this.engine.getTeam(teamId);
+    let total = 0;
+    for (const passive of this.passives(memberId)) {
+      if (passive.kind === 'stat.modify' && passive.skill === skill) total += passive.amount;
+      if (passive.kind !== 'stat.workTypeCount' || passive.skill !== skill) continue;
+      const matching = team.works.filter((work) => {
+        if (passive.excludeOwnerWork && work.ownerId === memberId) return false;
+        return this.engine.workHasType(work, passive.workType);
+      }).length;
+      let bonus = matching * passive.amountPerWork + passive.offset;
+      if (passive.minBonus !== undefined) bonus = Math.max(passive.minBonus, bonus);
+      if (passive.maxBonus !== undefined) bonus = Math.min(passive.maxBonus, bonus);
+      total += bonus;
+    }
+    return total;
+  }
+
   getRollFloor(memberId: string, base = 1): number {
     let floor = base;
     for (const passive of this.passives(memberId)) {
@@ -268,18 +301,42 @@ export class SkillRuntime {
     return Math.min(6, Math.max(1, floor));
   }
 
-  getCoordinationStressBearer(teamId: 'player' | 'enemy'): string | undefined {
+  getForbiddenRollFaces(memberId: string): Set<number> {
+    const result = new Set<number>();
+    for (const passive of this.passives(memberId)) {
+      if (passive.kind === 'roll.forbid') passive.faces.forEach((face) => result.add(face));
+    }
+    const teamId = this.engine.findMemberTeam(memberId);
+    const member = teamId ? this.engine.getCharacter(teamId, memberId) : undefined;
+    for (const constraint of member?.timedRollConstraints ?? []) {
+      constraint.forbiddenFaces.forEach((face) => result.add(face));
+    }
+    return result;
+  }
+
+  getCoordinationStressBearer(teamId: 'player' | 'enemy', amount = 1): string | undefined {
     const team = this.engine.getTeam(teamId);
     const leader = this.engine.getCharacter(teamId, team.leaderId);
     if (!leader) return undefined;
 
-    return team.members.find((member) => {
-      if (member.defId === team.leaderId || hasGameplayStatus(member, GAMEPLAY_STATUS.hidden)) return false;
-      return this.passives(member.defId).some((passive) => {
-        if (passive.kind !== 'coordination.stressBearer') return false;
-        return passive.allowEqual ? member.stress <= leader.stress : member.stress < leader.stress;
-      });
-    })?.defId;
+    const headroom = (memberId: string): number => {
+      const member = this.engine.getCharacter(teamId, memberId);
+      const maxStress = this.engine.getEffectiveMaxStress(teamId, memberId);
+      if (!member || maxStress === undefined) return -Infinity;
+      if (maxStress === null) return Infinity;
+      return Math.max(0, maxStress - member.stress);
+    };
+
+    const leaderHeadroom = headroom(team.leaderId);
+    const viceCandidates = team.members
+      .filter((member) => member.defId !== team.leaderId && !hasGameplayStatus(member, GAMEPLAY_STATUS.hidden))
+      .filter((member) => this.passives(member.defId).some((passive) => passive.kind === 'coordination.stressBearer'))
+      .map((member) => ({ member, headroom: headroom(member.defId) }))
+      .filter((entry) => entry.headroom >= amount && entry.headroom > leaderHeadroom)
+      .sort((a, b) => b.headroom - a.headroom);
+
+    if (viceCandidates[0]) return viceCandidates[0].member.defId;
+    return leaderHeadroom >= amount ? team.leaderId : undefined;
   }
 
   private passives(memberId: string): SkillPassive[] {
@@ -353,15 +410,14 @@ export class SkillRuntime {
       return enemyTeam.works.some((work) => work.id === target.workId);
     }
     if (spec.kind === 'copyPendingDie') {
-      if (!target.sourceDieId || !target.targetDieId) return false;
+      if (!target.sourceDieId || !target.targetDieId || target.sourceDieId === target.targetDieId) return false;
       const team = this.engine.getTeam(teamId);
       const source = team.pendingDice.find((die) => die.id === target.sourceDieId);
       const destination = team.pendingDice.find((die) => die.id === target.targetDieId);
-      return !!source
-        && !!destination
-        && source.ownerId !== memberId
-        && destination.ownerId === memberId
-        && source.value !== destination.value;
+      if (!source || !destination) return false;
+      const sourceMatches = spec.source === 'self' ? source.ownerId === memberId : source.ownerId !== memberId;
+      const targetMatches = spec.target === 'self' ? destination.ownerId === memberId : destination.ownerId !== memberId;
+      return sourceMatches && targetMatches && (!spec.requireValueChange || source.value !== destination.value);
     }
     if (!target.targetDieId) return false;
     const ownerTeam = this.engine.getTeam(teamId);

@@ -1,11 +1,11 @@
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import type { GameDefinition, MatchRules } from '../game/gameDefinition';
-import type { TeamId } from '../game/schema';
+import type { TeamId, WorkType } from '../game/schema';
 import type { ActionChoice, GameState, Phase, SkillActivationTarget } from '../game/types';
 import type { OnlineDraftState } from './onlineDraft';
 import type { OnlineRopeTimer, OnlineTimeoutNotice } from './onlineRope';
 
-export const ONLINE_PROTOCOL_VERSION = 2;
+export const ONLINE_PROTOCOL_VERSION = 3;
 
 export type OnlineCommand =
   | { type: 'performActions'; actions: Record<string, ActionChoice> }
@@ -60,6 +60,11 @@ export type OnlineMessage =
       type: 'draftPick';
       characterId: string;
       teamName?: string;
+    }
+  | {
+      version: typeof ONLINE_PROTOCOL_VERSION;
+      type: 'workTypes';
+      selections: Record<string, WorkType>;
     }
   | {
       version: typeof ONLINE_PROTOCOL_VERSION;
