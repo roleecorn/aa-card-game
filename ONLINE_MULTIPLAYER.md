@@ -180,8 +180,8 @@ Guest: enemy-plan  -> enemy-assign
 - 每一方結束 assignment 時，未使用 pending dice 清除。
 - Host assignment 完成後，不會跑 Standard AI；而是切到 Guest plan。
 - Guest assignment 完成後才執行共用 `advanceRound()`。
-- Standard Engine 對 `enemy` 有自動丟棄超量手牌的 AI 假設；Online round transition 暫時替換 draw/add-card behavior，避免把真人 Guest 的超量手牌自動丟掉。
-- 正常操作時兩名 Online 玩家自行處理手牌上限；若 rope timeout 發生且該 side 仍超過上限，Host 會先隨機棄到合法手牌數，再執行 timeout resolution。
+- Host 建立對局及執行指令時，Engine 將 `enemy` 視為真人。Guest 在開局、回合抽牌或技能結算取得的卡牌都會保留，由 Guest 選擇要棄掉的卡。
+- 兩名玩家有超量手牌時，必須棄到上限才能提交規劃或結束配置。若 rope timeout 發生時仍超過上限，Host 會先隨機棄到合法手牌數，再執行 timeout resolution。
 
 ### Battle rope timer
 

@@ -115,6 +115,7 @@ export default function App({ gameDefinition = STANDARD_GAME_DEFINITION }: AppPr
       selectedGameDefinition,
       onlineWorkTypeSelections.host,
       onlineWorkTypeSelections.guest,
+      'online',
     );
     broadcastCurrentGame();
   }, [broadcastCurrentGame, game, gameDefinition, onlineDraft, onlineDraftSettled, onlineLocalTeamName, onlineRemoteTeamName, onlineRole, onlineStatus, onlineWorkTypeSelections, startGame]);

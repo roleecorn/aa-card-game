@@ -4,7 +4,6 @@ import { immer } from 'zustand/middleware/immer';
 import { STANDARD_GAME_DEFINITION } from '../content/catalog';
 import { EngineSession, createInitialGame } from '../game/engine';
 import { finishOnlineAssignment, performOnlineTeamActions } from '../game/onlineTurn';
-import { placeDieWithLegality } from '../game/placement';
 import type { GameDefinition } from '../game/gameDefinition';
 import type { ActionChoice, GameState, SkillActivationTarget } from '../game/types';
 import type { TeamId, WorkType } from '../game/schema';
@@ -16,7 +15,7 @@ import {
   type TutorialRuntimeState,
 } from '../tutorial/scenario';
 
-type GameMode = 'standard' | 'tutorial';
+type GameMode = 'standard' | 'tutorial' | 'online';
 
 interface GameStore {
   game: GameState | null;
@@ -32,6 +31,7 @@ interface GameStore {
     gameDefinition?: GameDefinition,
     playerWorkTypes?: Partial<Record<string, WorkType>>,
     enemyWorkTypes?: Partial<Record<string, WorkType>>,
+    mode?: Exclude<GameMode, 'tutorial'>,
   ) => void;
   startTutorial: () => void;
   loadOnlineSnapshot: (game: GameState, gameDefinition: GameDefinition) => void;
@@ -80,7 +80,7 @@ function session(
     if (!tutorial) throw new Error('Tutorial mode requires tutorial runtime state.');
     return createTutorialSession(game, tutorial);
   }
-  return new EngineSession(game, Math.random, gameDefinition);
+  return new EngineSession(game, Math.random, gameDefinition, mode === 'online' ? 'human' : 'ai');
 }
 
 export const useGameStore = create<GameStore>()(
@@ -97,7 +97,7 @@ export const useGameStore = create<GameStore>()(
       state.tutorial = null;
       state.actionChoices = {};
     }),
-    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId, requestedGameDefinition, playerWorkTypes, enemyWorkTypes) => set((state) => {
+    startGame: (playerMemberIds, enemyMemberIds, requestedLeaderId, requestedGameDefinition, playerWorkTypes, enemyWorkTypes, mode = 'standard') => set((state) => {
       const gameDefinition = requestedGameDefinition ?? state.gameDefinition ?? STANDARD_GAME_DEFINITION;
       const selectedLeaderId = requestedLeaderId && playerMemberIds.includes(requestedLeaderId)
         ? requestedLeaderId
@@ -105,13 +105,14 @@ export const useGameStore = create<GameStore>()(
       const orderedPlayerMemberIds = moveLeaderFirst(playerMemberIds, selectedLeaderId);
 
       state.gameDefinition = castDraft(gameDefinition);
-      state.mode = 'standard';
+      state.mode = mode;
       state.tutorial = null;
       state.game = createInitialGame(Math.random, gameDefinition, {
         playerMemberIds: orderedPlayerMemberIds,
         enemyMemberIds,
         playerWorkTypes,
         enemyWorkTypes,
+        opponentControl: mode === 'online' ? 'human' : 'ai',
       });
       state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);
     }),
@@ -128,7 +129,7 @@ export const useGameStore = create<GameStore>()(
     loadOnlineSnapshot: (game, gameDefinition) => set((state) => {
       const previousPhase = state.game?.phase;
       state.gameDefinition = castDraft(gameDefinition);
-      state.mode = 'standard';
+      state.mode = 'online';
       state.tutorial = null;
       state.game = castDraft(game);
       if (game.phase === 'player-plan') {
@@ -163,7 +164,7 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (!state.game) return;
-        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition);
+        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition, 'human');
         result = performOnlineTeamActions(engine, teamId, actions);
       });
       return result;
@@ -178,7 +179,7 @@ export const useGameStore = create<GameStore>()(
             state.tutorial as TutorialRuntimeState | null,
             state.gameDefinition as GameDefinition,
           );
-          result = placeDieWithLegality(engine, 'player', dieId, workId, slotIndex);
+          result = engine.placeDie('player', dieId, workId, slotIndex);
         }
       });
       return result;
@@ -187,8 +188,8 @@ export const useGameStore = create<GameStore>()(
       let result = false;
       set((state) => {
         if (!state.game) return;
-        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition);
-        result = placeDieWithLegality(engine, teamId, dieId, workId, slotIndex);
+        const engine = new EngineSession(state.game as GameState, Math.random, state.gameDefinition as GameDefinition, 'human');
+        result = engine.placeDie(teamId, dieId, workId, slotIndex);
       });
       return result;
     },
@@ -208,7 +209,7 @@ export const useGameStore = create<GameStore>()(
       set((state) => {
         if (!state.game) return;
         const gameDefinition = state.gameDefinition as GameDefinition;
-        const engine = new EngineSession(state.game as GameState, Math.random, gameDefinition);
+        const engine = new EngineSession(state.game as GameState, Math.random, gameDefinition, 'human');
         result = finishOnlineAssignment(engine, teamId);
         if (result && state.game.phase === 'player-plan') {
           state.actionChoices = defaultChoices(state.game as GameState, gameDefinition);

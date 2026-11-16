@@ -5,6 +5,7 @@ import type { GameDefinition } from '../game/gameDefinition';
 import { finishOnlineAssignment, performOnlineTeamActions } from '../game/onlineTurn';
 import type { ActionChoice } from '../game/types';
 import { swapGamePerspective } from '../online/protocol';
+import { useGameStore } from '../store/gameStore';
 
 function onlineTestDefinition(): GameDefinition {
   return {
@@ -25,6 +26,41 @@ function allSlack(engine: EngineSession, side: 'player' | 'enemy'): Record<strin
 }
 
 describe('online human turn flow', () => {
+  it('preserves opening and active-skill overflow for the Guest in the game store', () => {
+    const store = useGameStore.getState();
+    store.reset();
+    try {
+      store.startGame(
+        ['pintbox', 'mashiro', 'user79'],
+        ['linlan', 'happy', 'patrick'],
+        'pintbox',
+        STANDARD_GAME_DEFINITION,
+        undefined,
+        undefined,
+        'online',
+      );
+      expect(useGameStore.getState().game?.enemy.hand).toHaveLength(9);
+      expect(store.performOnlineActions('player', {})).toBe(true);
+      expect(store.finishOnlineAssignment('player')).toBe(true);
+      expect(store.performOnlineActions('enemy', {})).toBe(false);
+
+      const openingCard = useGameStore.getState().game!.enemy.hand[0]!;
+      expect(store.discardCards('enemy', [openingCard.instanceId])).toBe(true);
+      expect(store.performOnlineActions('enemy', {})).toBe(true);
+      expect(store.activateSkill('enemy', 'patrick', 'patrickHelp')).toBe(true);
+      const hand = useGameStore.getState().game!.enemy.hand;
+      expect(hand).toHaveLength(10);
+      expect(store.finishOnlineAssignment('enemy')).toBe(false);
+
+      expect(store.discardCards('enemy', hand.slice(0, 2).map((card) => card.instanceId))).toBe(true);
+      expect(store.finishOnlineAssignment('enemy')).toBe(true);
+      expect(useGameStore.getState().game?.round).toBe(2);
+      expect(useGameStore.getState().game?.enemy.hand).toHaveLength(10);
+    } finally {
+      store.reset();
+    }
+  });
+
   it('alternates Host and Guest manual plan/assignment phases before advancing the round', () => {
     const definition = onlineTestDefinition();
     const game = createInitialGame(() => 0.42, definition);
@@ -49,8 +85,8 @@ describe('online human turn flow', () => {
 
   it('keeps overflow cards for both human players instead of applying enemy AI auto-discard', () => {
     const definition = onlineTestDefinition();
-    const game = createInitialGame(() => 0.31, definition);
-    const engine = new EngineSession(game, () => 0.31, definition);
+    const game = createInitialGame(() => 0.31, definition, { opponentControl: 'human' });
+    const engine = new EngineSession(game, () => 0.31, definition, 'human');
 
     expect(game.player.hand).toHaveLength(1);
     expect(game.enemy.hand).toHaveLength(1);
@@ -79,6 +115,7 @@ describe('online human turn flow', () => {
     expect(game.round).toBe(2);
     expect(game.phase).toBe('player-plan');
     expect(game.phase).not.toBe('enemy-plan');
+    expect(game.enemy.hand).toHaveLength(1);
   });
 });
 
